@@ -44,3 +44,13 @@ class CliTests(unittest.TestCase):
         unknown = cli.recommend_runtime("qwen38", concurrency=8, prompt_tokens=512)
         self.assertEqual(unknown["backend"], "manual")
         self.assertEqual(unknown["confidence"], "unvalidated")
+
+    def test_gemm_policy_promotes_only_measured_m128_cells(self):
+        measured = cli.recommend_gemm(4096, 4096, 4096)
+        self.assertEqual(measured["variant"], "m128")
+        self.assertEqual(measured["confidence"], "measured_shape")
+        unknown = cli.recommend_gemm(3072, 2048, 1024)
+        self.assertEqual(unknown["variant"], "single")
+        self.assertEqual(unknown["confidence"], "aligned_control_unvalidated_shape")
+        unaligned = cli.recommend_gemm(1000, 1024, 1024)
+        self.assertEqual(unaligned["variant"], "fallback")

@@ -84,6 +84,42 @@ def recommend_runtime(model: str, concurrency: int, prompt_tokens: int) -> dict[
     }
 
 
+def recommend_gemm(m: int, n: int, k: int) -> dict[str, object]:
+    """Choose only a TMA-WMMA variant covered by the measured matrix.
+
+    The m128 candidate is deliberately promoted only for exact measured
+    cells. Other aligned shapes use the single-buffer baseline as a safe
+    control, while unaligned shapes stay on the caller's fallback path.
+    """
+    if min(m, n, k) < 1:
+        raise ValueError("m, n, and k must be positive")
+    measured_m128 = {
+        (1024, 1024, 1024),
+        (2048, 1024, 4096),
+        (4096, 4096, 4096),
+    }
+    if (m, n, k) in measured_m128:
+        return {
+            "shape": [m, n, k],
+            "variant": "m128",
+            "confidence": "measured_shape",
+            "reason": "m128 is the fastest measured TMA-WMMA candidate for this cell",
+        }
+    if m >= 64 and m % 16 == 0 and n % 16 == 0 and k % 16 == 0:
+        return {
+            "shape": [m, n, k],
+            "variant": "single",
+            "confidence": "aligned_control_unvalidated_shape",
+            "reason": "use the single-buffer control until this shape is measured",
+        }
+    return {
+        "shape": [m, n, k],
+        "variant": "fallback",
+        "confidence": "unaligned_unvalidated",
+        "reason": "TMA-WMMA probes require M>=64 and dimensions divisible by 16",
+    }
+
+
 def _nvcc_command() -> str | None:
     for candidate in ("/usr/local/cuda-13.0/bin/nvcc", "/usr/local/cuda-12.8/bin/nvcc"):
         if Path(candidate).exists():
@@ -157,6 +193,12 @@ def main() -> None:
     runtime_parser.add_argument("--model", default="qwen38", choices=["qwen38"])
     runtime_parser.add_argument("--concurrency", type=int, required=True)
     runtime_parser.add_argument("--prompt-tokens", type=int, required=True)
+    gemm_parser = subcommands.add_parser(
+        "recommend-gemm", help="select a measured TMA-WMMA experiment variant"
+    )
+    gemm_parser.add_argument("--m", type=int, required=True)
+    gemm_parser.add_argument("--n", type=int, required=True)
+    gemm_parser.add_argument("--k", type=int, required=True)
     args = parser.parse_args()
 
     if args.command == "env":
@@ -170,13 +212,15 @@ def main() -> None:
             print(f"export KAIRO_PROFILE_ID={result['profile']}")
         else:
             print(json.dumps(result, indent=2))
-    else:
+    elif args.command == "recommend-runtime":
         print(
             json.dumps(
                 recommend_runtime(args.model, args.concurrency, args.prompt_tokens),
                 indent=2,
             )
         )
+    else:
+        print(json.dumps(recommend_gemm(args.m, args.n, args.k), indent=2))
 
 
 if __name__ == "__main__":

@@ -102,6 +102,15 @@ Use `KAIRO_TMA_SHAPES=M,N,K,iters;...` or `KAIRO_TMA_VARIANTS=single,m128`
 to narrow a sweep. Existing output files are protected unless
 `KAIRO_ALLOW_OVERWRITE=1` is set.
 
+Ask the lab policy which CUDA variant is justified for a shape:
+
+```bash
+./scripts/wsl/run_lab.sh recommend-gemm --m 4096 --n 4096 --k 4096
+```
+
+The policy promotes `m128` only for exact measured cells; unknown aligned
+shapes remain on the single-buffer control until the matrix covers them.
+
 `init-run` writes a machine-readable run record under `runs/`, which is ignored
 by Git. Keep the command, input manifests, source revision, and published result
 table together when reporting an experiment.

@@ -133,6 +133,16 @@ c32_prompt512_eager_1k_control:
   throughput_median: 272.00
   ttft_p50_ms: [1777.44, 1737.84]
   all_requests_successful: true
+routed_runner_integration:
+  route: qwen38-vllm-nightly-cutlass-full-decode-graph-c32-p512
+  requested_context_tokens: 1024
+  requested_generation_tokens: 128
+  correctness_cases: 4
+  correctness_passed: 4
+  throughput_tok_s: 665.76
+  ttft_p50_ms: 875.07
+  successful_requests: 32
+  raw_output: .kairo-local/routed-c32-p512-integration.out
 eager_control:
   throughput_repeats: [154.62, 152.94]
   throughput_mean: 153.78

@@ -384,6 +384,15 @@ the latest Graph run passed the 4/4 correctness gate and all 16 requests
 succeeded. This c16 result is now the strongest measured serving route, while
 remaining bounded to the exact prompt/context/sequence-cap envelope.
 
+To test whether the lead was only a very short-prompt effect, the same c16
+Graph/eager pair was repeated at 512 requested prompt tokens (572 actual),
+still with 1K context and 128 generated tokens. Graph reached 676.95 and
+667.05 tok/s (median **672.00**) versus eager 262.21 and 257.51 (median
+**259.86**): **2.59x / +158.6%**, with 4/4 correctness and 16/16 success.
+This is strong shape evidence, but the current router deliberately does not
+map it onto the existing 4K-context/256-output c16 profile; context and output
+length must become explicit routing dimensions before that promotion.
+
 The CLI now exposes this evidence as a bounded runtime policy via
 `recommend-runtime`: the measured c8/prompt256 cell selects vLLM nightly
 CUTLASS `FULL_DECODE_ONLY` Graph with `max_num_seqs=32`; both repeated c16

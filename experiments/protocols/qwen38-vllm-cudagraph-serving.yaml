@@ -47,6 +47,26 @@ c16_eager_control:
   throughput_median: 293.10
   ttft_p50_ms: [636.96, 549.31]
   all_requests_successful: true
+c16_prompt512_graph_result:
+  requested_concurrency: 16
+  requested_prompt_tokens: 512
+  actual_prompt_tokens_mean: 572.375
+  generation_tokens: 128
+  throughput_repeats: [676.95, 667.05]
+  throughput_median: 672.00
+  ttft_p50_ms: [534.54, 517.02]
+  correctness_cases: 4
+  correctness_passed: 4
+  all_requests_successful: true
+c16_prompt512_eager_1k_control:
+  requested_concurrency: 16
+  requested_prompt_tokens: 512
+  actual_prompt_tokens_mean: 572.375
+  generation_tokens: 128
+  throughput_repeats: [262.21, 257.51]
+  throughput_median: 259.86
+  ttft_p50_ms: [988.05, 934.83]
+  all_requests_successful: true
 eager_control:
   throughput_repeats: [154.62, 152.94]
   throughput_mean: 153.78
@@ -59,6 +79,8 @@ comparison:
   note: Same model, backend, context, sequence cap, prompt, output length, concurrency, warmup, and request count; only CUDA Graph mode differs.
   c16_median_throughput_speedup: 2.45
   c16_approximate_throughput_delta_percent: 145.2
+  c16_prompt512_1k_median_throughput_speedup: 2.59
+  c16_prompt512_1k_approximate_throughput_delta_percent: 158.6
 caveats:
   - These are bounded 1K-context c8/c16 decode pilots, not a general 4K claim.
   - Graph startup/capture is excluded from request throughput and requires max_num_seqs <= available Mamba cache blocks.
@@ -70,3 +92,5 @@ evidence:
   eager_raw: .kairo-local/qwen-cutlass-eager-c8-repeat.out
   c16_graph_raw: .kairo-local/qwen-cutlass-decodegraph-c16.out, .kairo-local/qwen-cutlass-decodegraph-c16-repeat.out, .kairo-local/qwen-cutlass-decodegraph-c16-correct.out
   c16_eager_raw: .kairo-local/qwen-cutlass-eager-c16-1k.out
+  c16_prompt512_graph_raw: .kairo-local/qwen-cutlass-decodegraph-c16-p512.out
+  c16_prompt512_eager_raw: .kairo-local/qwen-cutlass-eager-c16-p512-1k.out

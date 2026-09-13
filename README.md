@@ -314,6 +314,11 @@ tok/s versus 293.10 tok/s eager (2.45x, +145.2%); the latest Graph run passed
 4/4 correctness. The measured runtime policy routes the exact c16/prompt256
 cell to this Graph profile and keeps other shapes explicit.
 
+At c16/prompt512 with the same 1K context and 128-token output, Graph reached
+672.00 tok/s median versus 259.86 eager (2.59x, +158.6%; 4/4 correctness).
+That evidence is recorded separately because the current router still models
+the existing prompt512 cell as a 4K-context/256-output workload.
+
 Run the lightweight correctness gate against any OpenAI-compatible service:
 
 ```bash

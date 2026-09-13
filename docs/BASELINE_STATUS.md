@@ -204,6 +204,13 @@ single-flight lock, so only one caller builds an artifact while waiters reuse
 the published result. The `cache-inspect` CLI audits on-disk metadata, payload
 hashes, missing artifacts, and orphan files without changing runtime counters.
 
+`src/kairo_lab/comparison.py` and `scripts/wsl/compare_benchmarks.py` now turn
+the north-star claim into a machine gate. They require matching benchmark
+configs, complete correctness and request-success gates on both logs, then
+compare medians against a configurable minimum ratio. On the Qwen3-8B Graph /
+eager logs this gate reports 2.0282x (+102.82%) and `promotion_gate=true`; an
+explicit `--drop-first` analysis still reports 2.0063x.
+
 `recommend-nvfp4` now exposes the measured Graph allowlist: exact 4K
 N/K shapes at M=1/32/128 select `cuda_graph_shape_bucket` with replay
 amortization estimates; aligned but unmeasured shapes select the regular NVFP4

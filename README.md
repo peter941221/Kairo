@@ -400,6 +400,19 @@ python3 scripts/wsl/analyze_stability.py \
   .kairo-local/routed-c32-p512-stability5.out
 ```
 
+Compare a candidate against a same-workload baseline and enforce the 20%
+north-star gate:
+
+```bash
+python3 scripts/wsl/compare_benchmarks.py \
+  .kairo-local/qwen3-8b-c16-p512-graph-repeats3.out \
+  .kairo-local/qwen3-8b-c16-p512-eager-repeats3.out
+```
+
+The command refuses promotion on workload mismatch, failed correctness, failed
+requests, or insufficient speedup. Use `--drop-first` only as an explicit
+steady-state capture-cost analysis.
+
 Run the lightweight correctness gate against any OpenAI-compatible service:
 
 ```bash

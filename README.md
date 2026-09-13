@@ -103,6 +103,12 @@ Use `KAIRO_TMA_SHAPES=M,N,K,iters;...` or `KAIRO_TMA_VARIANTS=single,m128,m256`
 to narrow a sweep. Existing output files are protected unless
 `KAIRO_ALLOW_OVERWRITE=1` is set.
 
+Summarize a saved matrix by median throughput and correctness-aware winner:
+
+```bash
+python scripts/wsl/analyze_tma_wmma_matrix.py .kairo-local/tma-wmma-shape-stable.jsonl
+```
+
 Ask the lab policy which CUDA variant is justified for a shape:
 
 ```bash

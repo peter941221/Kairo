@@ -1,0 +1,60 @@
+name: transformers-inprocess-cuda-profiler
+status: measured_operator_hypothesis
+date: 2026-09-14
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  compute_capability: "12.0"
+  execution_environment: WSL2 Ubuntu 24.04
+toolchain:
+  python: /home/peter/venv-gpu/bin/python
+  torch: 2.12.0+cu130
+  transformers: 5.5.4
+model:
+  id: Qwen2.5-0.5B-Instruct
+  local_path: /home/peter/kairo-models/Qwen2.5-0.5B-Instruct
+profiler:
+  implementation: torch.profiler.profile
+  activities: [CPU, CUDA]
+  record_shapes: true
+  profile_memory: true
+  script: scripts/wsl/profile_transformers.py
+prefill:
+  requested_prompt_tokens: 512
+  actual_prompt_tokens: 512
+  steps: 4
+  self_cuda_time_ms: 17.597
+  leading_operators:
+    - name: aten::mm
+      self_cuda_time_ms: 10.042
+      self_cuda_percent: 57.07
+    - name: aten::mul
+      self_cuda_time_ms: 1.661
+      self_cuda_percent: 9.44
+    - name: aten::addmm
+      self_cuda_time_ms: 1.613
+      self_cuda_percent: 9.16
+  trace: .kairo-local/qwen25-prefill-profile.json
+decode:
+  requested_prompt_tokens: 512
+  actual_prompt_tokens: 512
+  steps: 16
+  self_cuda_time_ms: 37.841
+  leading_operators:
+    - name: aten::mm
+      self_cuda_time_ms: 15.743
+      self_cuda_percent: 41.60
+    - name: gemvx_internal_kernels
+      self_cuda_time_ms: 12.126
+      self_cuda_percent: 32.04
+    - name: gemvx_internal_kernels_small
+      self_cuda_time_ms: 4.541
+      self_cuda_percent: 12.00
+    - name: aten::_flash_attention_forward
+      self_cuda_time_ms: 3.216
+      self_cuda_percent: 8.50
+  trace: .kairo-local/qwen25-decode-profile.json
+interpretation:
+  - "GEMM/GEMV operators dominate both paths; decode has 44.04% combined gemvx time."
+  - "FlashAttention is visible but not the dominant CUDA-time bucket in this probe."
+  - "This is an in-process 0.5B operator hypothesis, not a Qwen3.8 serving attribution."
+  - "Nsight Compute counters remain unavailable under the current WSL permissions."

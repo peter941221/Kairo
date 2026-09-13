@@ -704,5 +704,13 @@ operators without those counters:
 
 These are direct Transformers profiles rather than vLLM/SGLang worker traces,
 so they define kernel hypotheses—not proof of the serving-runtime bottleneck.
+The latest reproducible run is recorded in
+`experiments/protocols/transformers-profiler.yaml`: at 512 tokens, four
+prefill steps consumed 17.597 ms self-CUDA time with `aten::mm` at 57.07%; 16
+KV-cache decode steps consumed 37.841 ms with `aten::mm` at 41.60%, two GEMV
+kernel buckets at 32.04% + 12.00%, and FlashAttention at 8.50%. The traces are
+kept locally under `.kairo-local` because they are large. These figures remain
+operator hypotheses for the 0.5B canary, not attribution of the Qwen3.8 Graph
+serving gain.
 The next experiment should use the same shapes in an in-process backend probe,
 or enable GPU performance counters, before implementing a custom kernel.

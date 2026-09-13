@@ -388,6 +388,19 @@ selected c32/prompt512 Graph automatically and passed 4/4 correctness with
 log under `.kairo-local`; set `KAIRO_ROUTED_OUTPUT` to choose another path or
 `KAIRO_ROUTED_NO_CAPTURE=1` to disable capture.
 
+The profiler fallback records CUDA operator attribution when Nsight counters are
+not exposed:
+
+```bash
+bash -lc 'cd /mnt/c/Projects/Kairo && \
+  /home/peter/venv-gpu/bin/python scripts/wsl/profile_transformers.py \
+  --model /home/peter/kairo-models/Qwen2.5-0.5B-Instruct \
+  --mode decode --prompt-tokens 512 --steps 16'
+```
+
+The measured operator breakdown is captured in
+[`transformers-profiler.yaml`](experiments/protocols/transformers-profiler.yaml).
+
 The runtime cache primitive in `src/kairo_lab/cache.py` provides content-
 addressed AOT/JIT artifact storage. Its key includes blueprint hash, full
 shape, driver version, GPU capability, and template version; metadata records

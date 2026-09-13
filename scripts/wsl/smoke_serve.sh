@@ -27,6 +27,7 @@ linear_backend="${KAIRO_LINEAR_BACKEND:-}"
 moe_backend="${KAIRO_MOE_BACKEND:-}"
 max_running_requests="${KAIRO_MAX_RUNNING_REQUESTS:-}"
 num_continuous_decode_steps="${KAIRO_NUM_CONTINUOUS_DECODE_STEPS:-}"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 log_file="$(mktemp /tmp/kairo-${backend:-unknown}.XXXXXX.log)"
 server_pid=""
 
@@ -57,6 +58,27 @@ if [[ "$backend" == "vllm" ]]; then
   [[ -n "$max_running_requests" ]] && vllm_args+=(--max-num-seqs "$max_running_requests")
   [[ "$disable_flashinfer_autotune" == "1" ]] && vllm_args+=(--no-enable-flashinfer-autotune)
   "$vllm_bin" "${vllm_args[@]}" >"$log_file" 2>&1 &
+elif [[ "$backend" == "vllm-nightly" ]]; then
+  nightly_python="${KAIRO_VLLM_NIGHTLY_PYTHON:-/home/peter/venv-vllm-nightly/bin/python}"
+  nightly_launcher="${KAIRO_VLLM_NIGHTLY_LAUNCHER:-$root/scripts/wsl/vllm_nightly.py}"
+  export CUDA_HOME=/usr/local/cuda-13.0
+  export PATH="$CUDA_HOME/bin:$PATH"
+  # The nightly wheel/Torch and B12X use their own CUDA libraries; the
+  # remaining Python CUDA support is reused from the pinned GPU environment.
+  export LD_LIBRARY_PATH="/home/peter/venv-vllm-nightly/lib/python3.12/site-packages/nvidia/nvshmem/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cudnn/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cublas/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cuda_runtime/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cusparselt/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/nccl/lib:${LD_LIBRARY_PATH:-}"
+  export VLLM_WSL2_ENABLE_PIN_MEMORY=1
+  nightly_args=(serve "$model" --host 127.0.0.1 --port "$port"
+    --served-model-name smoke --tensor-parallel-size 1
+    --gpu-memory-utilization "$gpu_memory_utilization"
+    --max-model-len "$max_model_len" --enforce-eager)
+  [[ "$trust_remote_code" == "1" ]] && nightly_args+=(--trust-remote-code)
+  [[ -n "$kv_cache_dtype" ]] && nightly_args+=(--kv-cache-dtype "$kv_cache_dtype")
+  [[ "$skip_mm_profiling" == "1" ]] && nightly_args+=(--skip-mm-profiling)
+  [[ "$language_model_only" == "1" ]] && nightly_args+=(--language-model-only)
+  [[ -n "$linear_backend" ]] && nightly_args+=(--linear-backend "$linear_backend")
+  [[ -n "$moe_backend" ]] && nightly_args+=(--moe-backend "$moe_backend")
+  [[ -n "$max_running_requests" ]] && nightly_args+=(--max-num-seqs "$max_running_requests")
+  "$nightly_python" "$nightly_launcher" "${nightly_args[@]}" >"$log_file" 2>&1 &
 elif [[ "$backend" == "sglang" ]]; then
   export CUDA_HOME=/usr/local/cuda-13.0
   export PATH="$CUDA_HOME/bin:$PATH"
@@ -83,7 +105,7 @@ elif [[ "$backend" == "sglang" ]]; then
   [[ -n "$num_continuous_decode_steps" ]] && sglang_args+=(--num-continuous-decode-steps "$num_continuous_decode_steps")
   "$sglang_python" "${sglang_args[@]}" >"$log_file" 2>&1 &
 else
-  echo "usage: $0 {vllm|sglang} [model_path] [port]" >&2
+  echo "usage: $0 {vllm|vllm-nightly|sglang} [model_path] [port]" >&2
   exit 2
 fi
 server_pid=$!

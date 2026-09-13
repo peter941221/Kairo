@@ -84,6 +84,19 @@ those dependencies and passes the Qwen3.8 smoke gate. Do not mix it into the
 pinned `venv-gpu` baseline. The essential 5090 backend override is:
 
 ```bash
+KAIRO_MAX_MODEL_LEN=4096 KAIRO_GPU_MEMORY_UTILIZATION=0.80 \
+KAIRO_KV_CACHE_DTYPE=fp8_e4m3 KAIRO_TRUST_REMOTE_CODE=1 \
+KAIRO_SKIP_MM_PROFILING=1 KAIRO_LANGUAGE_MODEL_ONLY=1 \
+KAIRO_LINEAR_BACKEND=b12x KAIRO_MAX_RUNNING_REQUESTS=16 \
+KAIRO_DISABLE_THINKING=1 KAIRO_KEEP_ALIVE=1 \
+./scripts/wsl/smoke_serve.sh vllm-nightly \
+  /home/peter/kairo-models/Qwen3.8-27B-NVFP4 18087
+```
+
+The underlying launcher can also be invoked directly when capturing custom
+vLLM arguments:
+
+```bash
 export LD_LIBRARY_PATH=/home/peter/venv-vllm-nightly/lib/python3.12/site-packages/nvidia/nvshmem/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cudnn/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cublas/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cuda_runtime/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cusparselt/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/nccl/lib
 /home/peter/venv-vllm-nightly/bin/python scripts/wsl/vllm_nightly.py serve \
   /home/peter/kairo-models/Qwen3.8-27B-NVFP4 --port 18087 \

@@ -481,6 +481,15 @@ At c32/prompt512 in the same 1K/128 envelope, Graph reached 675.77 and
 **272.00**): **2.45x / +145.2%**, with 4/4 correctness and 32/32 success.
 The c32 lead therefore survives both tested prompt buckets.
 
+A fresh pinned validation on the same c32/prompt512/1K/128 cell reached 689.10
+and 681.47 tok/s (median **685.29**) for Graph, versus 306.81 and 300.29
+(median **303.55**) for eager: **2.2576x / +125.76%**. Both services used the
+Qwen3.8-27B snapshot `dbb8f445...`, generated exactly 128 tokens, passed 4/4
+correctness, and completed 32/32 requests. Graph's TTFT P50 median was 842.42ms
+versus 1034.19ms eager; Total P99 was 5949.90ms versus 13473.77ms. This is the
+current pinned headline, with raw logs and exact commands in the protocol's
+`pinned_current_validation` block.
+
 The routed c32/prompt512 Graph was then held in one service for five
 consecutive batches. Every batch completed 32/32 requests with zero failures;
 throughput was 665.29, 638.58, 639.73, 618.27, and 657.79 tok/s (median

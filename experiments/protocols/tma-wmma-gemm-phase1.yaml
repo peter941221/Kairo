@@ -1,0 +1,34 @@
+name: tma-wmma-gemm-phase1
+status: measured_correctness_baseline
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  compute_capability: "12.0"
+  execution_environment: WSL2 Ubuntu 24.04
+toolchain:
+  cuda: 13.0.0
+  target: sm_120
+kernel:
+  implementation: scripts/wsl/tma_wmma_gemm_probe.cu
+  instruction_path: cp.async.bulk.tensor.2d + mbarrier + WMMA FP16
+  block_tile: [64, 16]
+  accumulation: float32
+correctness:
+  shape: [128, 128, 128]
+  max_abs_error_vs_cublas: 0.0
+  passed: true
+performance:
+  one_k:
+    shape: [1024, 1024, 1024]
+    iterations: 50
+    kairo_ms: 0.060949
+    kairo_gflops: 35234.038
+    cublas_ms: 0.019841
+    cublas_gflops: 108233.121
+  four_k:
+    shape: [4096, 4096, 4096]
+    iterations: 10
+    kairo_ms: 3.302877
+    kairo_gflops: 41611.893
+    cublas_ms: 0.626474
+    cublas_gflops: 219385.066
+decision: TMA integration is correct and improves the 4K WMMA path by about 1.5x, but remains behind cuBLAS; retain as the Blackwell pipeline baseline for double-buffering, swizzle, and low-bit extensions.

@@ -73,6 +73,12 @@ argument to reproduce the comparison variants. `wmma_fp16` and
 divisible by 16; for very large shapes the probe uses the independent cuBLAS
 output as its correctness oracle instead of an O(MNK) CPU reference.
 
+Run the integrated TMA+WMMA GEMM path (aligned dimensions, cuBLAS comparison):
+
+```powershell
+wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/wsl/run_tma_wmma_gemm_probe.sh 1024 1024 1024 50'
+```
+
 `init-run` writes a machine-readable run record under `runs/`, which is ignored
 by Git. Keep the command, input manifests, source revision, and published result
 table together when reporting an experiment.

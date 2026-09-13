@@ -89,6 +89,15 @@ three 4K runs (about +25% over direct WMMA), while measuring 31,632 GFLOP/s at
 1K (about 5% slower). Kairo therefore needs a shape-aware tile/staging policy;
 one kernel configuration is not optimal across the matrix.
 
+The first integrated TMA+WMMA GEMM is now in
+`scripts/wsl/tma_wmma_gemm_probe.cu`. It uses two host-created Tensor Maps,
+one transaction-counted mbarrier, and a 64x16 block tile. The 1K result is
+35,234 GFLOP/s and the 4K result is 41,612 GFLOP/s, both with zero maximum
+absolute error against cuBLAS on the checked shapes. Relative to direct WMMA,
+TMA improves the 4K point by roughly 1.5x; cuBLAS remains faster, so the next
+experiments are double-buffered TMA and layout/swizzle tuning. Parameters are
+recorded in `experiments/protocols/tma-wmma-gemm-phase1.yaml`.
+
 Run it directly on the WSL 5090:
 
 ```bash

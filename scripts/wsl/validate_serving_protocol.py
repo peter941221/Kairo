@@ -42,6 +42,12 @@ def _validate_lane(
         "prompt_tokens_actual": workload["prompt_tokens_actual_mean"],
         "generation_tokens_actual": workload["generation_tokens_actual"],
     }
+    # Published protocols may pin both the checkpoint and source tree. When
+    # present, require those pins in every raw repeat to prevent silent drift.
+    if "model_weights_revision" in workload:
+        expected_workload["model_revision"] = workload["model_weights_revision"]
+    if "source_revision" in workload:
+        expected_workload["source_revision"] = workload["source_revision"]
     actual_workload = summary.get("workload") or {}
     workload_ok = all(
         key in actual_workload
@@ -73,6 +79,7 @@ def _validate_lane(
     checks = {
         "raw_exists": raw_path.exists(),
         "workload": workload_ok,
+        "workload_consistent": summary.get("workload_consistent", False),
         "correctness": correctness_ok,
         "requests_successful": success_ok and bool(summary["all_requests_successful"]),
         "throughput_repeats": throughput_ok,
@@ -97,6 +104,14 @@ def validate(protocol_path: Path) -> dict[str, Any]:
     workload = section.get("workload")
     if not isinstance(workload, dict):
         raise ValueError("pinned_current_validation has no workload")
+    # Keep revision pins in the section-level metadata while including them in
+    # the workload identity checked for every lane.
+    if "model_weights_revision" in section or "source_revision" in section:
+        workload = dict(workload)
+        if "model_weights_revision" in section:
+            workload["model_weights_revision"] = section["model_weights_revision"]
+        if "source_revision" in section:
+            workload["source_revision"] = section["source_revision"]
     repo_root = protocol_path.resolve().parents[2]
     lanes = [
         _validate_lane(repo_root, "graph", section["graph"], workload),

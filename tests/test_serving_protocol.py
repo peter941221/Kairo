@@ -92,6 +92,17 @@ pinned_current_validation:
         self.assertFalse(result["valid"])
         self.assertFalse(result["lanes"][0]["checks"]["throughput_repeats"])
 
+    def test_pinned_revision_mismatch_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self._write_protocol(Path(directory))
+            text = path.read_text(encoding="utf-8").replace(
+                "  workload:\n", "  source_revision: expected-source\n  workload:\n"
+            )
+            path.write_text(text, encoding="utf-8")
+            result = validate(path)
+        self.assertFalse(result["valid"])
+        self.assertFalse(result["lanes"][0]["checks"]["workload"])
+
 
 if __name__ == "__main__":
     unittest.main()

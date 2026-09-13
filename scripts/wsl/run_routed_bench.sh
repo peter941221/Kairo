@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run a Qwen3.8 benchmark using only a measured runtime route.  The workload
+# Run a measured Qwen benchmark using only a measured runtime route.  The workload
 # dimensions are required so a short-prompt Graph result cannot silently be
 # reused for a long-context request.
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 port="${1:-18120}"
 model="${KAIRO_QWEN_MODEL:-/home/peter/kairo-models/Qwen3.8-27B-NVFP4}"
+profile_model="${KAIRO_PROFILE_MODEL:-qwen38}"
 concurrency="${KAIRO_WORKLOAD_CONCURRENCY:-16}"
 prompt_tokens="${KAIRO_WORKLOAD_PROMPT_TOKENS:-512}"
 context_tokens="${KAIRO_WORKLOAD_CONTEXT_TOKENS:-}"
@@ -19,7 +20,7 @@ fi
 
 python_bin="${KAIRO_PROFILE_PYTHON:-python3}"
 route_json="$(PYTHONPATH="$root/src${PYTHONPATH:+:$PYTHONPATH}" "$python_bin" -m kairo_lab.cli \
-  recommend-runtime --model qwen38 --concurrency "$concurrency" \
+  recommend-runtime --model "$profile_model" --concurrency "$concurrency" \
   --prompt-tokens "$prompt_tokens" --context-tokens "$context_tokens" \
   --generation-tokens "$generation_tokens")"
 

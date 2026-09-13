@@ -85,6 +85,22 @@ class CliTests(unittest.TestCase):
         self.assertEqual(unknown["backend"], "manual")
         self.assertEqual(unknown["confidence"], "unvalidated")
 
+    def test_runtime_policy_supports_measured_qwen3_8b_control(self):
+        graph = cli.recommend_runtime(
+            "qwen3_8b", concurrency=16, prompt_tokens=512,
+            context_tokens=1024, generation_tokens=128,
+        )
+        self.assertEqual(graph["backend"], "vllm-nightly")
+        self.assertEqual(graph["cudagraph_mode"], "FULL_DECODE_ONLY")
+        self.assertEqual(graph["confidence"], "measured_repeated")
+        eager = cli.recommend_runtime(
+            "qwen3_8b", concurrency=16, prompt_tokens=512,
+            context_tokens=4096, generation_tokens=256,
+        )
+        self.assertEqual(eager["profile"], "qwen3-8b-vllm-nightly-cutlass-c16")
+        unknown = cli.recommend_runtime("qwen3_8b", concurrency=8, prompt_tokens=512)
+        self.assertEqual(unknown["backend"], "manual")
+
     def test_gemm_policy_promotes_only_measured_winners(self):
         measured = cli.recommend_gemm(4096, 4096, 4096)
         self.assertEqual(measured["variant"], "m256")

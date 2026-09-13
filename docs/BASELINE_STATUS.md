@@ -457,6 +457,21 @@ An invocation with no explicit correctness flag was also verified: the default
 gate ran 4/4, completed 32/32 requests, measured 630.56 tok/s, and passed the
 post-run stability audit.
 
+### New-model transfer check: Qwen3-8B NVFP4
+
+The local `nvidia/Qwen3-8B-NVFP4` checkpoint is now a measured control rather
+than a discovery-only candidate. Under vLLM nightly + CUTLASS, c16/prompt512,
+1K context, 128 generated tokens, and 16 requests, the Graph lane measured
+1942.58, 2216.16, and 2177.49 tok/s (median **2177.49**). The identical eager
+control measured 1043.74, 1073.63, and 1116.30 tok/s (median **1073.63**), a
+**2.028x / +102.8%** median lead. Both lanes passed 4/4 deterministic
+correctness and 16/16 request-success gates. The first Graph sample includes
+capture overhead; its two steady-state samples vary by 1.77%. Full settings and
+raw logs are recorded in
+`experiments/protocols/qwen3-8b-vllm-cudagraph-serving.yaml`.
+The runtime recommender accepts `--model qwen3_8b` for this exact measured
+cell; all other Qwen3-8B shapes remain `manual` until measured.
+
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
 metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt
 JSON, vLLM forms one 16-request wave; SGLang forms waves of 6 + 6 + 4, with

@@ -65,7 +65,7 @@ def recommend_runtime(
     routes are additionally gated by their measured 1K/128-token envelope.
     Omitting them preserves the original shape-only API for existing callers.
     """
-    if model != "qwen38":
+    if model not in {"qwen38", "qwen3_8b"}:
         raise ValueError(f"Unsupported runtime model: {model}")
     if concurrency < 1 or prompt_tokens < 1:
         raise ValueError("concurrency and prompt_tokens must be positive")
@@ -80,6 +80,37 @@ def recommend_runtime(
         or generation_tokens is None
         or (context_tokens <= 1024 and generation_tokens <= 128)
     )
+    if model == "qwen3_8b":
+        if concurrency == 16 and prompt_tokens == 512 and graph_envelope:
+            return {
+                "model": model,
+                "backend": "vllm-nightly",
+                "profile": "qwen3-8b-vllm-nightly-cutlass-full-decode-graph-c16-p512",
+                "linear_backend": "cutlass",
+                "cudagraph_mode": "FULL_DECODE_ONLY",
+                "max_num_seqs": 32,
+                "confidence": "measured_repeated",
+                "reason": (
+                    "Qwen3-8B NVFP4 Graph reached 1.95x median eager throughput "
+                    "at c16/prompt512 in the 1K/128 envelope"
+                ),
+            }
+        if concurrency == 16 and prompt_tokens == 512:
+            return {
+                "model": model,
+                "backend": "vllm-nightly",
+                "profile": "qwen3-8b-vllm-nightly-cutlass-c16",
+                "linear_backend": "cutlass",
+                "confidence": "measured_repeated",
+                "reason": "Qwen3-8B NVFP4 eager control is covered by repeated c16/prompt512 runs",
+            }
+        return {
+            "model": model,
+            "backend": "manual",
+            "profile": None,
+            "confidence": "unvalidated",
+            "reason": "No Qwen3-8B measurement covers this shape yet",
+        }
     if concurrency == 8 and prompt_tokens == 256 and graph_envelope:
         return {
             "model": model,
@@ -317,7 +348,9 @@ def main() -> None:
     runtime_parser = subcommands.add_parser(
         "recommend-runtime", help="select a measured cross-runtime serving cell"
     )
-    runtime_parser.add_argument("--model", default="qwen38", choices=["qwen38"])
+    runtime_parser.add_argument(
+        "--model", default="qwen38", choices=["qwen38", "qwen3_8b"]
+    )
     runtime_parser.add_argument("--concurrency", type=int, required=True)
     runtime_parser.add_argument("--prompt-tokens", type=int, required=True)
     runtime_parser.add_argument("--context-tokens", type=int)

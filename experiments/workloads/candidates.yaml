@@ -15,7 +15,10 @@ candidates:
     role: reproducible_control
     model: nvidia/Qwen3-8B-NVFP4
     precision: NVFP4
-    note: Official Apache-2.0 checkpoint for fast iteration and kernel A/B tests.
+    measured_protocol: experiments/protocols/qwen3-8b-vllm-cudagraph-serving.yaml
+    measured_cells:
+      - c16/prompt512/context1024/generation128
+    note: Official Apache-2.0 checkpoint for fast iteration and kernel A/B tests; Graph transfer is measured on the listed cell.
   - id: qwen3_30b_a3b_moe
     status: discovery_only
     role: high_upside

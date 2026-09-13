@@ -1,0 +1,72 @@
+status: measured_repeated
+experiment: qwen3-8b-nvfp4-vllm-cudagraph-serving
+date_utc: 2026-09-13
+purpose: >-
+  Establish a current-model control lane and test whether the measured
+  decode-Graph wedge transfers beyond the Qwen3.8 hero model.
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  driver: "596.36"
+  cuda: "13.0"
+  wsl: Ubuntu-24.04
+model:
+  id: qwen3_8b_nvfp4_control
+  repo: nvidia/Qwen3-8B-NVFP4
+  local_path: /home/peter/kairo-models/Qwen3-8B-NVFP4
+  quantization: NVFP4
+  weights_revision: local_snapshot_unpinned
+runtime:
+  backend: vllm-nightly
+  vllm_version: 0.29.1rc1.dev18+gfa1b3b192
+  torch: 2.15.0.dev20250912+cu130
+  linear_backend: cutlass
+  kv_cache_dtype: fp8_e4m3
+  gpu_memory_utilization: 0.80
+  max_model_len: 1024
+  max_num_seqs: 32
+  language_model_only: true
+  thinking: disabled
+workload:
+  lane: decode
+  concurrency: 16
+  requests: 16
+  prompt_tokens_requested: 512
+  prompt_tokens_actual: 572.375
+  generation_tokens: 128
+  warmup: 1
+  repeats: 3
+  temperature: 0
+  ignore_eos: true
+correctness:
+  cases: 4
+  passed: 4
+  all_requests_successful: true
+graph:
+  cudagraph_mode: FULL_DECODE_ONLY
+  throughput_repeats_tok_s: [1942.58, 2216.16, 2177.49]
+  throughput_median_tok_s: 2177.49
+  throughput_mean_tok_s: 2112.08
+  steady_state_repeats_tok_s: [2216.16, 2177.49]
+  steady_state_relative_range_percent: 1.77
+  ttft_p50_ms_repeats: [114.90, 39.11, 39.54]
+  raw_output: .kairo-local/qwen3-8b-c16-p512-graph-repeats3.out
+eager_control:
+  enforce_eager: true
+  throughput_repeats_tok_s: [1043.74, 1073.63, 1116.30]
+  throughput_median_tok_s: 1073.63
+  throughput_mean_tok_s: 1077.89
+  steady_state_repeats_tok_s: [1073.63, 1116.30]
+  steady_state_relative_range_percent: 3.97
+  raw_output: .kairo-local/qwen3-8b-c16-p512-eager-repeats3.out
+comparison:
+  same_model_weights: true
+  same_workload: true
+  graph_over_eager_median_ratio: 2.028
+  graph_over_eager_median_percent: 102.8
+  startup_cost_included: true
+decision: >-
+  Promote Qwen3-8B NVFP4 to the reproducible control lane. The decode Graph
+  result transfers with a 2.03x median throughput multiplier over eager at
+  c16/prompt512/128, while the first Graph repeat exposes capture overhead;
+  steady-state repeats are within 1.77% range. This is a measured serving
+  result, not yet a claim of model-quality parity or cross-backend superiority.

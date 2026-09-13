@@ -333,6 +333,15 @@ The c32/prompt512 point also held: Graph median **667.01** versus eager
 The routed entry point then sustained five consecutive c32 batches with 0
 failures each and 639.73 tok/s median (618.27–665.29 range).
 
+The newer `Qwen3-8B-NVFP4` control is now covered as a separate measured
+runtime profile. At c16/prompt512 with 1K context and 128 generated tokens,
+three Graph repeats measured 1942.58, 2216.16, and 2177.49 tok/s (median
+**2177.49**), while the eager control measured 1043.74, 1073.63, and 1116.30
+(median **1073.63**): **2.03x / +102.8%**. Both lanes passed 4/4 correctness and
+16/16 requests. The first Graph repeat includes capture overhead; the two
+steady-state repeats varied by only 1.77%. See
+[`qwen3-8b-vllm-cudagraph-serving.yaml`](experiments/protocols/qwen3-8b-vllm-cudagraph-serving.yaml).
+
 Summarize any repeated raw log and fail if correctness or request success is
 incomplete:
 
@@ -369,6 +378,17 @@ returns `manual` until measured.
 When context and generation lengths are supplied, Graph is selected only inside
 the measured 1K-context/128-output envelope; the same prompt at a 4K/256
 workload remains on its separately measured eager profile.
+
+The same policy can target the newer control model for its measured cell:
+
+```bash
+python -m kairo_lab.cli recommend-runtime \
+  --model qwen3_8b --concurrency 16 --prompt-tokens 512 \
+  --context-tokens 1024 --generation-tokens 128
+```
+
+For the routed launcher, set `KAIRO_PROFILE_MODEL=qwen3_8b` together with
+`KAIRO_QWEN_MODEL=/home/peter/kairo-models/Qwen3-8B-NVFP4`.
 
 Run the routed benchmark entry point (WSL/5090):
 

@@ -151,6 +151,24 @@ hard-coded crossover yet: routing must use repeated per-shape measurements and
 include activation-quantization overhead. The measurements are recorded in
 `experiments/protocols/nvfp4-cutlass-threshold.yaml`.
 
+The pipeline probe then included per-call activation quantization. At
+N=K=4096, pre-quantized CUTLASS NVFP4 was 1.02×/1.53×/1.49× FP16 at
+M=1/32/128, but quantization-plus-GEMM fell to 0.71×/1.19×/0.95×. This makes
+the actionable Kairo target explicit: fuse activation quantization with the
+NVFP4 GEMM (or amortize it across decode steps), rather than merely calling
+the vendor GEMM. The pipeline data is recorded in
+`experiments/protocols/nvfp4-pipeline-overhead.yaml`.
+
+At a larger, layer-like N=K=8192 shape, the quantized pipeline remains fast:
+2.82, 105.48, and 471.08 TFLOP/s at M=1/32/128, versus same-process FP16
+controls of 1.61, 48.48, and 177.72 TFLOP/s (1.75×/2.18×/2.65×). An
+independent C++ cuBLAS control at M=128 measured 172.83 TFLOP/s, consistent
+with the torch control. This is the strongest current low-bit opportunity; the
+next milestone is model-level accuracy and serving integration, not another
+isolated FP4 wrapper. Details and raw JSONL are in
+`experiments/protocols/nvfp4-large-shape.yaml` and
+`.kairo-local/nvfp4-pipeline-8192.jsonl`.
+
 Run it directly on the WSL 5090:
 
 ```bash

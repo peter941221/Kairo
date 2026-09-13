@@ -58,7 +58,10 @@ def run(
     weight = torch.randn((n, k), device=device, dtype=torch.float16)
     global_scale = torch.ones((), device=device, dtype=torch.float32)
     x_fp4, x_scale = scaled_fp4_quant(
-        x, global_scale, is_sf_swizzled_layout=True, backend="cutlass"
+        x,
+        global_scale,
+        is_sf_swizzled_layout=True,
+        backend="cutlass" if backend == "cutlass" else "none",
     )
     weight_fp4, weight_scale_raw = scaled_fp4_quant(
         weight, global_scale, is_sf_swizzled_layout=False, backend="cutlass"
@@ -81,6 +84,26 @@ def run(
 
     def invoke_fp16() -> torch.Tensor:
         return torch.mm(x, weight.T)
+
+    def invoke_pipeline() -> torch.Tensor:
+        dynamic_fp4, dynamic_scale = scaled_fp4_quant(
+            x,
+            global_scale,
+            is_sf_swizzled_layout=True,
+            backend="cutlass" if backend == "cutlass" else "none",
+        )
+        if backend == "b12x":
+            return blockscaled.mm_nvfp4(
+                dynamic_fp4,
+                dynamic_scale,
+                weight_fp4,
+                weight_scale,
+                alpha,
+                out_dtype=torch.float16,
+            )
+        return cutlass_scaled_fp4_mm(
+            dynamic_fp4, weight_fp4, dynamic_scale, weight_scale, alpha, torch.float16
+        )
 
     def measure(function) -> float:
         for _ in range(warmups):
@@ -107,6 +130,7 @@ def run(
         error = (output - reference).abs()
         elapsed_ms = measure(invoke)
         fp16_elapsed_ms = measure(invoke_fp16)
+    pipeline_elapsed_ms = measure(invoke_pipeline)
     operations = 2.0 * m * n * k
     return {
         "gpu": torch.cuda.get_device_name(),
@@ -124,6 +148,9 @@ def run(
         "fp16_mm_ms": fp16_elapsed_ms,
         "fp16_gflops": operations / (fp16_elapsed_ms * 1.0e6),
         "speedup_vs_fp16": fp16_elapsed_ms / elapsed_ms,
+        "quantized_pipeline_ms": pipeline_elapsed_ms,
+        "quantized_pipeline_gflops": operations / (pipeline_elapsed_ms * 1.0e6),
+        "quantized_pipeline_speedup_vs_fp16": fp16_elapsed_ms / pipeline_elapsed_ms,
         "max_abs_error_vs_fp16": float(error.max().item()),
         "mean_abs_error_vs_fp16": float(error.mean().item()),
         "relative_mean_error_vs_fp16": float((error.mean() / reference.abs().mean()).item()),

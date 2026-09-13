@@ -135,8 +135,15 @@ measurement:
 bash scripts/wsl/run_nvfp4_probe.sh --backend b12x --m 1 --n 4096 --k 4096 --iterations 50
 ```
 
+For a larger layer-like cell, use N=K=8192 and include pipeline timing:
+
+```bash
+bash scripts/wsl/run_nvfp4_probe.sh --m 128 --n 8192 --k 8192 --iterations 200
+```
+
 This is a vendor-kernel baseline for the NVFP4 phase, not yet a Kairo kernel
-claim; it reports quantization error against the FP16 reference.
+claim; it reports quantization error against the FP16 reference and includes
+the activation-quantization pipeline cost.
 
 Add `--control-first` to reverse the FP16/NVFP4 timing order when checking
 clock or launch-order sensitivity.

@@ -1,0 +1,39 @@
+name: nvfp4-large-shape
+status: measured_pipeline_opportunity
+parent: experiments/protocols/nvfp4-pipeline-overhead.yaml
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  compute_capability: "12.0"
+  execution_environment: WSL2 Ubuntu 24.04
+matrix:
+  backend: vllm_cutlass_nvfp4
+  shape_nk: [8192, 8192]
+  iterations: 200
+  warmups: 20
+  same_process_fp16_control: true
+  raw: .kairo-local/nvfp4-pipeline-8192.jsonl
+  cells:
+    - m: 1
+      prequantized_gflops: 3275.329
+      fp16_gflops: 1611.022
+      quantized_pipeline_gflops: 2821.322
+      quantized_pipeline_speedup: 1.751
+      finite: true
+    - m: 32
+      prequantized_gflops: 118475.841
+      fp16_gflops: 48480.743
+      quantized_pipeline_gflops: 105482.254
+      quantized_pipeline_speedup: 2.176
+      finite: true
+    - m: 128
+      prequantized_gflops: 573310.526
+      fp16_gflops: 177716.222
+      quantized_pipeline_gflops: 471077.818
+      quantized_pipeline_speedup: 2.651
+      finite: true
+fp16_external_control:
+  shape: [128, 8192, 8192]
+  implementation: cublas_gemm_ex
+  iterations: 20
+  gflops: 172832.923
+decision: At this large-layer shape, activation quantization adds little relative cost and the vendor NVFP4 pipeline remains 1.75--2.65x faster than the same-process FP16 control. This is a high-value Kairo target, but model-level accuracy and an apples-to-apples serving measurement are still required.

@@ -76,6 +76,12 @@ KAIRO_TRUST_REMOTE_CODE=1 \
 ./scripts/wsl/smoke_serve.sh sglang /home/peter/kairo-models/Qwen3.8-27B-NVFP4 18086
 ```
 
+The vendor-recommended vLLM nightly path is isolated in
+`/home/peter/venv-vllm-nightly` and launched through
+`scripts/wsl/vllm_nightly.py`. It is a bring-up lane only until the SM120
+CUTLASS/B12X dependencies are complete; do not mix it into the pinned
+`venv-gpu` baseline.
+
 For the experimentally validated high-concurrency variant, add
 `KAIRO_MAMBA_FULL_MEMORY_RATIO=8`. It currently improves the fixed c16 decode
 point substantially, while c1/c4 are neutral to slightly slower; see

@@ -43,10 +43,27 @@ The official CUDA 13.0 nightly index exposed
 `/home/peter/venv-vllm-nightly` without changing the shared environments. The
 wheel imports only with a newer Torch ABI: using shared Torch 2.12.0 or
 isolated SGLang Torch 2.13.0 fails inside `torch._inductor` (a `CSE` generic
-signature mismatch). The matching CUDA 13.0 Torch 2.15 nightly index was
-reachable, but its pip process made no network connection or file progress for
-over five minutes and was stopped. No vLLM nightly health or performance claim
-is made; vLLM 0.29.0 and SGLang main remain separate reproducible lanes.
+signature mismatch). A matching CUDA 13.0 Torch 2.15 nightly wheel was
+installed in the same isolated environment, together with the compatible
+Transformers/FastAPI stack. The nightly engine resolved Qwen3.8, loaded all
+three shards (19.08 GiB GPU memory), and selected the expected NVFP4/GDN
+paths.
+
+The first serving attempt then exposed a concrete SM120 dependency boundary:
+the default FP8 scaled-MM path asks shared FlashInfer to JIT-build a
+`sm120` extension during KV-cache profiling. Forcing
+`--linear-backend flashinfer_cudnn` avoids that path for layers with a cuDNN
+kernel but falls back to automatic selection for unsupported layer types;
+forcing `b12x` requires the optional CUTLASS DSL stack, which is not yet
+installed in the disposable environment. The nightly process therefore does
+not reach `/health` in the current mix, and no nightly throughput claim is
+made. This is now a reproducible runtime/backend blocker rather than an
+ambiguous model-load stall. vLLM 0.29.0 and SGLang main remain separate,
+working comparison lanes.
+
+The isolated launcher is kept in `scripts/wsl/vllm_nightly.py`; it makes the
+nightly vLLM/Torch site win while reusing shared CUDA Python dependencies, so
+future backend experiments do not mutate the pinned serving environment.
 - A source checkout of SGLang main (`14b647c`) was tested in the isolated
   SGLang environment. With `--mamba-ssm-dtype bfloat16` and 0.80 static-memory
   fraction it loaded the weights, allocated 4.22 GiB of Mamba state plus a

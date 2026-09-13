@@ -46,15 +46,18 @@ cells:
     graph_max_abs_error_vs_pipeline: 0.0
 decision: Across two independent process repeats, CUDA Graph capture removes roughly 27--36% of activation-quantization pipeline time at the measured decode-like shapes while matching the regular pipeline bit-for-bit. This is a shape-static serving optimization; it must be integrated with request-shape bucketing and recaptured on shape changes before production use.
 cache_behavior:
-  capture_ms_by_m: {1: 23.09, 32: 23.08, 128: 18.54}
-  replay_break_even_by_m: {1: 3800, 32: 3769, 128: 3367}
+  probe_repeats: 1
+  capture_ms_by_m: {1: 16.52, 32: 23.02, 128: 15.66}
+  replay_break_even_by_m: {1: 2829, 32: 3395, 128: 2177}
   lookup_stats_by_bucket: {buckets: 1, captures: 1, hits: 1}
-  note: Capture cost is amortized only after roughly 3.4k--3.8k replays for these cells; a serving integration should retain buckets across many decode steps.
+  dynamic_input_max_abs_error_vs_pipeline: 0.0
+  note: Capture cost is amortized after roughly 2.2k--3.4k replays in this probe; a serving integration should retain buckets across many decode steps.
 evidence:
   matrix_runner: KAIRO_NVFP4_GRAPH_REPEATS=2 bash scripts/wsl/run_nvfp4_graph_matrix.sh .kairo-local/nvfp4-graph-repeats2.jsonl
   analyzer: python scripts/wsl/analyze_nvfp4_graph.py .kairo-local/nvfp4-graph-repeats2.jsonl
   raw_matrix: .kairo-local/nvfp4-graph-repeats2.jsonl
   cache_probe_raw: .kairo-local/nvfp4-graph-cache-matrix.jsonl
+  dynamic_input_probe_raw: .kairo-local/nvfp4-graph-dynamic.jsonl
   commands:
     - bash scripts/wsl/run_nvfp4_probe.sh --m 1 --n 4096 --k 4096 --iterations 500 --warmups 30 --cuda-graph
     - bash scripts/wsl/run_nvfp4_probe.sh --m 32 --n 4096 --k 4096 --iterations 300 --warmups 30 --cuda-graph

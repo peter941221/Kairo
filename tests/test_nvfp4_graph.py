@@ -11,12 +11,14 @@ class Nvfp4GraphTests(unittest.TestCase):
                 "quantized_pipeline_ms": 10.0,
                 "cuda_graph_pipeline_ms": 7.0,
                 "cuda_graph_max_abs_error_vs_pipeline": 0.0,
+                "cuda_graph_dynamic_max_abs_error_vs_pipeline": 0.0,
             },
             {
                 "shape": [32, 4096, 4096],
                 "quantized_pipeline_ms": 12.0,
                 "cuda_graph_pipeline_ms": 8.0,
                 "cuda_graph_max_abs_error_vs_pipeline": 0.0,
+                "cuda_graph_dynamic_max_abs_error_vs_pipeline": 0.0,
             },
         ]
         result = summarize(records)[0]
@@ -36,3 +38,17 @@ class Nvfp4GraphTests(unittest.TestCase):
         )[0]
         self.assertFalse(result["graph_correct"])
         self.assertEqual(result["recommendation"], "regular_pipeline")
+
+    def test_rejects_dynamic_input_mismatch(self):
+        result = summarize(
+            [
+                {
+                    "shape": [32, 4096, 4096],
+                    "quantized_pipeline_ms": 10.0,
+                    "cuda_graph_pipeline_ms": 8.0,
+                    "cuda_graph_max_abs_error_vs_pipeline": 0.0,
+                    "cuda_graph_dynamic_max_abs_error_vs_pipeline": 0.02,
+                }
+            ]
+        )[0]
+        self.assertFalse(result["graph_correct"])

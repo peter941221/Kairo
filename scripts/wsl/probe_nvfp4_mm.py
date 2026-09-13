@@ -138,6 +138,7 @@ def run(
     graph_elapsed_ms = None
     graph_error = None
     graph_pipeline_error = None
+    graph_dynamic_pipeline_error = None
     graph_capture_ms = None
     graph_cache_stats = None
     if cuda_graph:
@@ -156,11 +157,21 @@ def run(
             graph_elapsed_ms = measure(invoke_graph)
             graph_capture_ms = graph_bucket.capture_ms
             graph_cache_stats = graph_cache.stats()
-            graph_output = graph_bucket.output.float()
+            graph_output = graph_bucket.output.float().clone()
             torch.cuda.synchronize()
             graph_error = float((graph_output - reference).abs().max().item())
             graph_pipeline_error = float(
                 (graph_output - pipeline_reference).abs().max().item()
+            )
+            # Replace activation values without changing storage or shape. A
+            # real decode bucket follows this path for every new request.
+            x.normal_()
+            dynamic_graph_output = invoke_graph().float().clone()
+            torch.cuda.synchronize()
+            dynamic_pipeline_output = invoke_pipeline().float()
+            torch.cuda.synchronize()
+            graph_dynamic_pipeline_error = float(
+                (dynamic_graph_output - dynamic_pipeline_output).abs().max().item()
             )
         except Exception as exc:
             graph_error = f"{type(exc).__name__}: {exc}"
@@ -201,6 +212,7 @@ def run(
         ),
         "cuda_graph_max_abs_error_vs_fp16": graph_error,
         "cuda_graph_max_abs_error_vs_pipeline": graph_pipeline_error,
+        "cuda_graph_dynamic_max_abs_error_vs_pipeline": graph_dynamic_pipeline_error,
         "max_abs_error_vs_fp16": float(error.max().item()),
         "mean_abs_error_vs_fp16": float(error.mean().item()),
         "relative_mean_error_vs_fp16": float((error.mean() / reference.abs().mean()).item()),

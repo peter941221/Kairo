@@ -24,7 +24,18 @@ def summarize(records: list[dict[str, object]], tolerance: float = 1.0e-3) -> li
             for r in runs
             if isinstance(r.get("cuda_graph_max_abs_error_vs_pipeline"), (int, float))
         ]
-        graph_correct = bool(graph) and len(errors) == len(graph) and max(errors) <= tolerance
+        dynamic_errors = [
+            float(r["cuda_graph_dynamic_max_abs_error_vs_pipeline"])
+            for r in runs
+            if isinstance(r.get("cuda_graph_dynamic_max_abs_error_vs_pipeline"), (int, float))
+        ]
+        graph_correct = (
+            bool(graph)
+            and len(errors) == len(graph)
+            and max(errors) <= tolerance
+            and (not dynamic_errors or len(dynamic_errors) == len(graph))
+            and (not dynamic_errors or max(dynamic_errors) <= tolerance)
+        )
         regular_median = statistics.median(regular)
         graph_median = statistics.median(graph) if graph else None
         reduction = (1.0 - graph_median / regular_median) * 100.0 if graph_median else None
@@ -36,6 +47,7 @@ def summarize(records: list[dict[str, object]], tolerance: float = 1.0e-3) -> li
                 "cuda_graph_pipeline_ms_median": graph_median,
                 "pipeline_reduction_percent": reduction,
                 "graph_correct": graph_correct,
+                "dynamic_correctness_checked": bool(dynamic_errors),
                 "recommendation": "cuda_graph" if graph_correct and reduction and reduction > 0 else "regular_pipeline",
             }
         )

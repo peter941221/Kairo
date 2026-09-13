@@ -5,12 +5,20 @@ from __future__ import annotations
 import argparse
 import json
 import platform
+import shutil
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def _nvcc_command() -> str | None:
+    for candidate in ("/usr/local/cuda-13.0/bin/nvcc", "/usr/local/cuda-12.8/bin/nvcc"):
+        if Path(candidate).exists():
+            return candidate
+    return shutil.which("nvcc")
 
 
 def _command_output(command: list[str]) -> str | None:
@@ -29,7 +37,11 @@ def environment() -> dict[str, str | None]:
         "gpu": _command_output(
             ["nvidia-smi", "--query-gpu=name,driver_version,memory.total", "--format=csv,noheader"]
         ),
-        "cuda": _command_output(["nvcc", "--version"]),
+        "cuda": (
+            _command_output([nvcc, "--version"])
+            if (nvcc := _nvcc_command())
+            else None
+        ),
     }
 
 

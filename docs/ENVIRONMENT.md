@@ -8,10 +8,11 @@ RTX 5090 exposed through NVIDIA's WSL driver integration.
 - GPU: NVIDIA GeForce RTX 5090, 32 GiB
 - Driver: 596.36
 - WSL distribution: Ubuntu 24.04
-- System CUDA compiler: 12.0
+- CUDA toolchains: 12.0 is still the default `PATH` compiler; CUDA 12.8 and
+  CUDA 13.0 are also installed, and Kairo's WSL doctor/CLI prefer CUDA 13.0.
 
-The last item is a blocker for compiling native RTX 5090-targeted CUDA kernels.
-CUDA 12.8 or newer must be installed in WSL before Phase 0 custom-kernel work.
+CUDA 12.8 or newer is required for compiling native RTX 5090-targeted CUDA
+kernels; the existing CUDA 13.0 toolchain satisfies that version gate.
 The Python bootstrap uses a CUDA 12.8 PyTorch wheel only for framework baseline
 profiling; it does not upgrade `nvcc`.
 

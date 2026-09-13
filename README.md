@@ -92,6 +92,9 @@ wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/ws
 than global defaults; use the protocol record to compare them against the
 single-buffer control.
 
+`m256_s32` is an experimental 32-byte TMA-swizzle probe; it is disabled from
+the default matrix until its shared-memory layout passes correctness.
+
 Run a reproducible shape × variant matrix (single, m128, m256, and double by
 default). Records are printed as JSONL; pass an output path to save them:
 

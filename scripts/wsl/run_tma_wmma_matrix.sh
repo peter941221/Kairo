@@ -53,6 +53,10 @@ for shape in "${shape_cells[@]}"; do
       echo "skip variant=m256 shape=[$m,$n,$k] (M is not divisible by 256)" >&2
       continue
     fi
+    if [[ "$variant" == "m256_s32" && $((m % 256)) -ne 0 ]]; then
+      echo "skip variant=m256_s32 shape=[$m,$n,$k] (M is not divisible by 256)" >&2
+      continue
+    fi
     emit "$("$binary" "$m" "$n" "$k" "$iterations" "$variant")"
   done
 done

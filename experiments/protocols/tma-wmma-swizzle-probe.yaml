@@ -1,0 +1,19 @@
+name: tma-wmma-swizzle-probe
+status: rejected_correctness
+parent: experiments/protocols/tma-wmma-shape-expansion.yaml
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  compute_capability: "12.0"
+  execution_environment: WSL2 Ubuntu 24.04
+toolchain:
+  cuda: 13.0.0
+  target: sm_120
+probe:
+  variant: m256_s32
+  shape: [1024, 1024, 1024]
+  iterations: 5
+  tma_gflops: 34058.500
+  cublas_gflops: 97683.937
+  max_abs_error_vs_cublas: 18.52128792
+  tma_ok: false
+decision: Reject the direct 32-byte A-tile swizzle. TMA writes a swizzled shared-memory layout that the existing row-major WMMA loads do not interpret; no performance claim is valid. A future swizzle attempt must add a matching load/layout mapping and pass correctness first.

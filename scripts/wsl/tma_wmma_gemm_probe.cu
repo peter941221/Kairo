@@ -230,8 +230,9 @@ int main(int argc, char** argv) {
     const bool double_buffered = std::strcmp(requested_variant, "double") == 0;
     const bool m128_variant = std::strcmp(requested_variant, "m128") == 0;
     const bool m256_variant = std::strcmp(requested_variant, "m256") == 0;
+    const bool m256_swizzle32_variant = std::strcmp(requested_variant, "m256_s32") == 0;
     if (m < 64 || n < 16 || k < 16 || (m % 16) || (n % 16) || (k % 16) ||
-        (m128_variant && (m % 128)) || (m256_variant && (m % 256))) {
+        (m128_variant && (m % 128)) || ((m256_variant || m256_swizzle32_variant) && (m % 256))) {
         std::fprintf(stderr, "TMA-WMMA requires aligned dimensions (m128/m256 additionally require M divisible by 128/256)\n");
         return 2;
     }
@@ -268,13 +269,14 @@ int main(int argc, char** argv) {
     const cuuint64_t b_dims[2] = {static_cast<cuuint64_t>(n), static_cast<cuuint64_t>(k)};
     const cuuint64_t a_strides[1] = {static_cast<cuuint64_t>(k * sizeof(__half))};
     const cuuint64_t b_strides[1] = {static_cast<cuuint64_t>(n * sizeof(__half))};
-    const cuuint32_t a_box[2] = {16, m256_variant ? 256u : (m128_variant ? 128u : 64u)};
+    const cuuint32_t a_box[2] = {16, (m256_variant || m256_swizzle32_variant) ? 256u : (m128_variant ? 128u : 64u)};
     const cuuint32_t b_box[2] = {16, 16};
     const cuuint32_t element_strides[2] = {1, 1};
     check_driver(cuTensorMapEncodeTiled(
                      &host_a_map, CU_TENSOR_MAP_DATA_TYPE_FLOAT16, 2, device_a,
                      a_dims, a_strides, a_box, element_strides,
-                     CU_TENSOR_MAP_INTERLEAVE_NONE, CU_TENSOR_MAP_SWIZZLE_NONE,
+                     CU_TENSOR_MAP_INTERLEAVE_NONE,
+                     m256_swizzle32_variant ? CU_TENSOR_MAP_SWIZZLE_32B : CU_TENSOR_MAP_SWIZZLE_NONE,
                      CU_TENSOR_MAP_L2_PROMOTION_NONE, CU_TENSOR_MAP_FLOAT_OOB_FILL_NONE),
                  "cuTensorMapEncodeTiled(A)");
     check_driver(cuTensorMapEncodeTiled(
@@ -290,10 +292,10 @@ int main(int argc, char** argv) {
     check_cuda(cudaMemcpy(device_a_map, &host_a_map, sizeof(CUtensorMap), cudaMemcpyHostToDevice), "copy(A map)");
     check_cuda(cudaMemcpy(device_b_map, &host_b_map, sizeof(CUtensorMap), cudaMemcpyHostToDevice), "copy(B map)");
 
-    const int rows = m256_variant ? 256 : (m128_variant ? 128 : 64);
+    const int rows = (m256_variant || m256_swizzle32_variant) ? 256 : (m128_variant ? 128 : 64);
     const dim3 block(rows * 2, 1, 1);
     const dim3 grid((n + 15) / 16, (m + rows - 1) / rows);
-    if (m256_variant) {
+    if (m256_variant || m256_swizzle32_variant) {
         tma_wmma_gemm_rows<256><<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
     } else if (m128_variant) {
         tma_wmma_gemm_rows<128><<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
@@ -325,7 +327,7 @@ int main(int argc, char** argv) {
     check_cuda(cudaEventCreate(&stop), "cudaEventCreate(stop)");
     check_cuda(cudaEventRecord(start), "tma start");
     for (int iteration = 0; iteration < iterations; ++iteration) {
-        if (m256_variant) {
+        if (m256_variant || m256_swizzle32_variant) {
             tma_wmma_gemm_rows<256><<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
         } else if (m128_variant) {
             tma_wmma_gemm_rows<128><<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
@@ -354,7 +356,7 @@ int main(int argc, char** argv) {
                 "\"tma_ms\":%.6f,\"cublas_ms\":%.6f,\"tma_gflops\":%.3f,\"cublas_gflops\":%.3f,"
                 "\"max_abs_error_vs_cublas\":%.8f,\"tma_ok\":%s}\n",
                 properties.name, m, n, k, iterations,
-                m256_variant ? "tma_wmma_fp16_m256" : (m128_variant ? "tma_wmma_fp16_m128" : (double_buffered ? "tma_wmma_fp16_double" : "tma_wmma_fp16")),
+                m256_swizzle32_variant ? "tma_wmma_fp16_m256_s32" : (m256_variant ? "tma_wmma_fp16_m256" : (m128_variant ? "tma_wmma_fp16_m128" : (double_buffered ? "tma_wmma_fp16_double" : "tma_wmma_fp16"))),
                 tma_ms, blas_ms,
                 operations / (tma_ms * 1.0e6), operations / (blas_ms * 1.0e6),
                 cross_error, cross_error < 0.02f ? "true" : "false");

@@ -121,6 +121,13 @@ for m128/single), 4K square (49,850 vs 47,316 vs 42,854), and 8K×1K×1K
 allowlist, recorded in `experiments/protocols/tma-wmma-shape-expansion.yaml`,
 rather than extrapolating from divisibility alone.
 
+The first shared-memory swizzle probe (`m256_s32`) is rejected at the
+correctness gate: its 1K run produced maximum absolute error 18.52 against
+cuBLAS. This is a layout-contract failure, not a slow implementation—TMA's
+swizzled destination cannot be consumed by the existing row-major WMMA loads.
+The result is recorded in `experiments/protocols/tma-wmma-swizzle-probe.yaml`;
+future swizzle work must provide a matching shared-memory access mapping.
+
 Run it directly on the WSL 5090:
 
 ```bash

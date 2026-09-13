@@ -120,11 +120,39 @@ routed_integration:
   throughput_tok_s: 1847.96
   stability_gate: passed
   raw_output: .kairo-local/qwen3-8b-routed-c16-p512.out
+sglang_control:
+  status: measured_experimental
+  backend: sglang
+  version: 0.5.19
+  torch: 2.13.0+cu130
+  python: /home/peter/venv-sglang/bin/python
+  model_path: /home/peter/kairo-models/Qwen3-8B-NVFP4
+  context_length: 1024
+  mem_fraction_static: 0.80
+  fp4_gemm_backend: flashinfer_cudnn
+  disable_flashinfer_autotune: true
+  disable_cuda_graph: true
+  workload:
+    concurrency: 16
+    requests: 16
+    prompt_tokens_requested: 512
+    prompt_tokens_actual: 572.375
+    generation_tokens: 128
+    warmup: 1
+  correctness_cases: 4
+  correctness_passed: 4
+  successful_requests: 16
+  throughput_tok_s: 353.35
+  ttft_p50_ms: 260.27
+  raw_output: .kairo-local/qwen3-8b-sglang-noautotune.out
+  server_log: .kairo-local/qwen3-8b-sglang-noautotune.server.log
 comparison:
   same_model_weights: true
   same_workload: true
   graph_over_eager_median_ratio: 2.028
   graph_over_eager_median_percent: 102.8
+  vllm_eager_over_sglang_ratio: 3.038
+  vllm_graph_over_sglang_ratio: 6.162
   startup_cost_included: true
 decision: >-
   Promote Qwen3-8B NVFP4 to the reproducible control lane. The decode Graph

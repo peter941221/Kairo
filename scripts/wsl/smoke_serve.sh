@@ -31,7 +31,7 @@ moe_backend="${KAIRO_MOE_BACKEND:-}"
 max_running_requests="${KAIRO_MAX_RUNNING_REQUESTS:-}"
 num_continuous_decode_steps="${KAIRO_NUM_CONTINUOUS_DECODE_STEPS:-}"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-log_file="$(mktemp /tmp/kairo-${backend:-unknown}.XXXXXX.log)"
+log_file="${KAIRO_SERVER_LOG:-$(mktemp /tmp/kairo-${backend:-unknown}.XXXXXX.log)}"
 server_pid=""
 
 cleanup() {

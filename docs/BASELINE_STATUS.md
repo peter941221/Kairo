@@ -484,6 +484,16 @@ generation128), Graph's two steady-state repeats averaged 1869.92 tok/s versus
 the eager post-warmup point of 1102.76 tok/s, a provisional **1.69x / +69.5%**
 lead. The exact long-context route is exposed for experiments, but remains
 experimental until the eager control receives another fresh-service repeat.
+An isolated SGLang 0.5.19 control was also brought up for the short cell with
+FP4 `flashinfer_cudnn`, FlashInfer autotune disabled, and CUDA Graphs disabled.
+It passed 4/4 correctness and 16/16 requests at **353.35 tok/s** (TTFT P50
+260.27 ms), versus 1073.63 tok/s for vLLM eager and 2177.49 tok/s for vLLM
+Graph on the paired c16 workload. Thus vLLM eager is 3.038x faster and Graph
+is 6.162x faster than this SGLang control. The reusable
+`scripts/wsl/run_sglang_bench.sh` entry point captures both server and benchmark
+logs; the no-autotune variant is the reproducible SGLang result. The default
+SGLang autotune variant destabilized WSL before health, so it remains a failed
+compatibility experiment rather than a performance claim.
 
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
 metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt

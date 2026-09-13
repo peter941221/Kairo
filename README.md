@@ -354,6 +354,15 @@ of 1102.76 tok/s, a provisional **1.69x / +69.5%**. This long-context cell is
 implemented as an explicit measured route but remains experimental until the
 eager control receives another fresh-service repeat.
 
+The same Qwen3-8B c16/p512/1K/128 workload also has an isolated SGLang control:
+with FP4 `flashinfer_cudnn`, FlashInfer autotune disabled, and CUDA Graphs
+disabled, it passed 4/4 correctness and 16/16 requests at **353.35 tok/s**.
+The vLLM eager control is 3.04x faster and the vLLM Graph route is 6.16x
+faster on this exact cell. Reproduce it with
+`bash scripts/wsl/run_sglang_bench.sh 18144` after setting
+`KAIRO_SGLANG_MODEL` and `KAIRO_SGLANG_BENCH_PYTHON`; the full record is in
+the Qwen3-8B protocol.
+
 Summarize any repeated raw log and fail if correctness or request success is
 incomplete:
 

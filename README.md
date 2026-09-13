@@ -384,7 +384,9 @@ It applies the measured vLLM/CUTLASS Graph or eager settings automatically,
 and refuses an uncovered route. Set `KAIRO_ROUTED_DRY_RUN=1` to inspect the
 selected profile without starting the model. The first real WSL/5090 run
 selected c32/prompt512 Graph automatically and passed 4/4 correctness with
-32/32 successful requests.
+32/32 successful requests. By default the entry point also captures the raw
+log under `.kairo-local`; set `KAIRO_ROUTED_OUTPUT` to choose another path or
+`KAIRO_ROUTED_NO_CAPTURE=1` to disable capture.
 
 The runtime cache primitive in `src/kairo_lab/cache.py` provides content-
 addressed AOT/JIT artifact storage. Its key includes blueprint hash, full

@@ -58,4 +58,15 @@ if [[ "${KAIRO_ROUTED_DRY_RUN:-0}" == "1" ]]; then
   printf 'would_exec=%s\n' "$root/scripts/wsl/run_qwen_cutlass_bench.sh $port"
   exit 0
 fi
-exec "$root/scripts/wsl/run_qwen_cutlass_bench.sh" "$port"
+if [[ "${KAIRO_ROUTED_NO_CAPTURE:-0}" == "1" ]]; then
+  exec "$root/scripts/wsl/run_qwen_cutlass_bench.sh" "$port"
+fi
+stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+output_file="${KAIRO_ROUTED_OUTPUT:-$root/.kairo-local/routed-${stamp}-${port}.out}"
+mkdir -p "$(dirname "$output_file")"
+echo "raw_output=$output_file" >&2
+set +e
+"$root/scripts/wsl/run_qwen_cutlass_bench.sh" "$port" 2>&1 | tee "$output_file"
+status="${PIPESTATUS[0]}"
+set -e
+exit "$status"

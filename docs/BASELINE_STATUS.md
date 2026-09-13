@@ -439,7 +439,8 @@ The same policy is executable through `scripts/wsl/run_routed_bench.sh`, which
 sets the vLLM nightly Graph/eager flags and invokes the common correctness plus
 throughput runner; uncovered routes fail closed. Its first real WSL/5090
 integration run auto-selected c32/prompt512 Graph, passed 4/4 correctness,
-completed 32/32 requests, and measured 665.76 tok/s.
+completed 32/32 requests, and measured 665.76 tok/s. The runner now captures
+each raw invocation automatically for post-hoc stability analysis.
 
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
 metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt

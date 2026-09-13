@@ -1,4 +1,5 @@
 #include <cuda_fp16.h>
+#include <cuda_pipeline.h>
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 
@@ -88,6 +89,77 @@ __global__ void kairo_fp16_tiled_gemm_2x2(const __half* a, const __half* b, floa
     if (row + 1 < m && col + 1 < n) c[(row + 1) * n + col + 1] = accum11;
 }
 
+// The same fragment shape with 4-byte asynchronous global-to-shared copies.
+// Boundary elements use ordinary stores so arbitrary dimensions retain the
+// exact correctness behavior of the reference kernel.
+__global__ void kairo_fp16_tiled_gemm_2x2_async(const __half* a, const __half* b, float* c,
+                                                int m, int n, int k) {
+    constexpr int TILE = 32;
+    __shared__ __half tile_a[TILE][TILE];
+    __shared__ __half tile_b[TILE][TILE];
+    const int row = blockIdx.y * TILE + threadIdx.y * 2;
+    const int col = blockIdx.x * TILE + threadIdx.x * 2;
+    float accum00 = 0.0f;
+    float accum01 = 0.0f;
+    float accum10 = 0.0f;
+    float accum11 = 0.0f;
+    for (int base = 0; base < k; base += TILE) {
+        const int a_col = base + threadIdx.x * 2;
+        const int b_row = base + threadIdx.y * 2;
+        for (int row_offset = 0; row_offset < 2; ++row_offset) {
+            const int shared_row = threadIdx.y * 2 + row_offset;
+            const int global_a_row = row + row_offset;
+            const int global_b_row = b_row + row_offset;
+            if (global_a_row < m && a_col + 1 < k &&
+                ((global_a_row * k + a_col) & 1) == 0) {
+                __pipeline_memcpy_async(&tile_a[shared_row][threadIdx.x * 2],
+                                        &a[global_a_row * k + a_col],
+                                        2 * sizeof(__half));
+            } else {
+                for (int col_offset = 0; col_offset < 2; ++col_offset) {
+                    const int global_col = a_col + col_offset;
+                    tile_a[shared_row][threadIdx.x * 2 + col_offset] =
+                        (global_a_row < m && global_col < k)
+                            ? a[global_a_row * k + global_col]
+                            : __float2half(0.0f);
+                }
+            }
+            if (global_b_row < k && col + 1 < n &&
+                ((global_b_row * n + col) & 1) == 0) {
+                __pipeline_memcpy_async(&tile_b[shared_row][threadIdx.x * 2],
+                                        &b[global_b_row * n + col],
+                                        2 * sizeof(__half));
+            } else {
+                for (int col_offset = 0; col_offset < 2; ++col_offset) {
+                    const int global_col = col + col_offset;
+                    tile_b[shared_row][threadIdx.x * 2 + col_offset] =
+                        (global_b_row < k && global_col < n)
+                            ? b[global_b_row * n + global_col]
+                            : __float2half(0.0f);
+                }
+            }
+        }
+        __pipeline_commit();
+        __pipeline_wait_prior(0);
+        __syncthreads();
+        for (int inner = 0; inner < TILE; ++inner) {
+            const float a0 = __half2float(tile_a[threadIdx.y * 2][inner]);
+            const float a1 = __half2float(tile_a[threadIdx.y * 2 + 1][inner]);
+            const float b0 = __half2float(tile_b[inner][threadIdx.x * 2]);
+            const float b1 = __half2float(tile_b[inner][threadIdx.x * 2 + 1]);
+            accum00 += a0 * b0;
+            accum01 += a0 * b1;
+            accum10 += a1 * b0;
+            accum11 += a1 * b1;
+        }
+        __syncthreads();
+    }
+    if (row < m && col < n) c[row * n + col] = accum00;
+    if (row < m && col + 1 < n) c[row * n + col + 1] = accum01;
+    if (row + 1 < m && col < n) c[(row + 1) * n + col] = accum10;
+    if (row + 1 < m && col + 1 < n) c[(row + 1) * n + col + 1] = accum11;
+}
+
 static void check(cudaError_t status, const char* operation) {
     if (status != cudaSuccess) {
         std::fprintf(stderr, "%s: %s\n", operation, cudaGetErrorString(status));
@@ -121,7 +193,9 @@ int main(int argc, char** argv) {
     const int n = argc > 2 ? std::atoi(argv[2]) : 1024;
     const int k = argc > 3 ? std::atoi(argv[3]) : 1024;
     const int iterations = argc > 4 ? std::atoi(argv[4]) : 50;
-    const bool optimized = argc < 6 || std::strcmp(argv[5], "tile32x32_output2x2") == 0;
+    const char* requested_variant = argc > 5 ? argv[5] : "tile32x32_output2x2";
+    const bool optimized = std::strcmp(requested_variant, "tile16x16_output1x1") != 0;
+    const bool async_variant = std::strcmp(requested_variant, "tile32x32_output2x2_async") == 0;
     if (m < 1 || n < 1 || k < 1 || iterations < 1) {
         std::fprintf(stderr, "dimensions and iterations must be positive\n");
         return 2;
@@ -152,7 +226,9 @@ int main(int argc, char** argv) {
     const dim3 block(16, 16);
     const dim3 grid = optimized ? dim3((n + 31) / 32, (m + 31) / 32)
                                 : dim3((n + 15) / 16, (m + 15) / 16);
-    if (optimized) {
+    if (async_variant) {
+        kairo_fp16_tiled_gemm_2x2_async<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
+    } else if (optimized) {
         kairo_fp16_tiled_gemm_2x2<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
     } else {
         kairo_fp16_tiled_gemm<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
@@ -192,7 +268,9 @@ int main(int argc, char** argv) {
     check(cudaEventCreate(&stop), "cudaEventCreate(stop)");
     check(cudaEventRecord(start), "custom start");
     for (int iteration = 0; iteration < iterations; ++iteration) {
-        if (optimized) {
+        if (async_variant) {
+            kairo_fp16_tiled_gemm_2x2_async<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
+        } else if (optimized) {
             kairo_fp16_tiled_gemm_2x2<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
         } else {
             kairo_fp16_tiled_gemm<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
@@ -222,7 +300,7 @@ int main(int argc, char** argv) {
                 "\"custom_max_abs_error\":%.8f,\"custom_vs_cublas_max_abs_error\":%.8f,"
                 "\"correctness_ok\":%s}\n",
                 properties.name, m, n, k, iterations,
-                optimized ? "tile32x32_output2x2" : "tile16x16_output1x1",
+                requested_variant,
                 custom_ms, blas_ms,
                 operations / (custom_ms * 1.0e6), operations / (blas_ms * 1.0e6),
                 custom_error, cross_error,

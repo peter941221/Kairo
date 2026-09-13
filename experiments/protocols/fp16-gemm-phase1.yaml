@@ -28,4 +28,8 @@ performance:
     tile32x32_output2x2:
       kairo_ms: 0.095379
       kairo_gflops: 22515.219
-decision: Correctness and arbitrary-boundary handling pass; 2x2 register reuse improves the Kairo reference by 2.47x, but the optimized kernel remains 5.2x slower than cuBLAS and is the next tensor-core/async-staging target.
+    tile32x32_output2x2_async:
+      kairo_ms: 0.094581
+      kairo_gflops: 22705.204
+      max_abs_error_vs_cublas: 0.00003433
+decision: Correctness and arbitrary-boundary handling pass; 2x2 register reuse improves the Kairo reference by about 2.5x. The first async-copy variant is within measurement noise of the synchronous tile, so tensor-core MMA is the next optimization target.

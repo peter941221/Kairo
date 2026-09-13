@@ -43,6 +43,13 @@ run, so the optimized reference is still 5.2x behind and remains a target for
 asynchronous staging and tensor-core instructions. Reproducible parameters are
 recorded in `experiments/protocols/fp16-gemm-phase1.yaml`.
 
+The `tile32x32_output2x2_async` variant uses 4-byte
+`__pipeline_memcpy_async` copies and also passes the odd-boundary case. Its
+1K result was 22,705 GFLOP/s versus 22,515 GFLOP/s for the synchronous variant,
+within run-to-run noise. We therefore reject async copy alone as the current
+performance lever and will reserve the shared-memory pipeline for a
+tensor-core MMA implementation.
+
 Run it directly on the WSL 5090:
 
 ```bash

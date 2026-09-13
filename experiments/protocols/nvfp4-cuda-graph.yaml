@@ -14,34 +14,41 @@ workload:
   k: 4096
   warmups: [30, 30, 20]
   iterations: [500, 300, 200]
+  independent_process_repeats: 2
   operation: activation_scaled_fp4_quant_then_cutlass_scaled_fp4_mm
 cells:
   - m: 1
-    regular_pipeline_ms: 0.029391
-    cuda_graph_pipeline_ms: 0.019854
-    pipeline_reduction_percent: 32.4
-    fp16_mm_ms: 0.017093
-    graph_speedup_vs_fp16: 0.861
+    regular_pipeline_ms: 0.026705
+    regular_pipeline_ms_range: [0.025380, 0.028030]
+    cuda_graph_pipeline_ms: 0.019366
+    cuda_graph_pipeline_ms_range: [0.018554, 0.020178]
+    pipeline_reduction_percent: 27.5
+    fp16_mm_ms: 0.020757
+    graph_speedup_vs_fp16: 1.083
     graph_max_abs_error_vs_pipeline: 0.0
   - m: 32
-    regular_pipeline_ms: 0.026728
-    cuda_graph_pipeline_ms: 0.019263
-    pipeline_reduction_percent: 27.9
-    fp16_mm_ms: 0.019860
-    graph_speedup_vs_fp16: 1.031
+    regular_pipeline_ms: 0.025690
+    regular_pipeline_ms_range: [0.025103, 0.026276]
+    cuda_graph_pipeline_ms: 0.018615
+    cuda_graph_pipeline_ms_range: [0.018328, 0.018901]
+    pipeline_reduction_percent: 27.5
+    fp16_mm_ms: 0.024887
+    graph_speedup_vs_fp16: 1.341
     graph_max_abs_error_vs_pipeline: 0.0
   - m: 128
-    regular_pipeline_ms: 0.025574
-    cuda_graph_pipeline_ms: 0.018451
-    pipeline_reduction_percent: 27.9
-    fp16_mm_ms: 0.028621
-    graph_speedup_vs_fp16: 1.551
+    regular_pipeline_ms: 0.029011
+    regular_pipeline_ms_range: [0.028543, 0.029480]
+    cuda_graph_pipeline_ms: 0.018577
+    cuda_graph_pipeline_ms_range: [0.018393, 0.018760]
+    pipeline_reduction_percent: 36.0
+    fp16_mm_ms: 0.028674
+    graph_speedup_vs_fp16: 1.544
     graph_max_abs_error_vs_pipeline: 0.0
-decision: CUDA Graph capture removes roughly 28--32% of activation-quantization pipeline time at the measured decode-like shapes while matching the regular pipeline bit-for-bit. This is a shape-static serving optimization; it must be integrated with request-shape bucketing and recaptured on shape changes before production use.
+decision: Across two independent process repeats, CUDA Graph capture removes roughly 27--36% of activation-quantization pipeline time at the measured decode-like shapes while matching the regular pipeline bit-for-bit. This is a shape-static serving optimization; it must be integrated with request-shape bucketing and recaptured on shape changes before production use.
 evidence:
-  matrix_runner: bash scripts/wsl/run_nvfp4_graph_matrix.sh .kairo-local/nvfp4-graph.jsonl
-  analyzer: python scripts/wsl/analyze_nvfp4_graph.py .kairo-local/nvfp4-graph.jsonl
-  raw_matrix: .kairo-local/nvfp4-graph-full.jsonl
+  matrix_runner: KAIRO_NVFP4_GRAPH_REPEATS=2 bash scripts/wsl/run_nvfp4_graph_matrix.sh .kairo-local/nvfp4-graph-repeats2.jsonl
+  analyzer: python scripts/wsl/analyze_nvfp4_graph.py .kairo-local/nvfp4-graph-repeats2.jsonl
+  raw_matrix: .kairo-local/nvfp4-graph-repeats2.jsonl
   commands:
     - bash scripts/wsl/run_nvfp4_probe.sh --m 1 --n 4096 --k 4096 --iterations 500 --warmups 30 --cuda-graph
     - bash scripts/wsl/run_nvfp4_probe.sh --m 32 --n 4096 --k 4096 --iterations 300 --warmups 30 --cuda-graph

@@ -22,6 +22,7 @@ emit() {
 # row counts; override this list for a model-specific experiment.
 shapes="${KAIRO_NVFP4_GRAPH_SHAPES:-1,4096,4096,500,30;32,4096,4096,300,30;128,4096,4096,200,20}"
 backend="${KAIRO_NVFP4_BACKEND:-cutlass}"
+repeats="${KAIRO_NVFP4_GRAPH_REPEATS:-1}"
 IFS=';' read -r -a shape_cells <<< "$shapes"
 for shape in "${shape_cells[@]}"; do
   IFS=',' read -r m n k iterations warmups <<< "$shape"
@@ -33,7 +34,10 @@ for shape in "${shape_cells[@]}"; do
     echo "invalid NVFP4 shape (N and K must be divisible by 32): $shape" >&2
     exit 2
   fi
-  emit "$(bash "$root/scripts/wsl/run_nvfp4_probe.sh" \
-    --backend "$backend" --m "$m" --n "$n" --k "$k" \
-    --iterations "$iterations" --warmups "$warmups" --cuda-graph)"
+  for repeat in $(seq 1 "$repeats"); do
+    echo "shape=[$m,$n,$k] graph_repeat=$repeat/$repeats" >&2
+    emit "$(bash "$root/scripts/wsl/run_nvfp4_probe.sh" \
+      --backend "$backend" --m "$m" --n "$n" --k "$k" \
+      --iterations "$iterations" --warmups "$warmups" --cuda-graph)"
+  done
 done

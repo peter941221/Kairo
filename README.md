@@ -147,7 +147,7 @@ the activation-quantization pipeline cost.
 
 For the experimental Kairo pipeline path, add `--cuda-graph` to capture the
 quantization and CUTLASS GEMM as one static-shape replay. Current 4K matrix
-results show roughly 28--32% lower pipeline time with bit-exact agreement to
+two-repeat results show roughly 27--36% lower pipeline time with bit-exact agreement to
 the regular pipeline; see
 [`nvfp4-cuda-graph.yaml`](experiments/protocols/nvfp4-cuda-graph.yaml).
 The vLLM service probe with `KAIRO_ENFORCE_EAGER=0` did not reach health within
@@ -160,6 +160,8 @@ bash scripts/wsl/run_nvfp4_graph_matrix.sh .kairo-local/nvfp4-graph.jsonl
 ```
 
 Override cells with `KAIRO_NVFP4_GRAPH_SHAPES=M,N,K,iterations,warmups;...`.
+Set `KAIRO_NVFP4_GRAPH_REPEATS=3` for independent process repeats; the analyzer
+reports per-shape medians.
 Summarize the JSONL with the correctness-aware selector:
 
 ```bash

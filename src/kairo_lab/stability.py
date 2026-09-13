@@ -59,23 +59,33 @@ def summarize(path: Path) -> dict[str, object]:
             if correctness else None
         ),
     }
-    if benches:
-        config = benches[0].get("config")
+    workloads = []
+    for bench in benches:
+        config = bench.get("config")
         if isinstance(config, dict):
-            result["workload"] = {
-                key: config[key]
-                for key in (
-                    "concurrency",
-                    "requests",
-                    "prompt_tokens_requested",
-                    "prompt_tokens_actual",
-                    "generation_tokens",
-                    "warmup",
-                    "disable_thinking",
-                    "ignore_eos",
-                )
-                if key in config
-            }
+            workloads.append(
+                {
+                    key: config[key]
+                    for key in (
+                        "concurrency",
+                        "requests",
+                        "prompt_tokens_requested",
+                        "prompt_tokens_actual",
+                        "generation_tokens",
+                        "warmup",
+                        "disable_thinking",
+                        "ignore_eos",
+                        "context_tokens",
+                    )
+                    if key in config
+                }
+            )
+    if workloads:
+        result["workload"] = workloads[0]
+        result["workload_consistent"] = (
+            len(workloads) == len(benches)
+            and all(item == workloads[0] for item in workloads)
+        )
     if throughputs:
         median = statistics.median(throughputs)
         result.update({

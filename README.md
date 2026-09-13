@@ -413,9 +413,10 @@ python3 scripts/wsl/compare_benchmarks.py \
   .kairo-local/qwen3-8b-c16-p512-eager-repeats3.out
 ```
 
-The command refuses promotion on workload mismatch, failed correctness, failed
-requests, or insufficient speedup. Use `--drop-first` only as an explicit
-steady-state capture-cost analysis. Routed and SGLang runners pass their
+The command refuses promotion on workload mismatch, inconsistent parameters
+across repeats, failed correctness, failed requests, or insufficient speedup.
+Use `--drop-first` only as an explicit steady-state capture-cost analysis.
+Routed and SGLang runners pass their
 declared context limit into each raw benchmark record, so context mismatches
 are visible to the gate.
 

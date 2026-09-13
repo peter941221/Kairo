@@ -41,6 +41,8 @@ def compare_logs(
     workload_match = (
         isinstance(candidate_workload, dict)
         and isinstance(baseline_workload, dict)
+        and candidate.get("workload_consistent", False)
+        and baseline.get("workload_consistent", False)
         and candidate_workload == baseline_workload
     )
     candidate_values = list(candidate.get("throughput_tok_s") or [])

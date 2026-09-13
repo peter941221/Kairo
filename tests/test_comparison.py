@@ -6,20 +6,24 @@ from pathlib import Path
 from kairo_lab.comparison import compare_logs
 
 
-def write_log(path: Path, values, *, prompt=512, passed=4):
+def write_log(path: Path, values, *, prompt=512, context=None, prompts=None, passed=4):
     records = [{"summary": {"passed": passed, "total": 4}}]
-    for value in values:
+    for index, value in enumerate(values):
+        repeat_prompt = prompts[index] if prompts is not None else prompt
+        config = {
+            "concurrency": 16,
+            "requests": 16,
+            "prompt_tokens_requested": repeat_prompt,
+            "generation_tokens": 128,
+            "warmup": 1,
+            "disable_thinking": True,
+            "ignore_eos": True,
+        }
+        if context is not None:
+            config["context_tokens"] = context
         records.append(
             {
-                "config": {
-                    "concurrency": 16,
-                    "requests": 16,
-                    "prompt_tokens_requested": prompt,
-                    "generation_tokens": 128,
-                    "warmup": 1,
-                    "disable_thinking": True,
-                    "ignore_eos": True,
-                },
+                "config": config,
                 "summary": {"ok": 16, "failed": 0, "output_tokens_per_s": value},
             }
         )
@@ -55,6 +59,27 @@ class ComparisonTests(unittest.TestCase):
             baseline = Path(directory) / "baseline.out"
             write_log(candidate, [300.0], prompt=1024)
             write_log(baseline, [100.0], prompt=512)
+            result = compare_logs(candidate, baseline)
+        self.assertFalse(result["workload_match"])
+        self.assertFalse(result["promotion_gate"])
+
+    def test_inconsistent_repeats_block_promotion(self):
+        with tempfile.TemporaryDirectory() as directory:
+            candidate = Path(directory) / "candidate.out"
+            baseline = Path(directory) / "baseline.out"
+            write_log(candidate, [200.0, 220.0], prompts=[512, 1024])
+            write_log(baseline, [100.0, 110.0])
+            result = compare_logs(candidate, baseline)
+        self.assertFalse(result["candidate"]["workload_consistent"])
+        self.assertFalse(result["workload_match"])
+        self.assertFalse(result["promotion_gate"])
+
+    def test_context_length_is_part_of_workload_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            candidate = Path(directory) / "candidate.out"
+            baseline = Path(directory) / "baseline.out"
+            write_log(candidate, [200.0], context=1024)
+            write_log(baseline, [100.0], context=4096)
             result = compare_logs(candidate, baseline)
         self.assertFalse(result["workload_match"])
         self.assertFalse(result["promotion_gate"])

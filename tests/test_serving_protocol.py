@@ -111,6 +111,18 @@ pinned_current_validation:
         self.assertFalse(result["valid"])
         self.assertFalse(result["lanes"][0]["checks"]["raw_exists"])
 
+    def test_declared_hash_mismatch_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self._write_protocol(Path(directory))
+            text = path.read_text(encoding="utf-8").replace(
+                "    raw_output: .kairo-local/candidate.out\n",
+                "    raw_output: .kairo-local/candidate.out\n    sha256: bad-hash\n",
+            )
+            path.write_text(text, encoding="utf-8")
+            result = validate(path)
+        self.assertFalse(result["valid"])
+        self.assertFalse(result["lanes"][0]["checks"]["sha256"])
+
 
 if __name__ == "__main__":
     unittest.main()

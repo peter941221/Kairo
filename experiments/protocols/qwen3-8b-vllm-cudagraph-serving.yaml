@@ -183,6 +183,7 @@ pinned_long_context_validation:
     correctness: 4/4
     successful_requests_per_repeat: [16, 16]
     raw_output: .kairo-local/qwen3-8b-final-c16-p2048-graph.out
+    sha256: 3be3f8efd586da299e7ca212f1f77342b71233caea0db06debd6351a666713e0
   eager_control:
     throughput_tok_s: [822.81, 1109.62]
     median_tok_s: 966.22
@@ -191,6 +192,7 @@ pinned_long_context_validation:
     correctness: 4/4
     successful_requests_per_repeat: [16, 16]
     raw_output: .kairo-local/qwen3-8b-final-c16-p2048-eager.out
+    sha256: 198f927317cd9926a600b203f653432a3f23d804b43fb0070a72f9a3ad994b09
   comparison:
     median_throughput_speedup: 1.5252
     throughput_delta_percent: 52.52

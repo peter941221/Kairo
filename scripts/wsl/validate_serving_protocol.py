@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -20,6 +21,14 @@ from kairo_lab.stability import summarize
 
 def _close(actual: float, expected: float, tolerance: float = 0.02) -> bool:
     return abs(actual - expected) <= tolerance
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _validate_lane(
@@ -101,6 +110,8 @@ def _validate_lane(
     median_ok = _close(
         float(summary["throughput_median_tok_s"]), float(lane["median_tok_s"])
     )
+    expected_hash = lane.get("sha256")
+    hash_ok = expected_hash is None or _sha256(raw_path).lower() == str(expected_hash).lower()
     checks = {
         "raw_exists": raw_path.exists(),
         "workload": workload_ok,
@@ -109,6 +120,7 @@ def _validate_lane(
         "requests_successful": success_ok and bool(summary["all_requests_successful"]),
         "throughput_repeats": throughput_ok,
         "throughput_median": median_ok,
+        "sha256": hash_ok,
     }
     return {
         "lane": lane_name,

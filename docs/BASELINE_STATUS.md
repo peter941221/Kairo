@@ -66,10 +66,31 @@ All requests succeeded. These are the first Qwen3.8 serving baselines, not a
 Kairo win claim; the Mamba bfloat16 setting and SGLang-main build are recorded
 as part of the configuration, and a pinned-runtime comparison is still needed.
 
+A fixed-length decode repeat used the same runtime but added the top-level
+`ignore_eos=true` request extension, so every successful request generated
+exactly 256 tokens. The prompt target was 512 tokens (572 actual), with two
+warmups and thinking disabled:
+
+| Concurrency | Requests | TTFT P50 / P99 | Total P50 | Aggregate output |
+|---:|---:|---:|---:|---:|
+| 1 | 4 | 183 / 185 ms | 17.80 s | 14.30 tok/s |
+| 4 | 8 | 367 / 885 ms | 18.75 s | 54.59 tok/s |
+
+The fixed-length pass confirms the earlier scaling direction while removing
+early-EOS noise: four-way batching delivered 3.82x the single-request output
+rate. These are still baseline observations; the next comparison should repeat
+the matrix across backends and include longer prompt/prefill points.
+
 A matching prefill probe (2,048 requested prompt tokens, 2,241 actual tokens,
 one generated token, concurrency 1, four requests) produced TTFT P50 238 ms and
 input throughput 9,080 tok/s. It is a warm-cache observation and should be
 repeated before using it to select a prefill kernel target.
+
+The fixed-length repeat (two warmups, thinking disabled, `ignore_eos=true`)
+returned 4/4 successful requests with the same 2,241 actual input tokens,
+TTFT P50/P99 of 227/259 ms, and 9,460 input tok/s. This is close enough to the
+earlier reading to treat the prefill point as stable for the current runtime,
+while still requiring cross-backend repetition before optimization claims.
 
 For the vLLM comparison, forcing its `flashinfer_cudnn` linear backend selected
 `FlashInferCudnnNvFp4LinearKernel` and reduced weight-load time to roughly 11 s,

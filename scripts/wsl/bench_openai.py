@@ -54,6 +54,10 @@ def _one(args: argparse.Namespace, request_id: int) -> Sample:
         # SGLang accepts this as a top-level OpenAI-compatible extension;
         # runtimes that ignore the key still receive the same prompt/body.
         body["chat_template_kwargs"] = {"enable_thinking": False}
+    if args.ignore_eos:
+        # Keep decode runs at an exact length so throughput comparisons are
+        # not skewed by requests that happen to emit EOS early.
+        body["ignore_eos"] = True
     request = urllib.request.Request(
         f"{args.base_url.rstrip('/')}/v1/chat/completions",
         data=json.dumps(body).encode(),
@@ -123,6 +127,8 @@ def run(args: argparse.Namespace) -> dict:
             "generation_tokens": args.generation_tokens,
             "warmup": args.warmup,
             "requests": args.requests,
+            "disable_thinking": args.disable_thinking,
+            "ignore_eos": args.ignore_eos,
         },
         "summary": {
             "ok": len(good),
@@ -156,6 +162,7 @@ def main() -> None:
     parser.add_argument("--requests", type=int, default=8)
     parser.add_argument("--timeout", type=float, default=300)
     parser.add_argument("--disable-thinking", action="store_true")
+    parser.add_argument("--ignore-eos", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     result = run(args)

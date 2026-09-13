@@ -420,11 +420,18 @@ At c32/prompt512, the same new-model Graph lane measured 3393.21, 3958.74,
 and 3946.07 tok/s (steady-state median **3946.07**) versus eager 1836.39 and
 1834.39 (median **1835.39**): **2.15x / +115.0%**, with 4/4 correctness and
 32/32 success on every repeat. The c32 steady-state range was 0.32%.
-At the 4K boundary (c16/prompt2048/context4096/generation128), Graph's two
-steady-state repeats averaged 1869.92 tok/s versus the eager post-warmup point
-of 1102.76 tok/s, a provisional **1.69x / +69.5%**. This long-context cell is
-implemented as an explicit measured route but remains experimental until the
-eager control receives another fresh-service repeat.
+At the 4K boundary (c16/prompt2048/context4096/generation128), a fresh
+source-pinned pair measured Graph **1473.70 tok/s** versus eager **966.22
+tok/s**, a **1.5252x / +52.52%** lead. Both lanes passed 4/4 correctness and
+16/16 requests across two repeats; the exact raw logs, model revision, and
+source revision are recorded in the protocol's `pinned_long_context_validation`
+section. Validate that section with:
+
+```bash
+python3 scripts/wsl/validate_serving_protocol.py \
+  experiments/protocols/qwen3-8b-vllm-cudagraph-serving.yaml \
+  --section pinned_long_context_validation
+```
 
 The same Qwen3-8B c16/p512/1K/128 workload also has an isolated SGLang control:
 with FP4 `flashinfer_cudnn`, FlashInfer autotune disabled, and CUDA Graphs

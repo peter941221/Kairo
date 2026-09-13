@@ -558,11 +558,13 @@ and 3946.07 tok/s (steady-state median **3946.07**) versus eager 1836.39 and
 1834.39 (median **1835.39**), a **2.15x / +115.0%** lead. Every repeat passed
 4/4 correctness and 32/32 request success; the two steady-state Graph repeats
 varied by only 0.32%. The recommender now covers both c16 and c32 for this
-exact Qwen3-8B workload bucket. At the 4K boundary (c16/prompt2048,
-generation128), Graph's two steady-state repeats averaged 1869.92 tok/s versus
-the eager post-warmup point of 1102.76 tok/s, a provisional **1.69x / +69.5%**
-lead. The exact long-context route is exposed for experiments, but remains
-experimental until the eager control receives another fresh-service repeat.
+exact Qwen3-8B workload bucket. A fresh source-pinned 4K boundary validation
+(c16/prompt2048/generation128) measured Graph **1473.70 tok/s** versus eager
+**966.22 tok/s**, a **1.5252x / +52.52%** lead. Both lanes passed 4/4
+correctness and 16/16 request success across two repeats. The exact long-context
+route and raw logs are recorded in `pinned_long_context_validation`; validate it
+with `scripts/wsl/validate_serving_protocol.py --section
+pinned_long_context_validation`.
 An isolated SGLang 0.5.19 control was also brought up for the short cell with
 FP4 `flashinfer_cudnn`, FlashInfer autotune disabled, and CUDA Graphs disabled.
 It passed 4/4 correctness and 16/16 requests at **353.35 tok/s** (TTFT P50

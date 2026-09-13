@@ -94,13 +94,14 @@ def _validate_lane(
     }
 
 
-def validate(protocol_path: Path) -> dict[str, Any]:
+def validate(
+    protocol_path: Path,
+    section_name: str = "pinned_current_validation",
+) -> dict[str, Any]:
     document = yaml.safe_load(protocol_path.read_text(encoding="utf-8"))
-    if not isinstance(document, dict) or not isinstance(
-        document.get("pinned_current_validation"), dict
-    ):
-        raise ValueError("protocol has no pinned_current_validation section")
-    section = document["pinned_current_validation"]
+    if not isinstance(document, dict) or not isinstance(document.get(section_name), dict):
+        raise ValueError(f"protocol has no {section_name} section")
+    section = document[section_name]
     workload = section.get("workload")
     if not isinstance(workload, dict):
         raise ValueError("pinned_current_validation has no workload")
@@ -125,6 +126,7 @@ def validate(protocol_path: Path) -> dict[str, Any]:
     }
     return {
         "protocol": str(protocol_path),
+        "section": section_name,
         "lanes": lanes,
         "comparison": {
             "checks": comparison_checks,
@@ -137,8 +139,13 @@ def validate(protocol_path: Path) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("protocol", type=Path)
+    parser.add_argument(
+        "--section",
+        default="pinned_current_validation",
+        help="validation section to check (default: pinned_current_validation)",
+    )
     args = parser.parse_args()
-    result = validate(args.protocol)
+    result = validate(args.protocol, args.section)
     print(json.dumps(result, indent=2) + "\n")
     raise SystemExit(0 if result["valid"] else 1)
 

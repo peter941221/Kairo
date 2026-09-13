@@ -160,3 +160,41 @@ decision: >-
   c16/prompt512/128, while the first Graph repeat exposes capture overhead;
   steady-state repeats are within 1.77% range. This is a measured serving
   result, not yet a claim of model-quality parity or cross-backend superiority.
+
+pinned_long_context_validation:
+  date_utc: 2026-09-13
+  source_revision: 6659b53ed25224e6b12d77ab04b8bcc75c1d0918
+  model_weights_revision: ccd10a893cbca613259517c3efe08e151ddf2b8e
+  workload:
+    concurrency: 16
+    requests: 16
+    prompt_tokens_requested: 2048
+    prompt_tokens_actual_mean: 2241.75
+    context_tokens: 4096
+    generation_tokens: 128
+    generation_tokens_actual: 128
+    warmup: 1
+    repeats: 2
+  graph:
+    throughput_tok_s: [1118.53, 1828.87]
+    median_tok_s: 1473.70
+    ttft_p50_median_ms: 242.10
+    total_p99_median_ms: 1462.13
+    correctness: 4/4
+    successful_requests_per_repeat: [16, 16]
+    raw_output: .kairo-local/qwen3-8b-final-c16-p2048-graph.out
+  eager_control:
+    throughput_tok_s: [822.81, 1109.62]
+    median_tok_s: 966.22
+    ttft_p50_median_ms: 241.11
+    total_p99_median_ms: 2157.92
+    correctness: 4/4
+    successful_requests_per_repeat: [16, 16]
+    raw_output: .kairo-local/qwen3-8b-final-c16-p2048-eager.out
+  comparison:
+    median_throughput_speedup: 1.5252
+    throughput_delta_percent: 52.52
+    workload_match: true
+    repeats_consistent: true
+    actual_token_counts_match: true
+    promotion_gate: true

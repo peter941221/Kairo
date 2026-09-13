@@ -470,7 +470,10 @@ capture overhead; its two steady-state samples vary by 1.77%. Full settings and
 raw logs are recorded in
 `experiments/protocols/qwen3-8b-vllm-cudagraph-serving.yaml`.
 The runtime recommender accepts `--model qwen3_8b` for this exact measured
-cell; all other Qwen3-8B shapes remain `manual` until measured.
+cell; all other Qwen3-8B shapes remain `manual` until measured. The model-aware
+routed launcher was also run end to end: it selected Graph automatically,
+passed 4/4 correctness and 16/16 request success, measured 1847.96 tok/s, and
+passed the post-run stability audit.
 
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
 metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt

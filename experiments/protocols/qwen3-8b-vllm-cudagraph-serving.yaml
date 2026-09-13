@@ -58,6 +58,16 @@ eager_control:
   steady_state_repeats_tok_s: [1073.63, 1116.30]
   steady_state_relative_range_percent: 3.97
   raw_output: .kairo-local/qwen3-8b-c16-p512-eager-repeats3.out
+routed_integration:
+  route: qwen3-8b-vllm-nightly-cutlass-full-decode-graph-c16-p512
+  requested_context_tokens: 1024
+  requested_generation_tokens: 128
+  correctness_cases: 4
+  correctness_passed: 4
+  successful_requests: 16
+  throughput_tok_s: 1847.96
+  stability_gate: passed
+  raw_output: .kairo-local/qwen3-8b-routed-c16-p512.out
 comparison:
   same_model_weights: true
   same_workload: true

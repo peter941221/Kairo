@@ -341,6 +341,9 @@ three Graph repeats measured 1942.58, 2216.16, and 2177.49 tok/s (median
 16/16 requests. The first Graph repeat includes capture overhead; the two
 steady-state repeats varied by only 1.77%. See
 [`qwen3-8b-vllm-cudagraph-serving.yaml`](experiments/protocols/qwen3-8b-vllm-cudagraph-serving.yaml).
+The model-aware routed entry point was then exercised on the same cell: it
+selected Graph automatically, passed the default 4/4 correctness and 16/16
+success gates, measured 1847.96 tok/s, and passed the post-run stability audit.
 
 Summarize any repeated raw log and fail if correctness or request success is
 incomplete:

@@ -32,6 +32,21 @@ graph_result:
   ttft_p50_ms: [229.56, 229.92]
   ttft_p99_ms: [231.34, 231.59]
   all_requests_successful: true
+c16_graph_result:
+  requested_concurrency: 16
+  actual_prompt_tokens_mean: 292.75
+  throughput_repeats: [652.09, 750.95, 710.00, 727.22]
+  throughput_median: 718.61
+  ttft_p50_ms: [394.28, 314.18, 355.95, 377.99]
+  latest_correctness_cases: 4
+  latest_correctness_passed: 4
+  all_requests_successful: true
+c16_eager_control:
+  requested_concurrency: 16
+  throughput_repeats: [296.10, 290.10]
+  throughput_median: 293.10
+  ttft_p50_ms: [636.96, 549.31]
+  all_requests_successful: true
 eager_control:
   throughput_repeats: [154.62, 152.94]
   throughput_mean: 153.78
@@ -42,8 +57,10 @@ comparison:
   approximate_throughput_delta_percent: 157.0
   median_ttft_reduction_percent: 45.8
   note: Same model, backend, context, sequence cap, prompt, output length, concurrency, warmup, and request count; only CUDA Graph mode differs.
+  c16_median_throughput_speedup: 2.45
+  c16_approximate_throughput_delta_percent: 145.2
 caveats:
-  - This is a bounded 1K-context c8 decode pilot, not a general c16/4K claim.
+  - These are bounded 1K-context c8/c16 decode pilots, not a general 4K claim.
   - Graph startup/capture is excluded from request throughput and requires max_num_seqs <= available Mamba cache blocks.
   - Broader contexts, concurrency, and fresh-service repeats remain before production default.
 evidence:
@@ -51,3 +68,5 @@ evidence:
   eager_command: KAIRO_ENFORCE_EAGER=1 KAIRO_MAX_RUNNING_REQUESTS=32 KAIRO_MAX_MODEL_LEN=1024 KAIRO_GPU_MEMORY_UTILIZATION=0.80 KAIRO_BENCH_REQUESTS=8 KAIRO_BENCH_GENERATION_TOKENS=128 KAIRO_BENCH_PROMPT_TOKENS=256 KAIRO_BENCH_WARMUP=1 KAIRO_BENCH_REPEATS=2 KAIRO_BENCH_CONCURRENCY=8 bash scripts/wsl/run_qwen_cutlass_bench.sh 18104
   graph_raw: .kairo-local/qwen-cutlass-decodegraph-correct.out
   eager_raw: .kairo-local/qwen-cutlass-eager-c8-repeat.out
+  c16_graph_raw: .kairo-local/qwen-cutlass-decodegraph-c16.out, .kairo-local/qwen-cutlass-decodegraph-c16-repeat.out, .kairo-local/qwen-cutlass-decodegraph-c16-correct.out
+  c16_eager_raw: .kairo-local/qwen-cutlass-eager-c16-1k.out

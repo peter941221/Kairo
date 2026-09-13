@@ -302,11 +302,17 @@ the paired B12X point. The recommender therefore selects CUTLASS for both
 measured c16 prompt cells; other shapes stay manual until measured.
 
 The strongest current end-to-end result is vLLM nightly + CUTLASS with
-`FULL_DECODE_ONLY` CUDA Graphs: 392.82--397.56 tok/s at c8 versus
-152.94--154.62 tok/s for the eager control (2.57x mean, 4/4 correctness).
-This is a bounded 1K-context pilot with `max_num_seqs=32`; see
+`FULL_DECODE_ONLY` CUDA Graphs: at c16, four fresh runs reached a median
+718.61 tok/s versus 293.10 tok/s eager (2.45x, +145.2%). The c8 pilot reached
+392.82--397.56 tok/s versus 152.94--154.62 tok/s eager (2.57x mean, 4/4
+correctness). Both are bounded 1K-context results with `max_num_seqs=32`; see
 [`qwen38-vllm-cudagraph-serving.yaml`](experiments/protocols/qwen38-vllm-cudagraph-serving.yaml)
 before extrapolating it to other workloads.
+
+At c16 on the same envelope, four fresh Graph runs reached a median 718.61
+tok/s versus 293.10 tok/s eager (2.45x, +145.2%); the latest Graph run passed
+4/4 correctness. The measured runtime policy routes the exact c16/prompt256
+cell to this Graph profile and keeps other shapes explicit.
 
 Run the lightweight correctness gate against any OpenAI-compatible service:
 

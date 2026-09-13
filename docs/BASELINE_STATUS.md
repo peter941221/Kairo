@@ -376,11 +376,20 @@ concurrency, 292 actual prompt tokens, 128 generated tokens, 1K context, and
 required before making it a blanket default. The full protocol is in
 `experiments/protocols/qwen38-vllm-cudagraph-serving.yaml`.
 
+The same Graph route also held at c16 under the identical 1K-context envelope:
+four fresh services reached 652.09, 750.95, 710.00, and 727.22 output tok/s
+(median **718.61**), while the eager control reached 296.10 and 290.10
+(median **293.10**). This is a **2.45x / +145.2%** median throughput lead;
+the latest Graph run passed the 4/4 correctness gate and all 16 requests
+succeeded. This c16 result is now the strongest measured serving route, while
+remaining bounded to the exact prompt/context/sequence-cap envelope.
+
 The CLI now exposes this evidence as a bounded runtime policy via
 `recommend-runtime`: the measured c8/prompt256 cell selects vLLM nightly
 CUTLASS `FULL_DECODE_ONLY` Graph with `max_num_seqs=32`; both repeated c16
-cells select vLLM nightly CUTLASS, while measured c1/c4 short cells select
-SGLang. Unmeasured shapes return `manual` instead of silently extrapolating.
+prompt cells select vLLM nightly CUTLASS (the exact c16/prompt256 cell uses
+the Graph profile), while measured c1/c4 short cells select SGLang. Unmeasured
+shapes return `manual` instead of silently extrapolating.
 This is the first executable form of the workload-aware routing hypothesis.
 
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible

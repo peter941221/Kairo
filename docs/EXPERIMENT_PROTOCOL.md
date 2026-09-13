@@ -16,6 +16,9 @@ software revision, and correctness tolerance did this approach win?*
 5. Run numerical checks against the declared reference before performance claims.
 6. Retain raw result JSON locally and commit the aggregation tables and command
    lines used for any public claim.
+7. For throughput comparisons, request a fixed generation length with the
+   runtime's `ignore_eos` extension (or an equivalent control) and record the
+   actual usage token counts.
 
 ## Initial matrix
 

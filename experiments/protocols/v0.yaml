@@ -18,3 +18,5 @@ fairness:
   same_quantization_recipe: true
   report_build_time_separately: true
   require_warmup: true
+  fixed_generation_length: true
+  request_ignore_eos: true

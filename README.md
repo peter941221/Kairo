@@ -62,6 +62,10 @@ docs/                product and experiment documentation
 .kairo-local/        ignored local rules, notes, credentials, and machine facts
 ```
 
+GitHub CI runs the portable contract checks on every push and pull request:
+unit tests, all YAML manifests, and every WSL shell entry point. GPU probes and
+serving benchmarks remain explicitly local because they require the RTX 5090.
+
 ## Quick start (from PowerShell)
 
 ```powershell

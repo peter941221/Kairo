@@ -258,6 +258,11 @@ explicit `kairo` versus `fallback` results, including the failure stage and
 reason, so a future CUDA extension can be integrated without changing the
 experiment contract.
 
+The repository now has a portable GitHub Actions contract gate at
+`.github/workflows/ci.yml`: it runs the full Python suite, parses every tracked
+experiment manifest, and checks all WSL shell entry points without requiring a
+GPU. Hardware probes and serving measurements remain separate local gates.
+
 - vLLM 0.29.0 resolved the `Qwen3_5ForConditionalGeneration` architecture,
   selected the GDN decode path and FlashInfer NVFP4 GEMM, and loaded all three
   safetensors shards in about 42 seconds using roughly 19 GiB of GPU memory.

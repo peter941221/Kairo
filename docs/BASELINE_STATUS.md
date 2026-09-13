@@ -87,16 +87,17 @@ changed serving envelope:
 
 | Runtime | c1 output | c4 output | c16 output | c16 TTFT P50 / P99 |
 |---|---:|---:|---:|---:|
-| vLLM nightly + B12X | 13.20 tok/s | 49.13 tok/s | **193.95 tok/s** | 940 / 1,255 ms |
+| vLLM nightly + B12X | 13.20 tok/s | 49.13 tok/s | **191.93 tok/s** | 967 / 1,316 ms |
 | SGLang main, ratio 8 | 14.42 tok/s | 53.04 tok/s | 107.37 tok/s | 10,080 / 19,670 ms |
 
-The vLLM c16 result was repeated twice (193.95 and 194.11 tok/s; all 32
-requests succeeded), giving a +80.7% throughput delta over the paired SGLang
-point. At c1/c4, SGLang remains slightly faster. The shape-specific reversal
-is the strongest current lead: vLLM/B12X keeps a much larger effective decode
-batch, while SGLang's Mamba cache forms multiple waves. It is a measurable
-runtime/scheduling wedge, not yet a kernel-publication claim; repeat it with
-long prompts and a correctness matrix before presenting it publicly.
+The vLLM c16 result was repeated three times (191.93, 193.95, and 194.11
+tok/s; all 48 requests succeeded), giving a conservative +78.7% throughput
+delta over the paired SGLang point. At c1/c4, SGLang remains slightly faster.
+The shape-specific reversal is the strongest current lead: vLLM/B12X keeps a
+much larger effective decode batch, while SGLang's Mamba cache forms multiple
+waves. It is a measurable runtime/scheduling wedge, not yet a
+kernel-publication claim; repeat it with long prompts and a correctness matrix
+before presenting it publicly.
 - A source checkout of SGLang main (`14b647c`) was tested in the isolated
   SGLang environment. With `--mamba-ssm-dtype bfloat16` and 0.80 static-memory
   fraction it loaded the weights, allocated 4.22 GiB of Mamba state plus a

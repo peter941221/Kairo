@@ -139,8 +139,8 @@ shapes remain on the ratio-4.59 baseline until measured.
 
 The first fair cross-runtime matrix is now recorded in
 [`docs/BASELINE_STATUS.md`](docs/BASELINE_STATUS.md): vLLM nightly+B12X reaches
-193.95 tok/s at the 4K-configured c16 point versus 107.37 tok/s for SGLang
-ratio 8, while SGLang remains slightly ahead at c1/c4. Treat this as a
+191.93–194.11 tok/s at the 4K-configured c16 point versus 107.37 tok/s for
+SGLang ratio 8, while SGLang remains slightly ahead at c1/c4. Treat this as a
 shape-specific scheduling lead until the longer-prompt and correctness
 repeats are complete.
 

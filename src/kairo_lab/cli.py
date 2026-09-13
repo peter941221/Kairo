@@ -132,6 +132,23 @@ def recommend_runtime(
             "confidence": "unvalidated",
             "reason": "No Qwen3-8B measurement covers this shape yet",
         }
+    if (
+        concurrency == 8
+        and prompt_tokens == 2048
+        and context_tokens == 4096
+        and generation_tokens == 128
+    ):
+        return {
+            "model": model,
+            "backend": "vllm-nightly",
+            "profile": "qwen38-vllm-nightly-cutlass-full-decode-graph-c8-p2048-4k",
+            "linear_backend": "cutlass",
+            "cudagraph_mode": "FULL_DECODE_ONLY",
+            "max_num_seqs": 8,
+            "max_model_len": 4096,
+            "confidence": "measured_repeated",
+            "reason": "Qwen3.8-27B Graph reached a measured 2.62x eager throughput lead at c8/prompt2048 with 4K context",
+        }
     if concurrency == 8 and prompt_tokens == 256 and graph_envelope:
         return {
             "model": model,

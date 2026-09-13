@@ -398,6 +398,13 @@ correctness, and completed 32/32 requests; Graph also improved TTFT P50
 commands, and pinned model revision are recorded in the protocol's
 `pinned_current_validation` block.
 
+The hero model also holds at a resource-safe long-context point: Qwen3.8-27B
+at c8/prompt2048/context4096/generation128 reached **322.78 tok/s** on Graph
+versus **123.22 tok/s** eager, or **2.6195x / +161.95%**. Both lanes passed 4/4
+correctness and 8/8 requests across two fresh repeats. This is a separate c8
+shape bucket (not an extrapolation to c16); its pinned logs and SHA-256 hashes
+are in `pinned_long_context_c8_validation`.
+
 Validate that protocol block against the ignored raw logs at any time:
 
 ```bash
@@ -496,10 +503,11 @@ python -m kairo_lab.cli recommend-runtime \
   --context-tokens 1024 --generation-tokens 128
 ```
 
-The policy selects the measured c8/prompt256 cell as vLLM/CUTLASS
-`FULL_DECODE_ONLY` Graph (`max_num_seqs=32`), vLLM/CUTLASS for both measured
-c16 prompt cells, and SGLang for measured c1/c4 short cells; every other shape
-returns `manual` until measured.
+The policy selects the measured c8/prompt256 cell and the source-pinned
+c8/prompt2048/4K cell as vLLM/CUTLASS `FULL_DECODE_ONLY` Graph routes (with
+their measured sequence caps), vLLM/CUTLASS for both measured c16 prompt cells,
+and SGLang for measured c1/c4 short cells; every other shape returns `manual`
+until measured.
 When context and generation lengths are supplied, Graph is selected only inside
 the measured 1K-context/128-output envelope; the same prompt at a 4K/256
 workload remains on its separately measured eager profile.

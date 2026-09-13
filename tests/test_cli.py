@@ -69,6 +69,15 @@ class CliTests(unittest.TestCase):
             context_tokens=4096, generation_tokens=128,
         )
         self.assertEqual(unknown_graph["backend"], "manual")
+
+        long_graph = cli.recommend_runtime(
+            "qwen38", concurrency=8, prompt_tokens=2048,
+            context_tokens=4096, generation_tokens=128,
+        )
+        self.assertEqual(long_graph["backend"], "vllm-nightly")
+        self.assertEqual(long_graph["cudagraph_mode"], "FULL_DECODE_ONLY")
+        self.assertEqual(long_graph["max_num_seqs"], 8)
+        self.assertEqual(long_graph["max_model_len"], 4096)
         with self.assertRaises(ValueError):
             cli.recommend_runtime("qwen38", 16, 512, context_tokens=1024)
         short = cli.recommend_runtime("qwen38", concurrency=16, prompt_tokens=512)

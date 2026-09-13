@@ -257,3 +257,46 @@ pinned_current_validation:
   commands:
     graph: KAIRO_PROFILE_MODEL=qwen38 KAIRO_WORKLOAD_CONCURRENCY=32 KAIRO_WORKLOAD_PROMPT_TOKENS=512 KAIRO_WORKLOAD_CONTEXT_TOKENS=1024 KAIRO_WORKLOAD_GENERATION_TOKENS=128 KAIRO_BENCH_REPEATS=2 bash scripts/wsl/run_routed_bench.sh 18150
     eager: KAIRO_QWEN_MODEL=/home/peter/kairo-models/Qwen3.8-27B-NVFP4 KAIRO_CUDAGRAPH_MODE=NONE KAIRO_MAX_MODEL_LEN=1024 KAIRO_BENCH_CONCURRENCY=32 KAIRO_BENCH_REQUESTS=32 KAIRO_BENCH_PROMPT_TOKENS=512 KAIRO_BENCH_CONTEXT_TOKENS=1024 KAIRO_BENCH_GENERATION_TOKENS=128 KAIRO_BENCH_REPEATS=2 KAIRO_RUN_CORRECTNESS=1 bash scripts/wsl/run_qwen_cutlass_bench.sh 18151
+
+pinned_long_context_c8_validation:
+  date_utc: 2026-09-13
+  source_revision: 154586f01270f51cb4b36759e9e51f6e9f79e8cd
+  model_weights_revision: dbb8f445b3145f8a4c18ddc769f032d57d32867c
+  workload:
+    prompt_tokens_requested: 2048
+    prompt_tokens_actual_mean: 2241
+    context_tokens: 4096
+    generation_tokens: 128
+    generation_tokens_actual: 128
+    concurrency: 8
+    requests: 8
+    warmup: 1
+    repeats: 2
+  graph:
+    throughput_tok_s: [264.90, 380.65]
+    median_tok_s: 322.78
+    ttft_p50_median_ms: 673.21
+    total_p99_median_ms: 3269.64
+    correctness: 4/4
+    successful_requests_per_repeat: [8, 8]
+    raw_output: .kairo-local/qwen38-final-c8-p2048-graph.out
+    sha256: 41a86e8b0067c19a37ffce6137dcf5da6234c05c363241f12001b743cf657ec4
+  eager_control:
+    throughput_tok_s: [121.74, 124.70]
+    median_tok_s: 123.22
+    ttft_p50_median_ms: 1092.97
+    total_p99_median_ms: 8302.46
+    correctness: 4/4
+    successful_requests_per_repeat: [8, 8]
+    raw_output: .kairo-local/qwen38-final-c8-p2048-eager.out
+    sha256: 2ea7a422031eb9398dfd51d70db7920729100306d190c13ff2a6be4575939c8e
+  comparison:
+    median_throughput_speedup: 2.6195
+    throughput_delta_percent: 161.95
+    workload_match: true
+    repeats_consistent: true
+    actual_token_counts_match: true
+    promotion_gate: true
+  commands:
+    graph: KAIRO_QWEN_MODEL=/home/peter/kairo-models/Qwen3.8-27B-NVFP4 KAIRO_ENFORCE_EAGER=0 KAIRO_CUDAGRAPH_MODE=FULL_DECODE_ONLY KAIRO_MAX_RUNNING_REQUESTS=8 KAIRO_MAX_MODEL_LEN=4096 KAIRO_BENCH_CONCURRENCY=8 KAIRO_BENCH_REQUESTS=8 KAIRO_BENCH_PROMPT_TOKENS=2048 KAIRO_BENCH_CONTEXT_TOKENS=4096 KAIRO_BENCH_GENERATION_TOKENS=128 KAIRO_BENCH_REPEATS=2 KAIRO_RUN_CORRECTNESS=1 bash scripts/wsl/run_qwen_cutlass_bench.sh 18172
+    eager: KAIRO_QWEN_MODEL=/home/peter/kairo-models/Qwen3.8-27B-NVFP4 KAIRO_ENFORCE_EAGER=1 KAIRO_MAX_RUNNING_REQUESTS=8 KAIRO_MAX_MODEL_LEN=4096 KAIRO_BENCH_CONCURRENCY=8 KAIRO_BENCH_REQUESTS=8 KAIRO_BENCH_PROMPT_TOKENS=2048 KAIRO_BENCH_CONTEXT_TOKENS=4096 KAIRO_BENCH_GENERATION_TOKENS=128 KAIRO_BENCH_REPEATS=2 KAIRO_RUN_CORRECTNESS=1 bash scripts/wsl/run_qwen_cutlass_bench.sh 18173

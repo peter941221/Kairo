@@ -496,6 +496,14 @@ versus 1040.60ms eager; Total P99 was 6325.84ms versus 13257.14ms. This is the
 current pinned headline, with raw logs and exact commands in the protocol's
 `pinned_current_validation` block.
 
+The same hero model was then tested at a resource-safe 4K-context c8 bucket.
+With 2,048 requested prompt tokens (2,241 actual), Graph reached **264.90 and
+380.65 tok/s** (median **322.78**) versus eager **121.74 and 124.70 tok/s**
+(median **123.22**): **2.6195x / +161.95%**. Both lanes passed 4/4 correctness
+and 8/8 request success across two fresh services. This is a measured c8 shape,
+not an extrapolation to c16; raw logs, hashes, and exact commands are in the
+protocol's `pinned_long_context_c8_validation` block.
+
 The routed c32/prompt512 Graph was then held in one service for five
 consecutive batches. Every batch completed 32/32 requests with zero failures;
 throughput was 665.29, 638.58, 639.73, 618.27, and 657.79 tok/s (median
@@ -511,7 +519,9 @@ The CLI now exposes this evidence as a bounded runtime policy via
 CUTLASS `FULL_DECODE_ONLY` Graph with `max_num_seqs=32`; both repeated c16
 prompt cells select vLLM nightly CUTLASS (the exact c16/prompt256 cell uses
 the Graph profile), while measured c1/c4 short cells select SGLang. Unmeasured
-shapes return `manual` instead of silently extrapolating.
+shapes return `manual` instead of silently extrapolating. The source-pinned
+hero c8/prompt2048/4K result is now an explicit Graph route with
+`max_num_seqs=8`; it is selected only for that exact measured bucket.
 This is the first executable form of the workload-aware routing hypothesis.
 Supplying `--context-tokens` and `--generation-tokens` activates the envelope
 gate: Graph is eligible only for the measured 1K/128 route, while a 4K/256

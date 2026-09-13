@@ -344,6 +344,10 @@ steady-state repeats varied by only 1.77%. See
 The model-aware routed entry point was then exercised on the same cell: it
 selected Graph automatically, passed the default 4/4 correctness and 16/16
 success gates, measured 1847.96 tok/s, and passed the post-run stability audit.
+At c32/prompt512, the same new-model Graph lane measured 3393.21, 3958.74,
+and 3946.07 tok/s (steady-state median **3946.07**) versus eager 1836.39 and
+1834.39 (median **1835.39**): **2.15x / +115.0%**, with 4/4 correctness and
+32/32 success on every repeat. The c32 steady-state range was 0.32%.
 
 Summarize any repeated raw log and fail if correctness or request success is
 incomplete:

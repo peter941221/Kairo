@@ -474,6 +474,12 @@ cell; all other Qwen3-8B shapes remain `manual` until measured. The model-aware
 routed launcher was also run end to end: it selected Graph automatically,
 passed 4/4 correctness and 16/16 request success, measured 1847.96 tok/s, and
 passed the post-run stability audit.
+The same A/B was extended to c32/prompt512: Graph measured 3393.21, 3958.74,
+and 3946.07 tok/s (steady-state median **3946.07**) versus eager 1836.39 and
+1834.39 (median **1835.39**), a **2.15x / +115.0%** lead. Every repeat passed
+4/4 correctness and 32/32 request success; the two steady-state Graph repeats
+varied by only 0.32%. The recommender now covers both c16 and c32 for this
+exact Qwen3-8B workload bucket.
 
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
 metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt

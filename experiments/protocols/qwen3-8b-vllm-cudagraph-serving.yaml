@@ -58,6 +58,30 @@ eager_control:
   steady_state_repeats_tok_s: [1073.63, 1116.30]
   steady_state_relative_range_percent: 3.97
   raw_output: .kairo-local/qwen3-8b-c16-p512-eager-repeats3.out
+c32_extension:
+  workload:
+    concurrency: 32
+    requests: 32
+    prompt_tokens_requested: 512
+    generation_tokens: 128
+    context_tokens: 1024
+    max_num_seqs: 32
+  graph:
+    throughput_repeats_tok_s: [3393.21, 3958.74, 3946.07]
+    throughput_median_tok_s: 3946.07
+    steady_state_repeats_tok_s: [3958.74, 3946.07]
+    steady_state_relative_range_percent: 0.32
+    correctness_cases: 4
+    correctness_passed: 4
+    raw_output: .kairo-local/qwen3-8b-c32-p512-graph-repeats3.out
+  eager_control:
+    throughput_repeats_tok_s: [1836.39, 1834.39]
+    throughput_median_tok_s: 1835.39
+    correctness_cases: 4
+    correctness_passed: 4
+    raw_output: .kairo-local/qwen3-8b-c32-p512-eager-repeats2.out
+  graph_over_eager_median_ratio: 2.150
+  graph_over_eager_median_percent: 115.0
 routed_integration:
   route: qwen3-8b-vllm-nightly-cutlass-full-decode-graph-c16-p512
   requested_context_tokens: 1024

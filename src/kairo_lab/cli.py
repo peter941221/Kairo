@@ -81,25 +81,28 @@ def recommend_runtime(
         or (context_tokens <= 1024 and generation_tokens <= 128)
     )
     if model == "qwen3_8b":
-        if concurrency == 16 and prompt_tokens == 512 and graph_envelope:
+        if concurrency in {16, 32} and prompt_tokens == 512 and graph_envelope:
             return {
                 "model": model,
                 "backend": "vllm-nightly",
-                "profile": "qwen3-8b-vllm-nightly-cutlass-full-decode-graph-c16-p512",
+                "profile": (
+                    "qwen3-8b-vllm-nightly-cutlass-full-decode-graph-"
+                    f"c{concurrency}-p512"
+                ),
                 "linear_backend": "cutlass",
                 "cudagraph_mode": "FULL_DECODE_ONLY",
                 "max_num_seqs": 32,
                 "confidence": "measured_repeated",
                 "reason": (
-                    "Qwen3-8B NVFP4 Graph reached 1.95x median eager throughput "
-                    "at c16/prompt512 in the 1K/128 envelope"
+                    "Qwen3-8B NVFP4 Graph reached a measured >2x eager throughput "
+                    f"lead at c{concurrency}/prompt512 in the 1K/128 envelope"
                 ),
             }
-        if concurrency == 16 and prompt_tokens == 512:
+        if concurrency in {16, 32} and prompt_tokens == 512:
             return {
                 "model": model,
                 "backend": "vllm-nightly",
-                "profile": "qwen3-8b-vllm-nightly-cutlass-c16",
+                "profile": f"qwen3-8b-vllm-nightly-cutlass-c{concurrency}",
                 "linear_backend": "cutlass",
                 "confidence": "measured_repeated",
                 "reason": "Qwen3-8B NVFP4 eager control is covered by repeated c16/prompt512 runs",

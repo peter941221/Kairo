@@ -93,11 +93,21 @@ class CliTests(unittest.TestCase):
         self.assertEqual(graph["backend"], "vllm-nightly")
         self.assertEqual(graph["cudagraph_mode"], "FULL_DECODE_ONLY")
         self.assertEqual(graph["confidence"], "measured_repeated")
+        graph_c32 = cli.recommend_runtime(
+            "qwen3_8b", concurrency=32, prompt_tokens=512,
+            context_tokens=1024, generation_tokens=128,
+        )
+        self.assertIn("graph-c32-p512", graph_c32["profile"])
         eager = cli.recommend_runtime(
             "qwen3_8b", concurrency=16, prompt_tokens=512,
             context_tokens=4096, generation_tokens=256,
         )
         self.assertEqual(eager["profile"], "qwen3-8b-vllm-nightly-cutlass-c16")
+        eager_c32 = cli.recommend_runtime(
+            "qwen3_8b", concurrency=32, prompt_tokens=512,
+            context_tokens=4096, generation_tokens=256,
+        )
+        self.assertEqual(eager_c32["profile"], "qwen3-8b-vllm-nightly-cutlass-c32")
         unknown = cli.recommend_runtime("qwen3_8b", concurrency=8, prompt_tokens=512)
         self.assertEqual(unknown["backend"], "manual")
 

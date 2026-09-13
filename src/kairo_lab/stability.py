@@ -82,6 +82,7 @@ def summarize(path: Path) -> dict[str, object]:
                         "prompt_tokens_actual",
                         "generation_tokens",
                         "generation_tokens_actual",
+                        "model_revision",
                         "warmup",
                         "disable_thinking",
                         "ignore_eos",

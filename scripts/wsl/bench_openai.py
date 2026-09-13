@@ -131,6 +131,7 @@ def run(args: argparse.Namespace) -> dict:
             "ignore_eos": args.ignore_eos,
             "prompt_tokens_actual": statistics.mean(prompt) if prompt else None,
             "generation_tokens_actual": statistics.mean(completion) if completion else None,
+            **({"model_revision": args.model_revision} if args.model_revision else {}),
             **({"context_tokens": args.context_tokens} if args.context_tokens else {}),
         },
         "summary": {
@@ -165,6 +166,10 @@ def main() -> None:
         "--context-tokens",
         type=int,
         help="declared service context limit to include in the audit record",
+    )
+    parser.add_argument(
+        "--model-revision",
+        help="pinned model snapshot revision to include in the audit record",
     )
     parser.add_argument("--warmup", type=int, default=1)
     parser.add_argument("--requests", type=int, default=8)

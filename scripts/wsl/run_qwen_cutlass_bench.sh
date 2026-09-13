@@ -63,6 +63,9 @@ for repeat in $(seq 1 "$repeats"); do
     --warmup "${KAIRO_BENCH_WARMUP:-1}"
     --requests "${KAIRO_BENCH_REQUESTS:-32}" --disable-thinking --ignore-eos
   )
+  [[ -n "${KAIRO_MODEL_REVISION:-}" ]] && bench_args+=(
+    --model-revision "$KAIRO_MODEL_REVISION"
+  )
   [[ -n "${KAIRO_BENCH_CONTEXT_TOKENS:-}" ]] && bench_args+=(
     --context-tokens "$KAIRO_BENCH_CONTEXT_TOKENS"
   )

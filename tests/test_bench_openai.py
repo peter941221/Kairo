@@ -17,6 +17,7 @@ class BenchOpenAiTests(unittest.TestCase):
             prompt_tokens=512,
             generation_tokens=128,
             context_tokens=1024,
+            model_revision="abc123",
             disable_thinking=True,
             ignore_eos=True,
             timeout=1.0,
@@ -30,6 +31,7 @@ class BenchOpenAiTests(unittest.TestCase):
         self.assertEqual(result["config"]["prompt_tokens_actual"], 510)
         self.assertEqual(result["config"]["generation_tokens_actual"], 128)
         self.assertEqual(result["config"]["context_tokens"], 1024)
+        self.assertEqual(result["config"]["model_revision"], "abc123")
 
 
 if __name__ == "__main__":

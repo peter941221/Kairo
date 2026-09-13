@@ -143,6 +143,16 @@ routed_runner_integration:
   ttft_p50_ms: 875.07
   successful_requests: 32
   raw_output: .kairo-local/routed-c32-p512-integration.out
+eager_route_integration:
+  route: qwen38-vllm-nightly-cutlass-c16
+  requested_context_tokens: 4096
+  requested_generation_tokens: 256
+  correctness_cases: 4
+  correctness_passed: 4
+  throughput_tok_s: 292.53
+  ttft_p50_ms: 1023.06
+  successful_requests: 16
+  raw_output: .kairo-local/routed-c16-p512-eager-integration.out
 stability_run:
   route: qwen38-vllm-nightly-cutlass-full-decode-graph-c32-p512
   repeats: 5

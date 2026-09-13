@@ -324,6 +324,10 @@ At 4K context and c16/prompt2048, Graph still led the same-cap eager control:
 smaller margin is why this long-context cell remains experimental rather than
 becoming an automatic default.
 
+At c32/prompt256 in the 1K envelope, Graph reached 721.10 tok/s median versus
+286.63 eager (2.52x, +151.7%; 4/4 correctness, 32/32 success), the current
+headline point for the workbench.
+
 Run the lightweight correctness gate against any OpenAI-compatible service:
 
 ```bash

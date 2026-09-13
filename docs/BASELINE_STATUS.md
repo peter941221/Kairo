@@ -381,7 +381,8 @@ four fresh services reached 652.09, 750.95, 710.00, and 727.22 output tok/s
 (median **718.61**), while the eager control reached 296.10 and 290.10
 (median **293.10**). This is a **2.45x / +145.2%** median throughput lead;
 the latest Graph run passed the 4/4 correctness gate and all 16 requests
-succeeded. This c16 result is now the strongest measured serving route, while
+succeeded. This c16 result established the stable Graph route; c32 is now the
+strongest measured serving point, while
 remaining bounded to the exact prompt/context/sequence-cap envelope.
 
 To test whether the lead was only a very short-prompt effect, the same c16
@@ -401,6 +402,13 @@ more modest but real **1.30x / +30.3%** lead. Correctness was 4/4 and all
 requests succeeded. The result supports Graph as a long-context optimization,
 but its smaller margin and sequence-cap sensitivity argue for keeping this
 cell experimental until more fresh-service repeats are collected.
+
+The 1K-context short-prompt cell was then pushed to c32. Graph delivered
+715.84 and 726.37 tok/s (median **721.10**) versus an identical eager c32
+control at 286.99 and 286.27 (median **286.63**): **2.52x / +151.7%**.
+All 32 requests succeeded and the 4/4 correctness gate passed. This is the
+current headline throughput point, still bounded by the 1K context and
+`max_num_seqs=32` memory envelope.
 
 The CLI now exposes this evidence as a bounded runtime policy via
 `recommend-runtime`: the measured c8/prompt256 cell selects vLLM nightly

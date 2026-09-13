@@ -77,6 +77,8 @@ fi
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 output_file="${KAIRO_ROUTED_OUTPUT:-$root/.kairo-local/routed-${stamp}-${port}.out}"
 mkdir -p "$(dirname "$output_file")"
+export KAIRO_QWEN_CUTLASS_LOG="${KAIRO_QWEN_CUTLASS_LOG:-${output_file%.out}.server.log}"
+echo "server_log=$KAIRO_QWEN_CUTLASS_LOG" >&2
 echo "raw_output=$output_file" >&2
 set +e
 "$root/scripts/wsl/run_qwen_cutlass_bench.sh" "$port" 2>&1 | tee "$output_file"

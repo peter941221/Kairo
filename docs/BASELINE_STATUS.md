@@ -443,7 +443,8 @@ sets the vLLM nightly Graph/eager flags and invokes the common correctness plus
 throughput runner; uncovered routes fail closed. Its first real WSL/5090
 integration run auto-selected c32/prompt512 Graph, passed 4/4 correctness,
 completed 32/32 requests, and measured 665.76 tok/s. The runner now captures
-each raw invocation automatically for post-hoc stability analysis. A second
+each raw invocation automatically for post-hoc stability analysis and stores
+the vLLM service log beside it as `*.server.log`. A second
 integration run with c16/prompt512, 4K context, and 256 output tokens selected
 the eager route, passed 4/4 correctness, completed 16/16 requests, and measured
 292.53 tok/s; both automatic branches are therefore executable.

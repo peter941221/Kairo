@@ -111,6 +111,28 @@ c32_prompt256_eager_1k_control:
   throughput_median: 286.63
   ttft_p50_ms: [1159.53, 1141.51]
   all_requests_successful: true
+c32_prompt512_graph_result:
+  requested_concurrency: 32
+  requested_prompt_tokens: 512
+  actual_prompt_tokens_mean: 572.6875
+  generation_tokens: 128
+  max_num_seqs: 32
+  throughput_repeats: [675.77, 658.25]
+  throughput_median: 667.01
+  ttft_p50_ms: [920.71, 889.07]
+  correctness_cases: 4
+  correctness_passed: 4
+  all_requests_successful: true
+c32_prompt512_eager_1k_control:
+  requested_concurrency: 32
+  requested_prompt_tokens: 512
+  actual_prompt_tokens_mean: 572.6875
+  generation_tokens: 128
+  max_num_seqs: 32
+  throughput_repeats: [266.68, 277.32]
+  throughput_median: 272.00
+  ttft_p50_ms: [1777.44, 1737.84]
+  all_requests_successful: true
 eager_control:
   throughput_repeats: [154.62, 152.94]
   throughput_mean: 153.78
@@ -129,6 +151,8 @@ comparison:
   c16_prompt2048_4k_approximate_throughput_delta_percent: 30.3
   c32_prompt256_1k_median_throughput_speedup: 2.52
   c32_prompt256_1k_approximate_throughput_delta_percent: 151.7
+  c32_prompt512_1k_median_throughput_speedup: 2.45
+  c32_prompt512_1k_approximate_throughput_delta_percent: 145.2
 caveats:
   - These are bounded 1K-context c8/c16 decode pilots, not a general 4K claim.
   - Graph startup/capture is excluded from request throughput and requires max_num_seqs <= available Mamba cache blocks.
@@ -146,3 +170,5 @@ evidence:
   c16_prompt2048_eager_raw: .kairo-local/qwen-cutlass-eager-c16-p2048-4k.out
   c32_prompt256_graph_raw: .kairo-local/qwen-cutlass-decodegraph-c32-p256-1k.out
   c32_prompt256_eager_raw: .kairo-local/qwen-cutlass-eager-c32-p256-1k.out
+  c32_prompt512_graph_raw: .kairo-local/qwen-cutlass-decodegraph-c32-p512-1k.out
+  c32_prompt512_eager_raw: .kairo-local/qwen-cutlass-eager-c32-p512-1k.out

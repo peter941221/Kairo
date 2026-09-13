@@ -410,6 +410,11 @@ All 32 requests succeeded and the 4/4 correctness gate passed. This is the
 current headline throughput point, still bounded by the 1K context and
 `max_num_seqs=32` memory envelope.
 
+At c32/prompt512 in the same 1K/128 envelope, Graph reached 675.77 and
+658.25 tok/s (median **667.01**) versus eager 266.68 and 277.32 (median
+**272.00**): **2.45x / +145.2%**, with 4/4 correctness and 32/32 success.
+The c32 lead therefore survives both tested prompt buckets.
+
 The CLI now exposes this evidence as a bounded runtime policy via
 `recommend-runtime`: the measured c8/prompt256 cell selects vLLM nightly
 CUTLASS `FULL_DECODE_ONLY` Graph with `max_num_seqs=32`; both repeated c16

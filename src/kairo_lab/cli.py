@@ -100,6 +100,17 @@ def recommend_runtime(
             "confidence": "measured_repeated",
             "reason": "FULL_DECODE_ONLY Graph reached 2.52x median eager throughput across c32 repeats",
         }
+    if concurrency == 32 and prompt_tokens == 512 and graph_envelope:
+        return {
+            "model": model,
+            "backend": "vllm-nightly",
+            "profile": "qwen38-vllm-nightly-cutlass-full-decode-graph-c32-p512",
+            "linear_backend": "cutlass",
+            "cudagraph_mode": "FULL_DECODE_ONLY",
+            "max_num_seqs": 32,
+            "confidence": "measured_repeated",
+            "reason": "FULL_DECODE_ONLY Graph reached 2.45x median eager throughput at c32/prompt512 in the 1K/128 envelope",
+        }
     if concurrency == 16 and prompt_tokens == 256 and graph_envelope:
         return {
             "model": model,

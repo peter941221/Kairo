@@ -45,6 +45,11 @@ class CliTests(unittest.TestCase):
         self.assertEqual(graph_c32["profile"], "qwen38-vllm-nightly-cutlass-full-decode-graph-c32")
         self.assertEqual(graph_c32["max_num_seqs"], 32)
         self.assertEqual(graph_c32["confidence"], "measured_repeated")
+        graph_c32_p512 = cli.recommend_runtime(
+            "qwen38", concurrency=32, prompt_tokens=512,
+            context_tokens=1024, generation_tokens=128,
+        )
+        self.assertIn("graph-c32-p512", graph_c32_p512["profile"])
         graph_c16 = cli.recommend_runtime("qwen38", concurrency=16, prompt_tokens=256)
         self.assertEqual(graph_c16["profile"], "qwen38-vllm-nightly-cutlass-full-decode-graph-c16")
         self.assertEqual(graph_c16["cudagraph_mode"], "FULL_DECODE_ONLY")

@@ -328,6 +328,9 @@ At c32/prompt256 in the 1K envelope, Graph reached 721.10 tok/s median versus
 286.63 eager (2.52x, +151.7%; 4/4 correctness, 32/32 success), the current
 headline point for the workbench.
 
+The c32/prompt512 point also held: Graph median **667.01** versus eager
+**272.00 tok/s** (2.45x, +145.2%; 4/4 correctness, 32/32 success).
+
 Run the lightweight correctness gate against any OpenAI-compatible service:
 
 ```bash

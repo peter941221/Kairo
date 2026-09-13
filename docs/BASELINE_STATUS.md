@@ -233,6 +233,8 @@ routed and SGLang entry points populate it automatically, preventing a 1K/4K
 context mix-up from being treated as a fair A/B.
 Pinned runners also record `model_revision` in the workload identity, so a
 weight snapshot change cannot silently share a promotion result.
+They record `source_revision` as well, requiring both sides of an A/B to come
+from the same Kairo checkout.
 Stability summaries also retain TTFT and total-latency P50/P99 per repeat and
 their medians, so a throughput win can be checked against interactive latency.
 

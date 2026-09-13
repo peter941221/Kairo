@@ -5,6 +5,7 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 port="${1:-18088}"
 model="${KAIRO_QWEN_MODEL:-/home/peter/kairo-models/Qwen3.8-27B-NVFP4}"
 log_file="${KAIRO_QWEN_CUTLASS_LOG:-/tmp/kairo-qwen-vllm-cutlass-${port}.log}"
+source_revision="${KAIRO_SOURCE_REVISION:-$(git -C "$root" rev-parse HEAD 2>/dev/null || true)}"
 service_pid=""
 
 cleanup() {
@@ -72,6 +73,9 @@ for repeat in $(seq 1 "$repeats"); do
   )
   [[ -n "${KAIRO_MODEL_REVISION:-}" ]] && bench_args+=(
     --model-revision "$KAIRO_MODEL_REVISION"
+  )
+  [[ -n "$source_revision" ]] && bench_args+=(
+    --source-revision "$source_revision"
   )
   [[ -n "${KAIRO_BENCH_CONTEXT_TOKENS:-}" ]] && bench_args+=(
     --context-tokens "$KAIRO_BENCH_CONTEXT_TOKENS"

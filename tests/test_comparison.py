@@ -6,7 +6,7 @@ from pathlib import Path
 from kairo_lab.comparison import compare_logs, render_markdown
 
 
-def write_log(path: Path, values, *, prompt=512, context=None, model_revision=None, prompts=None, passed=4):
+def write_log(path: Path, values, *, prompt=512, context=None, model_revision=None, source_revision=None, prompts=None, passed=4):
     records = [{"summary": {"passed": passed, "total": 4}}]
     for index, value in enumerate(values):
         repeat_prompt = prompts[index] if prompts is not None else prompt
@@ -23,6 +23,8 @@ def write_log(path: Path, values, *, prompt=512, context=None, model_revision=No
             config["context_tokens"] = context
         if model_revision is not None:
             config["model_revision"] = model_revision
+        if source_revision is not None:
+            config["source_revision"] = source_revision
         records.append(
             {
                 "config": config,
@@ -128,6 +130,16 @@ class ComparisonTests(unittest.TestCase):
             baseline = Path(directory) / "baseline.out"
             write_log(candidate, [200.0, 220.0], model_revision="model-a")
             write_log(baseline, [100.0, 110.0], model_revision="model-b")
+            result = compare_logs(candidate, baseline)
+        self.assertFalse(result["workload_match"])
+        self.assertFalse(result["promotion_gate"])
+
+    def test_source_revision_is_part_of_workload_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            candidate = Path(directory) / "candidate.out"
+            baseline = Path(directory) / "baseline.out"
+            write_log(candidate, [200.0, 220.0], source_revision="commit-a")
+            write_log(baseline, [100.0, 110.0], source_revision="commit-b")
             result = compare_logs(candidate, baseline)
         self.assertFalse(result["workload_match"])
         self.assertFalse(result["promotion_gate"])

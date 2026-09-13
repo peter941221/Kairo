@@ -9,6 +9,7 @@ port="${1:-18140}"
 model="${KAIRO_SGLANG_MODEL:-/home/peter/kairo-models/Qwen3-8B-NVFP4}"
 python_bin="${KAIRO_SGLANG_BENCH_PYTHON:-/home/peter/venv-sglang/bin/python}"
 server_log="${KAIRO_SGLANG_SERVER_LOG:-/tmp/kairo-sglang-${port}.log}"
+source_revision="${KAIRO_SOURCE_REVISION:-$(git -C "$root" rev-parse HEAD 2>/dev/null || true)}"
 repeats="${KAIRO_BENCH_REPEATS:-1}"
 concurrency="${KAIRO_BENCH_CONCURRENCY:-16}"
 prompt_tokens="${KAIRO_BENCH_PROMPT_TOKENS:-512}"
@@ -79,6 +80,9 @@ for repeat in $(seq 1 "$repeats"); do
   )
   [[ -n "${KAIRO_MODEL_REVISION:-}" ]] && bench_args+=(
     --model-revision "$KAIRO_MODEL_REVISION"
+  )
+  [[ -n "$source_revision" ]] && bench_args+=(
+    --source-revision "$source_revision"
   )
   [[ -n "${KAIRO_BENCH_CONTEXT_TOKENS:-}" ]] && bench_args+=(
     --context-tokens "$KAIRO_BENCH_CONTEXT_TOKENS"

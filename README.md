@@ -464,9 +464,9 @@ It also requires at least two effective measured repeats per log by default;
 `--drop-first` therefore requires three raw repeats. Use
 `--minimum-repeats 1` only for explicitly exploratory output. Use `--drop-first`
 only as an explicit steady-state capture-cost analysis.
-Routed and SGLang runners pass their declared context limit and, when pinned,
-model revision into each raw benchmark record, so context or weight mismatches
-are visible to the gate.
+Routed and SGLang runners pass their declared context limit, model revision, and
+Kairo source revision into each raw benchmark record, so context, weight, or
+source mismatches are visible to the gate.
 
 Run the lightweight correctness gate against any OpenAI-compatible service:
 

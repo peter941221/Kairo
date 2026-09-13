@@ -18,6 +18,7 @@ class BenchOpenAiTests(unittest.TestCase):
             generation_tokens=128,
             context_tokens=1024,
             model_revision="abc123",
+            source_revision="def456",
             disable_thinking=True,
             ignore_eos=True,
             timeout=1.0,
@@ -32,6 +33,7 @@ class BenchOpenAiTests(unittest.TestCase):
         self.assertEqual(result["config"]["generation_tokens_actual"], 128)
         self.assertEqual(result["config"]["context_tokens"], 1024)
         self.assertEqual(result["config"]["model_revision"], "abc123")
+        self.assertEqual(result["config"]["source_revision"], "def456")
 
 
 if __name__ == "__main__":

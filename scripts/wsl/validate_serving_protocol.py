@@ -29,6 +29,31 @@ def _validate_lane(
     workload: dict[str, Any],
 ) -> dict[str, Any]:
     raw_path = repo_root / str(lane["raw_output"])
+    if not raw_path.exists():
+        # Raw logs intentionally stay local/ignored. A fresh clone must report
+        # missing evidence as a structured invalid lane, not crash before the
+        # caller can decide how to obtain the artifacts.
+        checks = {
+            "raw_exists": False,
+            "workload": False,
+            "workload_consistent": False,
+            "correctness": False,
+            "requests_successful": False,
+            "throughput_repeats": False,
+            "throughput_median": False,
+        }
+        return {
+            "lane": lane_name,
+            "raw_output": str(raw_path),
+            "checks": checks,
+            "valid": False,
+            "summary": {
+                "source": str(raw_path),
+                "bench_repeats": 0,
+                "throughput_tok_s": [],
+                "throughput_median_tok_s": 0.0,
+            },
+        }
     summary = summarize(raw_path)
     expected_workload = {
         "concurrency": workload["concurrency"],
@@ -119,7 +144,11 @@ def validate(
         _validate_lane(repo_root, "eager_control", section["eager_control"], workload),
     ]
     comparison = section.get("comparison") or {}
-    actual_ratio = lanes[0]["summary"]["throughput_median_tok_s"] / lanes[1]["summary"]["throughput_median_tok_s"]
+    baseline_median = lanes[1]["summary"].get("throughput_median_tok_s", 0.0)
+    candidate_median = lanes[0]["summary"].get("throughput_median_tok_s", 0.0)
+    actual_ratio = (
+        candidate_median / baseline_median if baseline_median else 0.0
+    )
     comparison_checks = {
         "ratio": _close(actual_ratio, float(comparison["median_throughput_speedup"])),
         "protocol_gate": comparison.get("promotion_gate") is True,

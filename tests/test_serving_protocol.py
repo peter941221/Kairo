@@ -103,6 +103,14 @@ pinned_current_validation:
         self.assertFalse(result["valid"])
         self.assertFalse(result["lanes"][0]["checks"]["workload"])
 
+    def test_missing_raw_log_returns_structured_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self._write_protocol(Path(directory))
+            (Path(directory) / ".kairo-local" / "candidate.out").unlink()
+            result = validate(path)
+        self.assertFalse(result["valid"])
+        self.assertFalse(result["lanes"][0]["checks"]["raw_exists"])
+
 
 if __name__ == "__main__":
     unittest.main()

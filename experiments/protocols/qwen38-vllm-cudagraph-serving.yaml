@@ -1,0 +1,53 @@
+name: qwen38-vllm-nightly-cutlass-full-decode-graph
+status: measured_pilot
+date: 2026-09-14
+hardware: RTX 5090 32GB, WSL2 Ubuntu-24.04
+model: /home/peter/kairo-models/Qwen3.8-27B-NVFP4
+runtime:
+  engine: vllm-nightly
+  torch: 2.15.0.dev+cu130
+  vllm: 0.29.1rc1.dev18+gfa1b3b192
+  linear_backend: cutlass
+  cudagraph_mode: FULL_DECODE_ONLY
+  kv_cache_dtype: fp8_e4m3
+  max_model_len: 1024
+  max_num_seqs: 32
+  gpu_memory_utilization: 0.80
+  enforce_eager: false
+workload:
+  lane: decode
+  requested_prompt_tokens: 256
+  actual_prompt_tokens: 292
+  generation_tokens: 128
+  concurrency: 8
+  requests: 8
+  warmup: 1
+  disable_thinking: true
+  ignore_eos: true
+graph_result:
+  correctness_cases: 4
+  correctness_passed: 4
+  throughput_repeats: [397.56, 392.82]
+  throughput_mean: 395.19
+  ttft_p50_ms: [229.56, 229.92]
+  ttft_p99_ms: [231.34, 231.59]
+  all_requests_successful: true
+eager_control:
+  throughput_repeats: [154.62, 152.94]
+  throughput_mean: 153.78
+  ttft_p50_ms: [390.58, 444.48]
+  ttft_p99_ms: [391.98, 445.78]
+comparison:
+  median_throughput_speedup: 2.57
+  approximate_throughput_delta_percent: 157.0
+  median_ttft_reduction_percent: 45.8
+  note: Same model, backend, context, sequence cap, prompt, output length, concurrency, warmup, and request count; only CUDA Graph mode differs.
+caveats:
+  - This is a bounded 1K-context c8 decode pilot, not a general c16/4K claim.
+  - Graph startup/capture is excluded from request throughput and requires max_num_seqs <= available Mamba cache blocks.
+  - Broader contexts, concurrency, and fresh-service repeats remain before production default.
+evidence:
+  graph_command: KAIRO_ENFORCE_EAGER=0 KAIRO_CUDAGRAPH_MODE=FULL_DECODE_ONLY KAIRO_MAX_RUNNING_REQUESTS=32 KAIRO_MAX_MODEL_LEN=1024 KAIRO_GPU_MEMORY_UTILIZATION=0.80 KAIRO_RUN_CORRECTNESS=1 KAIRO_BENCH_REQUESTS=8 KAIRO_BENCH_GENERATION_TOKENS=128 KAIRO_BENCH_PROMPT_TOKENS=256 KAIRO_BENCH_WARMUP=1 KAIRO_BENCH_CONCURRENCY=8 bash scripts/wsl/run_qwen_cutlass_bench.sh 18103
+  eager_command: KAIRO_ENFORCE_EAGER=1 KAIRO_MAX_RUNNING_REQUESTS=32 KAIRO_MAX_MODEL_LEN=1024 KAIRO_GPU_MEMORY_UTILIZATION=0.80 KAIRO_BENCH_REQUESTS=8 KAIRO_BENCH_GENERATION_TOKENS=128 KAIRO_BENCH_PROMPT_TOKENS=256 KAIRO_BENCH_WARMUP=1 KAIRO_BENCH_REPEATS=2 KAIRO_BENCH_CONCURRENCY=8 bash scripts/wsl/run_qwen_cutlass_bench.sh 18104
+  graph_raw: .kairo-local/qwen-cutlass-decodegraph-correct.out
+  eager_raw: .kairo-local/qwen-cutlass-eager-c8-repeat.out

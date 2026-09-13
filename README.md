@@ -301,6 +301,13 @@ prompt c16 cell at 288.03 and 295.76 tok/s (32/32 successful), about 52% above
 the paired B12X point. The recommender therefore selects CUTLASS for both
 measured c16 prompt cells; other shapes stay manual until measured.
 
+The strongest current end-to-end result is vLLM nightly + CUTLASS with
+`FULL_DECODE_ONLY` CUDA Graphs: 392.82--397.56 tok/s at c8 versus
+152.94--154.62 tok/s for the eager control (2.57x mean, 4/4 correctness).
+This is a bounded 1K-context pilot with `max_num_seqs=32`; see
+[`qwen38-vllm-cudagraph-serving.yaml`](experiments/protocols/qwen38-vllm-cudagraph-serving.yaml)
+before extrapolating it to other workloads.
+
 Run the lightweight correctness gate against any OpenAI-compatible service:
 
 ```bash
@@ -321,9 +328,10 @@ python -m kairo_lab.cli recommend-runtime \
   --model qwen38 --concurrency 16 --prompt-tokens 2048
 ```
 
-The policy selects vLLM/CUTLASS for both measured c16 prompt cells and SGLang
-for measured c1/c4 short cells; every other shape returns `manual` until
-measured.
+The policy selects the measured c8/prompt256 cell as vLLM/CUTLASS
+`FULL_DECODE_ONLY` Graph (`max_num_seqs=32`), vLLM/CUTLASS for both measured
+c16 prompt cells, and SGLang for measured c1/c4 short cells; every other shape
+returns `manual` until measured.
 
 The runtime cache primitive in `src/kairo_lab/cache.py` provides content-
 addressed AOT/JIT artifact storage. Its key includes blueprint hash, full

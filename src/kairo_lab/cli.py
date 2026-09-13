@@ -59,6 +59,17 @@ def recommend_runtime(model: str, concurrency: int, prompt_tokens: int) -> dict[
         raise ValueError(f"Unsupported runtime model: {model}")
     if concurrency < 1 or prompt_tokens < 1:
         raise ValueError("concurrency and prompt_tokens must be positive")
+    if concurrency == 8 and prompt_tokens == 256:
+        return {
+            "model": model,
+            "backend": "vllm-nightly",
+            "profile": "qwen38-vllm-nightly-cutlass-full-decode-graph-c8",
+            "linear_backend": "cutlass",
+            "cudagraph_mode": "FULL_DECODE_ONLY",
+            "max_num_seqs": 32,
+            "confidence": "measured_pilot",
+            "reason": "FULL_DECODE_ONLY Graph reached 2.57x eager throughput in paired repeats",
+        }
     if concurrency == 16 and prompt_tokens == 512:
         return {
             "model": model,

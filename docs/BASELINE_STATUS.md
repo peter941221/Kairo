@@ -358,11 +358,30 @@ The same CUTLASS service also passed the deterministic 4/4 semantic gate
 (`KAIRO_RUN_CORRECTNESS=1`) before a short c16 throughput run; its raw record is
 `.kairo-local/qwen-cutlass-correctness.out`.
 
+### vLLM FULL_DECODE_ONLY Graph breakthrough
+
+The nightly runtime can use CUDA Graphs for decode-only execution when its
+Mamba cache capacity is respected. With `cudagraph_mode=FULL_DECODE_ONLY`,
+`max_num_seqs=32`, and a 1K context envelope, Qwen3.8 CUTLASS serving reached
+**397.56 and 392.82 output tok/s** on two fresh services (mean 395.19), while
+the identical eager CUTLASS control reached 154.62 and 152.94 tok/s (mean
+153.78). That is a **2.57x / +157.0%** throughput result, with median TTFT
+falling from 390--444 ms to about 230 ms. The Graph service also passed the
+4/4 deterministic correctness gate and all 16 throughput requests succeeded.
+
+This is the first system-level Kairo lead combining a current model, NVFP4
+CUTLASS, and runtime scheduling. It is deliberately bounded: 8-way
+concurrency, 292 actual prompt tokens, 128 generated tokens, 1K context, and
+`max_num_seqs=32`. Higher concurrency/context and fresh-service repeats remain
+required before making it a blanket default. The full protocol is in
+`experiments/protocols/qwen38-vllm-cudagraph-serving.yaml`.
+
 The CLI now exposes this evidence as a bounded runtime policy via
-`recommend-runtime`: both repeated c16 cells select vLLM nightly CUTLASS, while
-measured c1/c4 short cells select SGLang. Unmeasured shapes return `manual`
-instead of silently extrapolating. This is the first executable form of the
-workload-aware routing hypothesis.
+`recommend-runtime`: the measured c8/prompt256 cell selects vLLM nightly
+CUTLASS `FULL_DECODE_ONLY` Graph with `max_num_seqs=32`; both repeated c16
+cells select vLLM nightly CUTLASS, while measured c1/c4 short cells select
+SGLang. Unmeasured shapes return `manual` instead of silently extrapolating.
+This is the first executable form of the workload-aware routing hypothesis.
 
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
 metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt

@@ -37,6 +37,10 @@ class CliTests(unittest.TestCase):
         self.assertEqual(long_prompt["confidence"], "baseline_or_unvalidated")
 
     def test_runtime_policy_only_selects_measured_cells(self):
+        graph = cli.recommend_runtime("qwen38", concurrency=8, prompt_tokens=256)
+        self.assertEqual(graph["linear_backend"], "cutlass")
+        self.assertEqual(graph["cudagraph_mode"], "FULL_DECODE_ONLY")
+        self.assertEqual(graph["confidence"], "measured_pilot")
         short = cli.recommend_runtime("qwen38", concurrency=16, prompt_tokens=512)
         self.assertEqual(short["backend"], "vllm-nightly")
         self.assertEqual(short["linear_backend"], "cutlass")

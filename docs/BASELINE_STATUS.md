@@ -94,9 +94,22 @@ The first integrated TMA+WMMA GEMM is now in
 one transaction-counted mbarrier, and a 64x16 block tile. The 1K result is
 35,234 GFLOP/s and the 4K result is 41,612 GFLOP/s, both with zero maximum
 absolute error against cuBLAS on the checked shapes. Relative to direct WMMA,
-TMA improves the 4K point by roughly 1.5x; cuBLAS remains faster, so the next
-experiments are double-buffered TMA and layout/swizzle tuning. Parameters are
-recorded in `experiments/protocols/tma-wmma-gemm-phase1.yaml`.
+TMA improves the 4K point by roughly 1.5x; cuBLAS remains faster.
+
+The follow-up double-buffered control is also correct (zero error), but did
+not improve these shapes: 32,108 versus 34,926 GFLOP/s at 1K and 40,801 versus
+41,917 GFLOP/s at 4K. The extra barrier/synchronization overhead currently
+outweighs overlap, so the single-buffer kernel remains the default. The double
+variant is retained as a regression fixture for future swizzle, larger-K, and
+low-bit experiments. Parameters are recorded in
+`experiments/protocols/tma-wmma-gemm-phase1.yaml`.
+
+The next block-shape experiment uses a 128x16 A tile and eight WMMA warps per
+block (`m128` variant). It stays correct on square 1K/4K and a rectangular
+`[2048,1024,4096]` cell. It reaches 46,491--47,091 GFLOP/s at 4K (about
+11--13% above the 64-row baseline) and 42,332 GFLOP/s on the rectangular cell
+(about 8% above its control). This is the leading aligned-shape candidate,
+but routing remains conservative until boundary and occupancy coverage grows.
 
 Run it directly on the WSL 5090:
 

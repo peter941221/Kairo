@@ -31,4 +31,36 @@ performance:
     kairo_gflops: 41611.893
     cublas_ms: 0.626474
     cublas_gflops: 219385.066
-decision: TMA integration is correct and improves the 4K WMMA path by about 1.5x, but remains behind cuBLAS; retain as the Blackwell pipeline baseline for double-buffering, swizzle, and low-bit extensions.
+  double_buffered_control:
+    note: "Same kernel with two TMA buffers; overlap candidate"
+    one_k:
+      shape: [1024, 1024, 1024]
+      iterations: 20
+      kairo_ms: 0.066883
+      kairo_gflops: 32107.969
+      max_abs_error_vs_cublas: 0.0
+    four_k:
+      shape: [4096, 4096, 4096]
+      iterations: 5
+      kairo_ms: 3.368551
+      kairo_gflops: 40800.621
+      max_abs_error_vs_cublas: 0.0
+  m128_variant:
+    note: "128x16 A tile, eight WMMA warps reuse one B tile"
+    one_k:
+      shape: [1024, 1024, 1024]
+      iterations: 20
+      kairo_gflops_range: [35467.925, 38216.893]
+      max_abs_error_vs_cublas: 0.0
+    four_k:
+      shape: [4096, 4096, 4096]
+      iterations: 10
+      kairo_gflops_range: [46491.339, 47091.257]
+      max_abs_error_vs_cublas: 0.0
+    rectangular:
+      shape: [2048, 1024, 4096]
+      iterations: 10
+      kairo_gflops: 42332.302
+      single_buffer_control_gflops: 39179.652
+      max_abs_error_vs_cublas: 0.00010109
+decision: TMA integration is correct and improves the 4K WMMA path by about 1.5x, but remains behind cuBLAS. The first double-buffered control is also correct but slower than the single-buffer baseline (about 8% at 1K and 3% at 4K); keep it only as a regression fixture. The m128 variant is correct across square and rectangular checks and improves the single-buffer path by about 8% on the rectangular cell and 11--13% on 4K square, so it is the leading aligned-shape candidate. Do not route all workloads to it until more boundary and occupancy cells are measured.

@@ -79,6 +79,18 @@ Run the integrated TMA+WMMA GEMM path (aligned dimensions, cuBLAS comparison):
 wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/wsl/run_tma_wmma_gemm_probe.sh 1024 1024 1024 50'
 ```
 
+Pass `double` as a fifth argument to run the experimental double-buffered
+control, or `m128` to use the measured 128-row block candidate:
+
+```powershell
+wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/wsl/run_tma_wmma_gemm_probe.sh 4096 4096 4096 10 double'
+wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/wsl/run_tma_wmma_gemm_probe.sh 4096 4096 4096 10 m128'
+```
+
+`m128` requires M divisible by 128 (and all dimensions divisible by 16). It
+is currently a measured candidate rather than the global default; use the
+protocol record to compare it against the single-buffer control.
+
 `init-run` writes a machine-readable run record under `runs/`, which is ignored
 by Git. Keep the command, input manifests, source revision, and published result
 table together when reporting an experiment.

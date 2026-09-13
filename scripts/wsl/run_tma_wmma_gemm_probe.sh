@@ -13,4 +13,4 @@ mkdir -p "$build_dir"
 binary="$build_dir/tma_wmma_gemm_probe"
 "$nvcc" -std=c++17 -O3 -arch=sm_120 \
   "$root/scripts/wsl/tma_wmma_gemm_probe.cu" -lcuda -lcublas -o "$binary"
-"$binary" "${1:-1024}" "${2:-1024}" "${3:-1024}" "${4:-50}"
+"$binary" "${1:-1024}" "${2:-1024}" "${3:-1024}" "${4:-50}" "${5:-single}"

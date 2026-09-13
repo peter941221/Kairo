@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <random>
 #include <vector>
 
@@ -92,6 +93,128 @@ __global__ void tma_wmma_gemm(const __half* a, const __half* b, float* c,
     if (row < m && col < n) store_matrix_sync(c + row * n + col, accumulator, n, mem_row_major);
 }
 
+__global__ void tma_wmma_gemm_m128(const __half* a, const __half* b, float* c,
+                                   const CUtensorMap* a_map, const CUtensorMap* b_map,
+                                   int m, int n, int k) {
+    using namespace nvcuda::wmma;
+    constexpr int TILE = 16;
+    constexpr int ROWS = 128;
+    __shared__ alignas(128) __half tile_a[ROWS][TILE];
+    __shared__ alignas(128) __half tile_b[TILE][TILE];
+    __shared__ alignas(8) uint64_t barrier;
+    const int warp = threadIdx.x / 32;
+    const int block_row = blockIdx.y * ROWS;
+    const int row = block_row + warp * TILE;
+    const int col = blockIdx.x * TILE;
+    if (threadIdx.x == 0) {
+        cuda::ptx::mbarrier_init(&barrier, 1);
+        cuda::ptx::fence_proxy_tensormap_generic(
+            cuda::ptx::sem_release, cuda::ptx::scope_cta);
+    }
+    __syncthreads();
+    fragment<accumulator, TILE, TILE, TILE, float> accumulator;
+    fill_fragment(accumulator, 0.0f);
+    for (int base = 0; base < k; base += TILE) {
+        if (threadIdx.x == 0) {
+            const int32_t a_coordinates[2] = {base, block_row};
+            const int32_t b_coordinates[2] = {col, base};
+            const uint64_t state = cuda::ptx::mbarrier_arrive_expect_tx(
+                cuda::ptx::sem_release, cuda::ptx::scope_cta,
+                cuda::ptx::space_shared, &barrier,
+                static_cast<uint32_t>((ROWS * TILE + TILE * TILE) * sizeof(__half)));
+            cuda::ptx::cp_async_bulk_tensor(
+                cuda::ptx::space_shared, cuda::ptx::space_global, tile_a,
+                a_map, a_coordinates, &barrier);
+            cuda::ptx::cp_async_bulk_tensor(
+                cuda::ptx::space_shared, cuda::ptx::space_global, tile_b,
+                b_map, b_coordinates, &barrier);
+            while (!cuda::ptx::mbarrier_try_wait(&barrier, state)) {
+            }
+        }
+        __syncthreads();
+        if (row < m && col < n) {
+            fragment<matrix_a, TILE, TILE, TILE, __half, row_major> a_fragment;
+            fragment<matrix_b, TILE, TILE, TILE, __half, row_major> b_fragment;
+            load_matrix_sync(a_fragment, &tile_a[warp * TILE][0], TILE);
+            load_matrix_sync(b_fragment, &tile_b[0][0], TILE);
+            mma_sync(accumulator, a_fragment, b_fragment, accumulator);
+        }
+        __syncthreads();
+    }
+    if (row < m && col < n) store_matrix_sync(c + row * n + col, accumulator, n, mem_row_major);
+}
+
+__global__ void tma_wmma_gemm_double(const __half* a, const __half* b, float* c,
+                                     const CUtensorMap* a_map, const CUtensorMap* b_map,
+                                     int m, int n, int k) {
+    using namespace nvcuda::wmma;
+    constexpr int TILE = 16;
+    __shared__ alignas(128) __half tile_a[2][64][TILE];
+    __shared__ alignas(128) __half tile_b[2][TILE][TILE];
+    __shared__ alignas(8) uint64_t barriers[2];
+    const int warp = threadIdx.x / 32;
+    const int block_row = blockIdx.y * 64;
+    const int row = block_row + warp * TILE;
+    const int col = blockIdx.x * TILE;
+    uint64_t states[2] = {0, 0};
+    if (threadIdx.x == 0) {
+        cuda::ptx::mbarrier_init(&barriers[0], 1);
+        cuda::ptx::mbarrier_init(&barriers[1], 1);
+        cuda::ptx::fence_proxy_tensormap_generic(
+            cuda::ptx::sem_release, cuda::ptx::scope_cta);
+        const int32_t a_coordinates[2] = {0, block_row};
+        const int32_t b_coordinates[2] = {col, 0};
+        states[0] = cuda::ptx::mbarrier_arrive_expect_tx(
+            cuda::ptx::sem_release, cuda::ptx::scope_cta,
+            cuda::ptx::space_shared, &barriers[0],
+            static_cast<uint32_t>((64 * TILE + TILE * TILE) * sizeof(__half)));
+        cuda::ptx::cp_async_bulk_tensor(
+            cuda::ptx::space_shared, cuda::ptx::space_global, tile_a[0],
+            a_map, a_coordinates, &barriers[0]);
+        cuda::ptx::cp_async_bulk_tensor(
+            cuda::ptx::space_shared, cuda::ptx::space_global, tile_b[0],
+            b_map, b_coordinates, &barriers[0]);
+        while (!cuda::ptx::mbarrier_try_wait(&barriers[0], states[0])) {
+        }
+    }
+    __syncthreads();
+    fragment<accumulator, TILE, TILE, TILE, float> accumulator;
+    fill_fragment(accumulator, 0.0f);
+    int current = 0;
+    for (int base = 0; base < k; base += TILE) {
+        const int next = current ^ 1;
+        if (base + TILE < k && threadIdx.x == 0) {
+            const int32_t a_coordinates[2] = {base + TILE, block_row};
+            const int32_t b_coordinates[2] = {col, base + TILE};
+            states[next] = cuda::ptx::mbarrier_arrive_expect_tx(
+                cuda::ptx::sem_release, cuda::ptx::scope_cta,
+                cuda::ptx::space_shared, &barriers[next],
+                static_cast<uint32_t>((64 * TILE + TILE * TILE) * sizeof(__half)));
+            cuda::ptx::cp_async_bulk_tensor(
+                cuda::ptx::space_shared, cuda::ptx::space_global, tile_a[next],
+                a_map, a_coordinates, &barriers[next]);
+            cuda::ptx::cp_async_bulk_tensor(
+                cuda::ptx::space_shared, cuda::ptx::space_global, tile_b[next],
+                b_map, b_coordinates, &barriers[next]);
+        }
+        if (row < m && col < n) {
+            fragment<matrix_a, TILE, TILE, TILE, __half, row_major> a_fragment;
+            fragment<matrix_b, TILE, TILE, TILE, __half, row_major> b_fragment;
+            load_matrix_sync(a_fragment, &tile_a[current][warp * TILE][0], TILE);
+            load_matrix_sync(b_fragment, &tile_b[current][0][0], TILE);
+            mma_sync(accumulator, a_fragment, b_fragment, accumulator);
+        }
+        __syncthreads();
+        if (base + TILE < k && threadIdx.x == 0) {
+            while (!cuda::ptx::mbarrier_try_wait(&barriers[next], states[next])) {
+            }
+        }
+        __syncthreads();
+        current = next;
+    }
+    if (row < m && col < n) store_matrix_sync(c + row * n + col, accumulator, n, mem_row_major);
+}
+
 static float event_ms(cudaEvent_t start, cudaEvent_t stop, int iterations) {
     float elapsed = 0.0f;
     check_cuda(cudaEventElapsedTime(&elapsed, start, stop), "cudaEventElapsedTime");
@@ -103,8 +226,12 @@ int main(int argc, char** argv) {
     const int n = argc > 2 ? std::atoi(argv[2]) : 1024;
     const int k = argc > 3 ? std::atoi(argv[3]) : 1024;
     const int iterations = argc > 4 ? std::atoi(argv[4]) : 50;
-    if (m < 64 || n < 16 || k < 16 || (m % 16) || (n % 16) || (k % 16)) {
-        std::fprintf(stderr, "TMA-WMMA requires M>=64 and all dimensions divisible by 16\n");
+    const char* requested_variant = argc > 5 ? argv[5] : "single";
+    const bool double_buffered = std::strcmp(requested_variant, "double") == 0;
+    const bool m128_variant = std::strcmp(requested_variant, "m128") == 0;
+    if (m < 64 || n < 16 || k < 16 || (m % 16) || (n % 16) || (k % 16) ||
+        (m128_variant && (m % 128))) {
+        std::fprintf(stderr, "TMA-WMMA requires aligned dimensions (m128 additionally requires M divisible by 128)\n");
         return 2;
     }
     cudaDeviceProp properties{};
@@ -140,7 +267,7 @@ int main(int argc, char** argv) {
     const cuuint64_t b_dims[2] = {static_cast<cuuint64_t>(n), static_cast<cuuint64_t>(k)};
     const cuuint64_t a_strides[1] = {static_cast<cuuint64_t>(k * sizeof(__half))};
     const cuuint64_t b_strides[1] = {static_cast<cuuint64_t>(n * sizeof(__half))};
-    const cuuint32_t a_box[2] = {16, 64};
+    const cuuint32_t a_box[2] = {16, m128_variant ? 128u : 64u};
     const cuuint32_t b_box[2] = {16, 16};
     const cuuint32_t element_strides[2] = {1, 1};
     check_driver(cuTensorMapEncodeTiled(
@@ -162,9 +289,15 @@ int main(int argc, char** argv) {
     check_cuda(cudaMemcpy(device_a_map, &host_a_map, sizeof(CUtensorMap), cudaMemcpyHostToDevice), "copy(A map)");
     check_cuda(cudaMemcpy(device_b_map, &host_b_map, sizeof(CUtensorMap), cudaMemcpyHostToDevice), "copy(B map)");
 
-    const dim3 block(128, 1, 1);
-    const dim3 grid((n + 15) / 16, (m + 63) / 64);
-    tma_wmma_gemm<<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
+    const dim3 block(m128_variant ? 256 : 128, 1, 1);
+    const dim3 grid((n + 15) / 16, (m + (m128_variant ? 127 : 63)) / (m128_variant ? 128 : 64));
+    if (m128_variant) {
+        tma_wmma_gemm_m128<<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
+    } else if (double_buffered) {
+        tma_wmma_gemm_double<<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
+    } else {
+        tma_wmma_gemm<<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
+    }
     check_cuda(cudaGetLastError(), "tma_wmma warmup launch");
     check_cuda(cudaDeviceSynchronize(), "tma_wmma warmup synchronize");
 
@@ -188,7 +321,13 @@ int main(int argc, char** argv) {
     check_cuda(cudaEventCreate(&stop), "cudaEventCreate(stop)");
     check_cuda(cudaEventRecord(start), "tma start");
     for (int iteration = 0; iteration < iterations; ++iteration) {
-        tma_wmma_gemm<<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
+        if (m128_variant) {
+            tma_wmma_gemm_m128<<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
+        } else if (double_buffered) {
+            tma_wmma_gemm_double<<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
+        } else {
+            tma_wmma_gemm<<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
+        }
     }
     check_cuda(cudaEventRecord(stop), "tma stop");
     check_cuda(cudaEventSynchronize(stop), "tma synchronize");
@@ -205,10 +344,12 @@ int main(int argc, char** argv) {
     check_cuda(cudaEventSynchronize(stop), "blas synchronize");
     const float blas_ms = event_ms(start, stop, iterations);
     const double operations = 2.0 * static_cast<double>(m) * n * k;
-    std::printf("{\"gpu\":\"%s\",\"shape\":[%d,%d,%d],\"iterations\":%d,\"variant\":\"tma_wmma_fp16\","
+    std::printf("{\"gpu\":\"%s\",\"shape\":[%d,%d,%d],\"iterations\":%d,\"variant\":\"%s\","
                 "\"tma_ms\":%.6f,\"cublas_ms\":%.6f,\"tma_gflops\":%.3f,\"cublas_gflops\":%.3f,"
                 "\"max_abs_error_vs_cublas\":%.8f,\"tma_ok\":%s}\n",
-                properties.name, m, n, k, iterations, tma_ms, blas_ms,
+                properties.name, m, n, k, iterations,
+                m128_variant ? "tma_wmma_fp16_m128" : (double_buffered ? "tma_wmma_fp16_double" : "tma_wmma_fp16"),
+                tma_ms, blas_ms,
                 operations / (tma_ms * 1.0e6), operations / (blas_ms * 1.0e6),
                 cross_error, cross_error < 0.02f ? "true" : "false");
     cudaEventDestroy(start);

@@ -1,0 +1,20 @@
+name: rtx5090-single-gpu-v0
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  execution_environment: WSL2 Ubuntu 24.04
+lanes:
+  decode:
+    concurrency: [1, 4, 16]
+    prompt_tokens: [512]
+    generation_tokens: [256]
+    metrics: [output_tokens_per_second, p50_itl_ms, p99_itl_ms, peak_memory_mib]
+  prefill:
+    concurrency: [1, 4]
+    prompt_tokens: [4096, 16384]
+    generation_tokens: [1]
+    metrics: [ttft_ms, input_tokens_per_second, peak_memory_mib]
+fairness:
+  same_model_weights: true
+  same_quantization_recipe: true
+  report_build_time_separately: true
+  require_warmup: true

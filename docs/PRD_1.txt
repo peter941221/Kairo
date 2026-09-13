@@ -1,0 +1,1594 @@
+下面给出一份**修正后的产品需求文档（PRD, Product Requirements Document）**。
+本版重点修正原方案中的高风险假设：**硬件假设过强、编译器（Compiler）复杂度低估、即时编译（JIT, Just-In-Time）目标过激、范围扩张过快、正确性验证（Correctness Validation）不足**。
+
+---
+
+# Project Kairo 修正版产品需求文档（PRD）
+
+**文档版本（Version）：** v0.2
+**项目代号（Project Code Name）：** Project Kairo
+**定位（Positioning）：** 面向 NVIDIA Blackwell / RTX 5090 的高性能微内核生成器（Microkernel Generator）与运行时内核缓存系统（Runtime Kernel Cache System）
+**产品形态（Product Form）：** Python 前端 + 轻量运行时（Runtime）+ PyTorch 扩展（PyTorch Extension）+ 可选 MLIR 编译管线（Compilation Pipeline）
+
+---
+
+## 1. 修订背景与核心调整
+
+原方案的核心洞察是正确的：
+
+1. Blackwell / Hopper 之后的 GPU 越来越不像传统 SIMT（Single Instruction Multiple Threads）设备，而更像一个异步硬件状态机（Asynchronous Hardware State Machine）。
+2. 高性能内核（Kernel）必须显式利用张量内存加速器（TMA, Tensor Memory Accelerator）、硬件屏障（mbarrier）、Warp-Group 级矩阵乘累加（MMA, Matrix Multiply-Accumulate）等硬件能力。
+3. 通用编译器很难在 Blackwell 初期快速打满硬件，面向关键微内核（Microkernel）的特化系统更容易形成优势。
+
+但原方案存在几个主要风险：
+
+1. 将尚未完全验证的硬件特性当作确定前提；
+2. 将编译器工程量估计得过小；
+3. 对即时编译（JIT）时延目标过于激进；
+4. 对 FP4 / Micro-scaling 的软件栈成熟度估计不足；
+5. FlashAttention 与 MoE 范围过大；
+6. 缺少动态形状（Dynamic Shape）、正确性验证（Correctness Validation）、缓存（Cache）、自动调优（Autotuning）、降级策略（Fallback Strategy）等关键设计。
+
+因此，本版 PRD 将项目从：
+
+> “Blackwell 专属微内核 MLIR 编译器”
+
+调整为：
+
+> **Blackwell 优先、真机验证驱动、模板化微内核生成器 + AOT/JIT 混合缓存系统。**
+
+---
+
+## 2. 一句话价值主张
+
+**修正后价值主张：**
+
+> 通过声明式内核蓝图（Kernel Blueprint）与硬件验证过的高性能模板（High-Performance Template），在 RTX 5090 / Blackwell 上以较低工程成本获得可解释、可调优、可复现的低比特推理微内核性能。
+
+不再承诺：
+
+> “像写 Python 配置文件一样，在所有场景下自动获得手写 PTX 级极限性能。”
+
+更合理的承诺是：
+
+> 对已验证场景，提供接近手写高性能库的微内核性能；对未验证场景，明确拒绝或安全降级。
+
+---
+
+## 3. 产品目标
+
+### 3.1 核心目标
+
+1. **正确性优先（Correctness First）**
+   所有生成或分发的内核必须先通过正确性验证（Correctness Validation），再进入性能优化阶段。
+
+2. **硬件验证优先（Hardware Bring-up First）**
+   在真实 RTX 5090 / Blackwell 硬件上完成能力探测（Capability Discovery）与最小闭环验证，再扩展编译器能力。
+
+3. **微内核突破（Microkernel Focus）**
+   不追求通用全图编译器（Full-graph Compiler），优先做少数关键算子：
+   - 低比特矩阵乘（Low-bit GEMM）
+   - 缩放矩阵乘（Scaled GEMM）
+   - 注意力子集（FlashAttention Subset）
+   - MoE 专家矩阵乘（MoE Grouped GEMM）
+
+4. **可解释性能（Explainable Performance）**
+   每个内核性能都应能对应到：
+   - Roofline 模型（Roofline Model）
+   - 共享内存（Shared Memory）使用
+   - 寄存器压力（Register Pressure）
+   - 异步流水线重叠率（Overlap Rate）
+   - 屏障等待（Barrier Stall）
+   - 显存带宽（DRAM Bandwidth）
+   - 张量核心利用率（Tensor Core Utilization）
+
+5. **低时延加载（Low-latency Loading）**
+   通过预编译（AOT, Ahead-of-Time）缓存与运行时缓存（Runtime Cache）降低首次加载和重复调用成本。
+
+---
+
+## 4. 非目标
+
+为避免范围扩张，明确以下非目标：
+
+1. **不做跨厂商通用编译器**
+   不优先支持 AMD、Intel、国产 GPU 或其他加速器。
+
+2. **不做通用全图编译器**
+   不试图替代 PyTorch Inductor、TVM、XLA、Triton 的完整生态位。
+
+3. **不做训练反向传播全支持**
+   第一阶段面向推理（Inference），不承诺训练（Training）场景。
+
+4. **不做任意动态形状完全支持**
+   第一阶段优先支持静态形状（Static Shape）与受控动态形状（Controlled Dynamic Shape）。
+
+5. **不做自动模型重写框架**
+   不自动改写用户模型结构，不侵入 PyTorch 模型语义。
+
+6. **不做跨卡通信系统**
+   不涉及集合通信（Collective Communication）、张量并行（Tensor Parallelism）、流水线并行（Pipeline Parallelism）。
+
+7. **不做完整 MoE 调度系统**
+   不做完整的专家路由（Expert Routing）、专家负载均衡（Expert Load Balancing）、跨设备专家分发系统。
+
+---
+
+## 5. 目标硬件与硬件验证门
+
+### 5.1 主目标硬件
+
+主目标硬件：
+
+- NVIDIA RTX 5090
+- Blackwell 架构消费级旗舰
+- 目标计算能力（Compute Capability）：以实际驱动与工具链报告为准，不提前锁死为某个 sm 版本
+
+重要原则：
+
+> 不假设所有 Blackwell GPU 特性在消费级 RTX 5090 上完整可用。
+> 所有关键硬件能力必须通过运行时能力探测（Runtime Capability Discovery）与真机验证。
+
+---
+
+### 5.2 关键硬件能力矩阵
+
+项目启动前必须验证以下能力：
+
+| 能力（Capability） | 说明 | 是否必须 | 未通过时策略 |
+|---|---|---:|---|
+| 张量内存加速器（TMA, Tensor Memory Accelerator） | 异步批量张量搬运 | 高优先级 | 降级为普通异步拷贝或向量化加载 |
+| 硬件事务屏障（mbarrier） | 异步完成通知与屏障同步 | 高优先级 | 降级为普通屏障或原子同步 |
+| Warp-Group 矩阵乘（WGMMA / Blackwell MMA） | 高阶张量核心指令 | 高优先级 | 使用 WMMA / HMMA / 其他可用 MMA |
+| FP8 矩阵乘支持 | FP8 低比特计算 | 高优先级 | 保留为第一优先精度 |
+| FP4 / NVFP4 支持 | FP4 原生或半原生计算 | 中后期关键 | 若未通过，推迟 FP4 |
+| Micro-scaling 缩放因子支持 | FP4 / FP8 块缩放 | 中后期关键 | 软件模拟或推迟 |
+| 共享内存容量（Shared Memory Capacity） | 多级流水线资源 | 高优先级 | 降低 Stage 数或 Tile 尺寸 |
+| 寄存器文件（Register File） | 累加器与流水线状态 | 高优先级 | 调整 Tile 与累加精度 |
+| L2 缓存策略（L2 Cache Policy） | 大矩阵复用 | 中优先级 | 启发式调优 |
+| GDDR7 带宽（DRAM Bandwidth） | Roofline 输入 | 必须实测 | 不作为固定假设 |
+| 驱动 PTX / Driver API 支持 | 编译与加载基础 | 必须 | 不支持则项目不可发布 |
+
+---
+
+### 5.3 硬件验证门（Hardware Gate）
+
+在正式开发前，必须完成 Phase 0 硬件验证，并输出以下报告：
+
+1. **硬件能力报告（Hardware Capability Report）**
+2. **指令可用性报告（Instruction Availability Report）**
+3. **FP4 / FP8 数值格式报告（Numeric Format Report）**
+4. **共享内存与寄存器预算报告（Shared Memory and Register Budget Report）**
+5. **Roofline 基准报告（Roofline Benchmark Report）**
+6. **编译链路可行性报告（Compilation Path Feasibility Report）**
+
+只有通过硬件验证门后，才能进入后续阶段。
+
+---
+
+## 6. 目标用户
+
+### 6.1 主要用户
+
+1. **大模型推理优化工程师**
+   - 关注低比特推理性能
+   - 关注 FP8 / FP4 GEMM
+   - 关注 Attention 与 MoE 热点算子
+
+2. **量化算法工程师**
+   - 关注 FP8 / FP4 / Micro-scaling 数值表现
+   - 关注缩放因子（Scale Factor）布局与误差
+
+3. **推理服务框架开发者**
+   - 关注 PyTorch 集成
+   - 关注 CUDA Graph 兼容性
+   - 关注运行时缓存与稳定性
+
+4. **GPU 系统工程师**
+   - 关注异步流水线（Asynchronous Pipeline）
+   - 关注 TMA / mbarrier / Tensor Core 重叠率
+   - 关注 Nsight Compute 指标可解释性
+
+---
+
+## 7. 核心产品原则
+
+### 7.1 模板优先，而不是自由生成
+
+项目初期不追求任意生成所有异步流水线结构，而是优先提供经过验证的流水线模板（Pipeline Template）。
+
+原则：
+
+> 只暴露已验证、可分析、可复现的配置空间。
+> 对未验证配置，拒绝编译或降级到安全路径。
+
+---
+
+### 7.2 正确性优先于性能
+
+所有微内核必须先满足：
+
+1. 数值正确；
+2. 无死锁（Deadlock）；
+3. 无数据竞争（Data Race）；
+4. 无越界访问；
+5. 无不可恢复的异步屏障错误；
+6. 在异常输入下可安全失败。
+
+---
+
+### 7.3 缓存优先于冷启动编译
+
+不把所有希望寄托在冷启动即时编译（Cold JIT）上。
+
+采用混合策略：
+
+- 预编译缓存（AOT Cache）
+- 离线内核包（Offline Kernel Package）
+- 运行时缓存（Runtime Kernel Cache）
+- 热点配置即时编译（Hot-path JIT）
+- 配置指纹缓存（Config Fingerprint Cache）
+
+---
+
+### 7.4 显式优于黑盒
+
+对关键硬件行为保持显式：
+
+- Producer / Consumer 角色
+- Pipeline Stage 数
+- Shared Memory Buffer 布局
+- Barrier Arrival / Wait 语义
+- Tile 尺寸
+- 寄存器预算
+- Epilogue 融合方式
+
+---
+
+### 7.5 可降级优于硬依赖
+
+若某项硬件能力不可用，应自动或手动降级：
+
+| 高级能力 | 降级路径 |
+|---|---|
+| TMA | 普通异步拷贝 |
+| mbarrier | 普通 barrier |
+| FP4 MMA | FP8 / FP16 MMA |
+| 多级流水线 | 单级或双级流水线 |
+| 自动 JIT | 预编译内核 |
+| Blackwell 特性 | Hopper / Ampere 兼容路径 |
+
+---
+
+## 8. 产品范围
+
+### 8.1 第一阶段核心范围
+
+第一阶段只聚焦三类微内核：
+
+1. **FP16 / BF16 GEMM**
+   - 用于基础闭环验证
+   - 用于验证异步流水线
+   - 用于验证编译与加载链路
+
+2. **FP8 Scaled GEMM**
+   - 比 FP4 更成熟
+   - 作为低比特优化的第一阶段目标
+
+3. **FP4 / NVFP4 Scaled GEMM**
+   - 作为硬件验证通过后的关键目标
+   - 若硬件或工具链不成熟，允许延后
+
+---
+
+### 8.2 第二阶段扩展范围
+
+在 GEMM 稳定后，逐步扩展：
+
+1. **FlashAttention Subset**
+   - 只做推理场景子集
+   - 不承诺完整训练反向
+   - 不承诺完整 Paged KV Cache
+   - 不承诺任意变长序列
+
+2. **MoE Grouped GEMM**
+   - 聚焦专家矩阵乘
+   - 不做完整动态路由系统
+   - 不做跨卡专家调度
+
+---
+
+## 9. 用户场景
+
+### 场景一：低比特大模型推理加速
+
+用户希望在 RTX 5090 上运行低比特量化模型，例如：
+
+- FP8 权重推理
+- FP4 权重推理
+- Micro-scaling 量化推理
+- 大尺寸 GEMM 热点优化
+
+Kairo 提供：
+
+- 高性能 GEMM 微内核
+- 缩放因子融合
+- 可选 PyTorch 接口
+- 运行时内核缓存
+
+---
+
+### 场景二：长上下文 Attention 优化
+
+用户希望优化 Prefill 或 Decode 阶段的 Attention 热点。
+
+Kairo 第一阶段只提供受限子集：
+
+- 固定 Head Dimension
+- 固定或分桶 Sequence Length
+- Causal Mask
+- 可选 FP16 / BF16 / FP8
+- 不做完整 PagedAttention
+- 不做完整变长 KV Cache 管理
+
+---
+
+### 场景三：MoE 专家计算优化
+
+用户希望提升 MoE 模型中的专家计算性能。
+
+Kairo 优先提供：
+
+- Expert Grouped GEMM
+- Token 分桶（Token Bucketing）
+- Expert 维度静态或半动态调度
+- 与上游 Router 解耦
+
+不优先提供：
+
+- 完整 Router
+- 完整负载均衡
+- 跨卡 All-to-All
+- 动态专家缓存系统
+
+---
+
+## 10. 功能需求
+
+---
+
+### 10.1 声明式内核蓝图（Kernel Blueprint）
+
+系统应提供声明式配置对象，用于描述微内核的关键参数。
+
+主要配置维度包括：
+
+1. **架构目标（Architecture Target）**
+   - Blackwell 优先
+   - 支持能力探测结果绑定
+
+2. **数值格式（Precision Format）**
+   - FP16
+   - BF16
+   - FP8
+   - FP4（条件开启）
+   - Micro-scaling FP4 / FP8
+
+3. **Tile 配置（Tile Configuration）**
+   - Tile M
+   - Tile N
+   - Tile K
+   - Epilogue Tile
+
+4. **流水线配置（Pipeline Configuration）**
+   - Pipeline Stage 数
+   - Producer Warp 配置
+   - Consumer Warp-Group 配置
+   - Buffer 分配策略
+
+5. **布局配置（Layout Configuration）**
+   - 行主序 / 列主序
+   - 转置支持
+   - Stride 约束
+   - Swizzle 模式
+   - 对齐要求（Alignment Requirement）
+
+6. **Epilogue 配置**
+   - Bias
+   - Activation
+   - Residual Add
+   - Scale Fusion
+   - Output Quantization
+
+7. **调度配置（Scheduling Configuration）**
+   - 静态 Grid
+   - Persistent Kernel 可选
+   - Stream-K / Split-K 可选
+   - CTA Rasterization 可选
+
+要求：
+
+- 配置对象必须可序列化为配置文件；
+- 配置对象必须能生成唯一指纹（Blueprint Hash）；
+- 非法配置必须在编译前拒绝；
+- 配置必须绑定硬件能力报告。
+
+---
+
+### 10.2 配置约束系统（Configuration Constraint System）
+
+系统必须维护一个配置约束表，避免用户提交不可行配置。
+
+约束类型包括：
+
+1. **寄存器预算约束（Register Budget Constraint）**
+   - 累加器尺寸
+   - 累加精度
+   - Consumer Warp-Group 数
+   - Pipeline 状态占用
+
+2. **共享内存预算约束（Shared Memory Budget Constraint）**
+   - Tile 尺寸
+   - Stage 数
+   - Scale Factor 存储
+   - Epilogue Buffer
+
+3. **TMA 约束（TMA Constraint）**
+   - 对齐
+   - Box 尺寸
+   - Stride
+   - Swizzle 模式
+   - Out-of-bound Fill
+
+4. **屏障约束（Barrier Constraint）**
+   - Arrival Count
+   - Transaction Bytes
+   - Phase 转换
+   - Producer / Consumer 匹配关系
+
+5. **数值格式约束（Numeric Format Constraint）**
+   - FP4 是否硬件原生
+   - Scale 粒度
+   - Scale 数据类型
+   - 累加精度
+
+---
+
+### 10.3 布局代数（Layout Algebra）
+
+布局代数负责处理：
+
+- Tiling
+- Stride
+- Swizzle
+- Bank Conflict 避免
+- TMA Descriptor 参数推导
+- Shared Memory Offset 计算
+- Scale Factor Layout 推导
+
+要求：
+
+1. 对静态形状尽可能完成编译期常量折叠；
+2. 对受控动态形状支持符号约束；
+3. 对不支持的布局显式报错；
+4. 输出可审计的布局决策报告；
+5. 不承诺消除所有布局复杂度，只承诺将复杂度前置并可控化。
+
+---
+
+### 10.4 异步流水线模板（Asynchronous Pipeline Template）
+
+系统提供经过验证的异步流水线模板，而不是任意生成屏障拓扑。
+
+模板应覆盖：
+
+1. **单生产者 / 单消费者模板**
+   - Producer Warp
+   - Consumer Warp-Group
+
+2. **多阶段流水线模板**
+   - 2-Stage
+   - 3-Stage
+   - 4-Stage（视共享内存而定）
+
+3. **双消费者模板（可选）**
+   - 两个 Consumer Warp-Group
+   - 用于提高延迟隐藏能力
+
+4. **Epilogue 融合模板**
+   - Bias
+   - Activation
+   - Residual
+   - Scale
+
+要求：
+
+- 每个模板必须有形式化约束说明；
+- 每个模板必须有正确性测试；
+- 每个模板必须有性能基线；
+- 不允许用户任意组合出未验证拓扑。
+
+---
+
+### 10.5 编译与缓存系统（Compilation and Cache System）
+
+系统采用 AOT / JIT 混合模式。
+
+#### 10.5.1 编译层级
+
+1. **Blueprint 解析**
+   - 校验配置
+   - 生成布局决策
+   - 生成模板选择
+
+2. **模板实例化**
+   - 生成内核参数
+   - 生成 Barrier 配置
+   - 生成 Shared Memory Plan
+
+3. **可选 IR 降级**
+   - 初期可以不依赖 MLIR
+   - 稳定后可引入 MLIR 作为内部 IR
+
+4. **PTX / Cubin 生成**
+   - 使用 LLVM NVPTX、NVVM 或预编译模板
+   - 具体路径需通过 Phase 0 验证
+
+5. **内核缓存**
+   - 根据 Blueprint Hash、Shape Hash、Driver Version、GPU Capability 生成 Cache Key
+
+---
+
+#### 10.5.2 缓存策略
+
+缓存层级：
+
+1. **配置缓存（Blueprint Cache）**
+2. **布局缓存（Layout Cache）**
+3. **TMA Descriptor Cache**
+4. **PTX Cache**
+5. **Cubin Cache**
+6. **运行时函数句柄缓存（Function Handle Cache）**
+
+要求：
+
+- 相同配置和相同硬件环境下，重复加载应显著快于重新编译；
+- 缓存必须包含驱动版本与硬件能力指纹；
+- 缓存失效必须可解释；
+- 支持离线预生成内核包。
+
+---
+
+### 10.6 运行时分发（Runtime Dispatch）
+
+运行时需要完成：
+
+1. 硬件能力检测；
+2. 配置合法性检查；
+3. 形状与布局检查；
+4. 缓存查找；
+5. 必要时触发编译；
+6. 加载内核；
+7. 执行；
+8. 失败降级。
+
+运行时必须支持：
+
+- 显式 API 调用；
+- 可选 PyTorch 算子注册；
+- 安全 Fallback；
+- CUDA Stream；
+- CUDA Graph Capture（目标支持，需验证）；
+- 多实例并发调用。
+
+---
+
+### 10.7 PyTorch 集成
+
+PyTorch 集成分为两个阶段。
+
+#### 第一阶段：显式 API
+
+用户显式调用 Kairo 提供的算子接口，例如概念接口：
+
+- `kairo.fp8_gemm`
+- `kairo.fp4_scaled_gemm`
+- `kairo.flash_attention_subset`
+- `kairo.moe_grouped_gemm`
+
+优点：
+
+- 可控；
+- 易于调试；
+- 易于设置 Fallback；
+- 不易破坏 PyTorch 程序语义。
+
+#### 第二阶段：可选自动分发
+
+在稳定后提供可选的 PyTorch 扩展机制：
+
+- 注册到 torch.library；
+- 支持 Meta Tensor；
+- 支持 FakeTensor；
+- 支持 Shape Inference；
+- 支持 Dtype Inference；
+- 支持 Dispatcher；
+- 支持 Fallback。
+
+不优先提供全局上下文式自动替换，例如一键全局替换模型中的热点算子。
+这类能力风险较高，只作为实验特性。
+
+---
+
+### 10.8 动态形状支持策略
+
+动态形状分为三类：
+
+1. **完全静态形状**
+   - 第一阶段优先支持；
+   - 性能最优；
+   - 可完全预编译。
+
+2. **受控动态形状**
+   - 某些维度可变，例如 Batch Size 或 Sequence Length；
+   - 通过 Shape Bucket 或 Symbolic Constraint 支持；
+   - 需要缓存多个内核变体。
+
+3. **完全动态形状**
+   - 第一阶段不支持；
+   - 后续视需求引入；
+   - 可能牺牲性能或增加编译次数。
+
+要求：
+
+- 每个算子必须明确哪些维度可动态；
+- 动态维度必须进入缓存 Key；
+- 不允许静默重编译导致不可控延迟；
+- 需要提供编译次数与缓存命中统计。
+
+---
+
+### 10.9 正确性验证需求
+
+所有微内核必须通过以下测试：
+
+1. **数值正确性测试**
+   - 对比参考实现；
+   - 明确容差；
+   - 覆盖边界形状。
+
+2. **异步正确性测试**
+   - 多 Stage；
+   - 不同 Barrier Phase；
+   - 异常退出；
+   - 长时间压力测试。
+
+3. **内存安全测试**
+   - 越界；
+   - 非对齐；
+   - 非法 Stride；
+   - Shared Memory 冲突。
+
+4. **死锁检测**
+   - Barrier Timeout；
+   - Watchdog；
+   - 确定性复现；
+   - 压力循环。
+
+5. **数值格式测试**
+   - FP8 Scale；
+   - FP4 Scale；
+   - Outlier；
+   - 极端值；
+   - 下溢 / 上溢。
+
+6. **驱动兼容性测试**
+   - 多驱动版本；
+   - 多 CUDA Runtime / Driver API 环境；
+   - 不同 Linux 内核环境（如适用）。
+
+---
+
+### 10.10 可观测性需求
+
+系统必须提供可观测性信息：
+
+1. **编译信息**
+   - Blueprint Hash
+   - 编译耗时
+   - 缓存命中
+   - 编译失败原因
+   - 使用模板
+
+2. **运行时信息**
+   - Kernel 名称
+   - 启动参数
+   - Shared Memory 使用
+   - Register 使用
+   - Occupancy
+   - 执行时间
+
+3. **性能分析接口**
+   - 与 Nsight Compute 兼容
+   - 可导出关键指标
+   - 可标注 Pipeline Stage
+   - 可统计 Barrier Stall
+
+4. **错误信息**
+   - 用户可读
+   - 包含配置摘要
+   - 包含硬件能力摘要
+   - 包含可能修复建议
+
+---
+
+## 11. 系统架构设计
+
+---
+
+### 11.1 总体架构
+
+系统分为五层：
+
+1. **Python 前端层（Python Frontend Layer）**
+   - Kernel Blueprint
+   - 配置校验
+   - 布局代数
+   - Shape Guard
+   - Cache Key 生成
+
+2. **模板与搜索层（Template and Search Layer）**
+   - 高性能模板库
+   - 配置约束系统
+   - 可选自动调优（Autotuning）
+   - 模板选择器
+
+3. **编译降级层（Compilation Layer）**
+   - 可选 MLIR 方言
+   - 可选 LLVM NVPTX
+   - 可选 NVVM
+   - PTX / Cubin 生成
+
+4. **缓存与交付层（Cache and Delivery Layer）**
+   - AOT Kernel Package
+   - Runtime Kernel Cache
+   - TMA Descriptor Cache
+   - Blueprint Hash Registry
+
+5. **运行时集成层（Runtime Integration Layer）**
+   - Driver API 加载
+   - Kernel Launch
+   - PyTorch Extension
+   - Fallback
+   - 可观测性
+
+---
+
+### 11.2 初期架构策略：MLIR 可选
+
+为降低初期复杂度，MLIR 不作为第一阶段的强依赖。
+
+第一阶段可以采用：
+
+> Python Blueprint + Fixed Kernel Template + Parameterized Code Generation + Prebuilt Cubin Cache
+
+第二阶段再逐步引入：
+
+> MLIR 作为内部表示与优化框架
+
+这样可以避免项目一开始就陷入完整编译器基础设施建设。
+
+---
+
+### 11.3 编译路径选择
+
+需要在 Phase 0 验证以下路径：
+
+#### 路径 A：预编译模板 + 运行时选择
+
+优点：
+
+- 稳定；
+- 加载快；
+- 性能可控；
+- 工程风险低。
+
+缺点：
+
+- 灵活性较低；
+- 配置组合需要提前覆盖。
+
+#### 路径 B：参数化代码生成 + Driver JIT
+
+优点：
+
+- 灵活；
+- 支持更多配置；
+- 适合 JIT。
+
+缺点：
+
+- 首次编译时延不可控；
+- Driver JIT 优化质量需验证。
+
+#### 路径 C：LLVM NVPTX / NVVM 生成 PTX
+
+优点：
+
+- 更接近编译器形态；
+- 可扩展性强。
+
+缺点：
+
+- 工程复杂度高；
+- 依赖工具链稳定性；
+- 冷启动时延风险高。
+
+最终产品应采用混合路径：
+
+> 常见配置使用 AOT；长尾配置使用受限 JIT；所有配置均通过缓存降低重复成本。
+
+---
+
+## 12. 微内核范围与优先级
+
+---
+
+### 12.1 P0：FP16 / BF16 GEMM
+
+目标：
+
+- 打通硬件验证；
+- 打通异步流水线；
+- 打通编译、加载、执行闭环；
+- 建立正确性与性能基线。
+
+支持特性：
+
+- 静态形状；
+- 常规 Row / Column 布局；
+- 基础 Epilogue；
+- Shared Memory Swizzle；
+- Multi-stage Pipeline。
+
+成功标准：
+
+- 正确性通过；
+- 无死锁；
+- 可稳定重复执行；
+- 与 cuBLAS 或 CUTLASS 基准可对比。
+
+---
+
+### 12.2 P1：FP8 Scaled GEMM
+
+目标：
+
+- 支持低比特推理；
+- 验证 Scale Factor 融合；
+- 建立量化场景基线。
+
+支持特性：
+
+- FP8 权重；
+- FP8 激活（视场景）；
+- Tensor-wise / Channel-wise / Block-wise Scale（按验证结果）；
+- Epilogue 融合；
+- 输出反量化可选。
+
+成功标准：
+
+- 数值误差可接受；
+- 性能达到 Roofline 可解释目标；
+- 与官方库或 Triton 可公平对比。
+
+---
+
+### 12.3 P2：FP4 / NVFP4 Scaled GEMM
+
+前置条件：
+
+- Phase 0 确认 FP4 硬件支持；
+- 确认 Scale Factor 布局；
+- 确认工具链稳定性；
+- 确认数值格式可用于目标模型。
+
+支持特性：
+
+- FP4 权重；
+- Micro-scaling；
+- 可选 FP8 / FP16 激活；
+- Scale 加载与融合；
+- 输出精度配置。
+
+成功标准：
+
+- FP4 正确性通过；
+- 模型级误差可接受；
+- 相比 FP8 路径有明确吞吐或带宽收益；
+- 不因软件解包导致收益被显著抵消。
+
+如果 FP4 硬件或软件栈不成熟，允许将该目标延后。
+
+---
+
+### 12.4 P3：FlashAttention Subset
+
+目标：
+
+- 支持推理场景中的 Attention 热点；
+- 不做完整 FlashAttention 全功能替代。
+
+第一阶段支持：
+
+- 固定 Head Dimension；
+- 固定或分桶 Sequence Length；
+- Causal Mask；
+- FP16 / BF16；
+- 可选 FP8；
+- Prefill 场景优先；
+- Decode 场景按性能收益评估。
+
+暂不支持：
+
+- 完整 Paged KV Cache；
+- 完整变长序列；
+- 训练反向；
+- Dropout 训练语义；
+- 任意位置编码融合；
+- 完整稀疏 Attention。
+
+成功标准：
+
+- 正确性通过；
+- 在目标形状下优于基线；
+- 不因显存带宽瓶颈导致稳定性问题；
+- 可与现有 Attention 实现公平对比。
+
+---
+
+### 12.5 P4：MoE Grouped GEMM
+
+目标：
+
+- 优化 MoE 中的专家矩阵乘；
+- 不做完整动态路由系统。
+
+支持特性：
+
+- Expert Grouped GEMM；
+- Token Bucketing；
+- Expert 尺寸分桶；
+- 静态 / 半动态 Expert Shape；
+- FP8 / FP16 / BF16；
+- FP4 视前期结果决定。
+
+暂不支持：
+
+- 完整 Top-K Router；
+- 跨卡 All-to-All；
+- 动态专家缓存；
+- 复杂负载均衡；
+- Device-side 全局调度器。
+
+成功标准：
+
+- Grouped GEMM 相比基线提升；
+- 尾延迟可控；
+- 不引入 CPU 同步热点；
+- 可与上游 Router 解耦集成。
+
+---
+
+## 13. 性能指标与验收标准
+
+修正后的 KPI 不再使用单一激进口径，而是分为正确性、性能、编译、稳定性、资源五类。
+
+---
+
+### 13.1 正确性指标
+
+| 指标 | 目标 |
+|---|---:|
+| 功能测试通过率 | 100% |
+| 数值回归测试通过率 | 100% |
+| 异步死锁测试 | 72 小时无致命死锁 |
+| 内存安全测试 | 无非法访问 |
+| 边界形状测试 | 全部通过或明确拒绝 |
+| 异常输入处理 | 可安全失败并报错 |
+
+---
+
+### 13.2 编译与加载指标
+
+| 场景 | 目标 |
+|---|---:|
+| 已缓存内核加载 | P50 < 10 ms，P99 < 30 ms |
+| 热配置重编译 | P50 < 100 ms |
+| 冷配置编译 | P50 < 300 ms，P99 < 1 s |
+| 离线 AOT 包加载 | 显著低于冷编译 |
+| 编译失败诊断 | 提供可读错误与修复建议 |
+
+说明：
+
+- 原方案中的“所有冷启动 < 100ms”不作为硬目标；
+- 如果 Phase 0 证明某条编译路径可稳定低于 100ms，可提升为挑战目标；
+- 产品体验优先通过缓存保证低时延。
+
+---
+
+### 13.3 性能指标
+
+性能指标必须基于明确基线与形状集合。
+
+#### 13.3.1 Roofline 指标
+
+对于重点 GEMM 形状：
+
+| 指标 | 目标 |
+|---|---:|
+| 达到可解释 Roofline 上限 | ≥ 80% |
+| 大形状计算受限场景 | 尽量接近计算上限 |
+| 小形状或尾部长尾 | 允许性能降级，但不能正确性失败 |
+
+#### 13.3.2 对比官方库
+
+对于 cuBLASLt / CUTLASS 可支持的场景：
+
+| 指标 | 目标 |
+|---|---:|
+| 相对官方库性能 | ≥ 90% |
+| 特定融合场景 | 争取超越 |
+| 非融合标准场景 | 不显著落后 |
+
+#### 13.3.3 对比 Triton
+
+只在同格式、同形状、同公平条件下对比：
+
+| 指标 | 目标 |
+|---|---:|
+| 同精度同形状 | 争取 +10% |
+| 若 Triton 不支持目标格式 | 不作为胜负依据 |
+
+---
+
+### 13.4 异步流水线指标
+
+以 Nsight Compute 或等效工具为准：
+
+| 指标 | 大形状目标 | 长尾形状目标 |
+|---|---:|---:|
+| TMA 与 Tensor Core 重叠率 | ≥ 90% | ≥ 70% |
+| mbarrier 等待占比 | ≤ 8% | ≤ 15% |
+| Shared Memory Bank Conflict | 显著低于未优化基线 | 可接受 |
+| Register Spill | 无或极低 | 不导致性能崩塌 |
+
+---
+
+### 13.5 资源指标
+
+| 指标 | 目标 |
+|---|---:|
+| Shared Memory 预算 | 不超过模板声明上限 |
+| Register 预算 | 不超过模板声明上限 |
+| Occupancy | 满足模板最低要求 |
+| Kernel Launch 开销 | 不显著影响推理尾延迟 |
+| 运行时内存占用 | 可预测、可配置 |
+
+---
+
+## 14. 自动调优（Autotuning）
+
+自动调优不作为第一天必须功能，但必须预留接口。
+
+---
+
+### 14.1 调优空间
+
+未来可搜索的参数包括：
+
+1. Tile M / N / K；
+2. Pipeline Stage；
+3. Producer / Consumer 配置；
+4. Swizzle 模式；
+5. CTA Rasterization；
+6. Split-K / Stream-K；
+7. Epilogue Subtile；
+8. L2 Cache 策略；
+9. Cluster 尺寸（若硬件支持）；
+10. Persistent Kernel 参数。
+
+---
+
+### 14.2 调优模式
+
+1. **离线调优（Offline Autotuning）**
+   - 安装或部署前搜索；
+   - 生成配置缓存。
+
+2. **首次运行调优（First-run Autotuning）**
+   - 服务端首次预热时搜索；
+   - 需要控制超时。
+
+3. **运行时启发式（Runtime Heuristic）**
+   - 根据 Shape Bucket 选择已知最优配置。
+
+4. **手动指定（Manual Override）**
+   - 高级用户可显式指定 Blueprint。
+
+---
+
+## 15. 路线图
+
+---
+
+### Phase 0：硬件验证与编译路径验证
+
+时间目标：2～4 周
+
+核心任务：
+
+1. 获取真机；
+2. 建立硬件能力探测；
+3. 验证 TMA；
+4. 验证 mbarrier；
+5. 验证 MMA / WGMMA / Blackwell MMA；
+6. 验证 FP8；
+7. 验证 FP4 / Micro-scaling 可行性；
+8. 验证 Driver API / NVVM / LLVM NVPTX 编译路径；
+9. 输出 Roofline 报告。
+
+交付物：
+
+- 硬件能力报告；
+- 编译路径可行性报告；
+- 风险清单；
+- 初始性能基线。
+
+完成条件：
+
+- 至少一个最小异步 GEMM 或数据搬运闭环可在真机运行；
+- 编译路径可重复；
+- FP4 是否进入下一阶段有明确结论。
+
+---
+
+### Phase 1：最小正确闭环
+
+时间目标：6～8 周
+
+核心任务：
+
+1. FP16 / BF16 GEMM 最小闭环；
+2. TMA 加载；
+3. mbarrier 同步；
+4. MMA 计算；
+5. Shared Memory Swizzle；
+6. Driver API 加载；
+7. 正确性测试；
+8. 基础 Benchmark。
+
+交付物：
+
+- 最小可运行微内核；
+- 正确性测试集；
+- 编译与加载闭环；
+- 性能基线。
+
+完成条件：
+
+- 目标形状正确性通过；
+- 无死锁；
+- 可重复执行；
+- 编译或加载路径稳定。
+
+---
+
+### Phase 2：GEMM 性能优化
+
+时间目标：6～8 周
+
+核心任务：
+
+1. Multi-stage Pipeline；
+2. 寄存器预算优化；
+3. Shared Memory 布局优化；
+4. Epilogue Fusion；
+5. Split-K / Stream-K（可选）；
+6. 与 cuBLAS / CUTLASS 对比；
+7. Nsight Compute 指标体系。
+
+交付物：
+
+- 高性能 GEMM 微内核；
+- 性能报告；
+- 优化指南；
+- 配置约束表。
+
+完成条件：
+
+- 重点形状达到 Roofline 或官方库对比目标；
+- 异步指标可解释；
+- 无严重资源超限。
+
+---
+
+### Phase 3：FP8 Scaled GEMM
+
+时间目标：6～8 周
+
+核心任务：
+
+1. FP8 数据格式支持；
+2. Scale Factor 布局；
+3. Scale Fusion；
+4. 输出反量化；
+5. 数值误差验证；
+6. 与量化框架对接。
+
+交付物：
+
+- FP8 Scaled GEMM；
+- 数值验证报告；
+- 性能对比报告。
+
+完成条件：
+
+- 正确性通过；
+- 性能优于或接近公平基线；
+- 数值误差可接受。
+
+---
+
+### Phase 4：FP4 / NVFP4 Scaled GEMM
+
+前置条件：
+
+- Phase 0 / Phase 3 确认 FP4 可行；
+- 工具链稳定；
+- 数值格式验证通过。
+
+时间目标：8 周左右
+
+核心任务：
+
+1. FP4 权重支持；
+2. Micro-scaling 支持；
+3. Scale Factor 异步加载；
+4. 寄存器重排或硬件原生路径；
+5. 数值误差验证；
+6. 模型级精度抽查。
+
+交付物：
+
+- FP4 Scaled GEMM；
+- FP4 性能报告；
+- FP4 数值验证报告；
+- 与 FP8 对比报告。
+
+完成条件：
+
+- FP4 相对 FP8 有明确收益；
+- 不因软件解包导致性能收益被抵消；
+- 模型级误差可接受。
+
+---
+
+### Phase 5：FlashAttention Subset
+
+时间目标：8 周左右
+
+核心任务：
+
+1. Fixed-shape Attention；
+2. Causal Mask；
+3. Online Softmax；
+4. Register / Shared Memory 预算；
+5. Prefill 场景优化；
+6. Decode 场景评估。
+
+交付物：
+
+- FlashAttention Subset；
+- 正确性测试；
+- 性能报告；
+- 使用限制说明。
+
+完成条件：
+
+- 目标场景正确；
+- 在公平基线下有性能价值；
+- 不引入稳定性问题。
+
+---
+
+### Phase 6：MoE Grouped GEMM
+
+时间目标：8 周左右
+
+核心任务：
+
+1. Expert Grouped GEMM；
+2. Token Bucketing；
+3. Expert Shape 分桶；
+4. FP8 / FP16 / BF16；
+5. FP4 视情况开启；
+6. 与上游 Router 解耦。
+
+交付物：
+
+- MoE Grouped GEMM；
+- Benchmark；
+- 集成文档。
+
+完成条件：
+
+- Grouped GEMM 性能优于公平基线；
+- 尾延迟可控；
+- 不依赖完整 MoE 调度系统。
+
+---
+
+## 16. 风险与缓解策略
+
+---
+
+### 16.1 硬件特性风险
+
+风险：
+
+- TMA / mbarrier / FP4 等能力在目标消费级 GPU 上不可用或不完整。
+
+缓解：
+
+- Phase 0 硬件验证门；
+- 能力探测；
+- 降级路径；
+- 不提前锁定硬件指令名称。
+
+---
+
+### 16.2 编译器复杂度风险
+
+风险：
+
+- MLIR / LLVM / NVVM / Driver API 集成复杂度超过预期。
+
+缓解：
+
+- 初期不强制依赖 MLIR；
+- 优先模板化代码生成；
+- 使用 AOT 缓存；
+- 将编译器作为中后期基础设施。
+
+---
+
+### 16.3 即时编译时延风险
+
+风险：
+
+- 冷启动 JIT 无法稳定低于目标时延。
+
+缓解：
+
+- AOT / JIT 混合；
+- 离线内核包；
+- 热点缓存；
+- 明确区分“加载时延”和“编译时延”。
+
+---
+
+### 16.4 FP4 数值与工具链风险
+
+风险：
+
+- FP4 动态范围过小；
+- Scale 布局复杂；
+- 软件解包开销过高；
+- 模型精度不可接受。
+
+缓解：
+
+- 先做 FP8；
+- FP4 设置硬件验证门；
+- 建立模型级精度回归；
+- 与量化方案联合验证。
+
+---
+
+### 16.5 异步正确性风险
+
+风险：
+
+- mbarrier 死锁；
+- 数据竞争；
+- 间歇性错误；
+- 难以复现。
+
+缓解：
+
+- 模板化 Pipeline；
+- 限制配置空间；
+- Barrier Timeout；
+- 压力测试；
+- 确定性复现工具。
+
+---
+
+### 16.6 生态竞争风险
+
+风险：
+
+- NVIDIA 官方库或 Triton 快速补齐 Blackwell 支持。
+
+缓解：
+
+- 聚焦长尾定制；
+- 强化轻量部署；
+- 强化推理服务集成；
+- 提供可解释异步流水线控制；
+- 不与官方库在全场景正面作战。
+
+---
+
+### 16.7 范围扩张风险
+
+风险：
+
+- FlashAttention、MoE、PyTorch 自动分发同时推进，导致资源耗尽。
+
+缓解：
+
+- 分阶段交付；
+- 明确非目标；
+- 每个阶段设置完成条件；
+- 不允许未通过前一阶段就进入下一阶段。
+
+---
+
+## 17. 依赖与限制
+
+### 17.1 外部依赖
+
+1. NVIDIA GPU 驱动；
+2. CUDA Driver API；
+3. PTX / NVVM / LLVM NVPTX（视编译路径）；
+4. PyTorch C++ / Python Extension；
+5. Nsight Compute；
+6. Linux 开发与运行环境；
+7. 真机 RTX 5090 或等效 Blackwell 硬件。
+
+---
+
+### 17.2 已知限制
+
+1. 不承诺所有 Blackwell 设备一致可用；
+2. 不承诺任意动态形状；
+3. 不承诺训练场景；
+4. 不承诺跨厂商；
+5. 不承诺完整 MoE 调度系统；
+6. 不承诺完整 PagedAttention；
+7. 不承诺自动替换所有 PyTorch 热点算子。
+
+---
+
+## 18. 交付物
+
+项目最终应交付以下内容：
+
+1. **Python 包**
+   - Kernel Blueprint；
+   - Runtime API；
+   - 可选 PyTorch Extension。
+
+2. **内核模板库**
+   - FP16 / BF16 GEMM；
+   - FP8 Scaled GEMM；
+   - FP4 Scaled GEMM（视验证结果）；
+   - FlashAttention Subset；
+   - MoE Grouped GEMM。
+
+3. **编译与缓存工具**
+   - Blueprint Hash；
+   - Kernel Cache；
+   - AOT Package Builder；
+   - Cache Inspector。
+
+4. **测试与验证系统**
+   - 正确性测试；
+   - 数值回归；
+   - 压力测试；
+   - 死锁检测；
+   - 内存安全测试。
+
+5. **性能报告**
+   - Roofline；
+   - 官方库对比；
+   - Triton 对比（如公平）；
+   - Nsight Compute 指标。
+
+6. **文档**
+   - 用户文档；
+   - 硬件能力说明；
+   - 配置约束说明；
+   - 性能调优指南；
+   - 已知限制。
+
+---
+
+## 19. 成功标准
+
+项目成功不应只由单一 MFU（Model FLOPs Utilization）指标决定，而应满足以下组合条件：
+
+1. **正确性稳定**
+   - 无死锁；
+   - 无内存错误；
+   - 数值测试通过。
+
+2. **性能可解释**
+   - 每个重点内核都有 Roofline 与 Nsight Compute 指标；
+   - 性能收益可归因于具体硬件机制。
+
+3. **加载时延可控**
+   - 通过缓存达到低时延加载；
+   - 冷编译不阻塞生产部署。
+
+4. **工程可维护**
+   - 配置约束清晰；
+   - 模板可测试；
+   - 错误可诊断；
+   - 文档完整。
+
+5. **生态可集成**
+   - 提供显式 Python API；
+   - 可选接入 PyTorch；
+   - 不破坏用户程序语义。
+
+6. **风险可控**
+   - FP4 是否推进由硬件验证决定；
+   - FlashAttention / MoE 不拖累核心 GEMM 目标；
+   - 未验证配置不进入生产路径。
+
+---
+
+## 20. 与原方案的主要差异
+
+| 维度 | 原方案 | 修正后方案 |
+|---|---|---|
+| 定位 | 微内核 MLIR 编译器 | 微内核生成器 + 运行时缓存系统 |
+| 硬件假设 | 直接假定 Blackwell 特性可用 | 硬件验证门 + 能力探测 + 降级 |
+| 编译架构 | 强依赖 MLIR / LLVM / Driver JIT | MLIR 可选，模板优先 |
+| JIT 目标 | 冷启动 <100ms | 缓存加载优先，冷编译分层目标 |
+| 性能目标 | 固定 85% MFU | Roofline + 官方库对比 + 可解释指标 |
+| FP4 | 核心默认目标 | 硬件验证通过后进入的中后期目标 |
+| FlashAttention | 完整特化目标 | Subset，明确限制 |
+| MoE | 动态路由内核 | Grouped GEMM，解耦路由 |
+| 生态集成 | 全局自动替换 | 显式 API 优先，自动分发可选 |
+| 正确性 | 未充分展开 | 独立验收维度 |
+| 范围 | 偏大 | 分阶段收敛 |
+
+---
+
+## 21. 总结
+
+修正后的 Project Kairo 不再是一个过于激进的“Blackwell 专属编译器宣言”，而是一个更可执行的工程方案：
+
+> **以真机硬件验证为前提，以模板化微内核为核心，以 AOT / JIT 混合缓存为交付方式，以正确性和可解释性能为底线，在 RTX 5090 / Blackwell 上逐步打穿低比特 GEMM、Attention 子集与 MoE Grouped GEMM。**
+
+该方案保留了原项目最有价值的洞察：
+
+1. Blackwell 是异步硬件状态机；
+2. 显式 Warp Specialization 很重要；
+3. TMA / mbarrier / Tensor Core Pipeline 是关键；
+4. 微内核比通用编译器更容易形成突破；
+5. Python 声明式接口可以降低使用门槛。
+
+同时，它显著降低了失败概率：
+
+1. 不提前绑定未验证硬件特性；
+2. 不把所有性能希望寄托在冷启动 JIT；
+3. 不过度扩张 FlashAttention / MoE 范围；
+4. 不承诺无法验证的“绝对性能”；
+5. 将正确性、缓存、降级、可观测性纳入核心需求。
+
+这份修正版 PRD 更适合作为立项、评审和工程执行的依据。

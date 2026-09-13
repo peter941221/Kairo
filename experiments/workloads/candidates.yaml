@@ -1,0 +1,15 @@
+candidates:
+  - id: dense_low_bit_primary
+    status: candidate
+    role: controlled_primary
+    selection_criteria:
+      - public weights and license
+      - executable on one RTX 5090 after the declared low-bit conversion
+      - supported by at least two baseline runtimes
+      - has a reproducible conversion recipe
+  - id: qwen3_30b_a3b_moe
+    status: discovery_only
+    role: high_upside
+    model: Qwen/Qwen3-30B-A3B
+    investigation: token_packing_grouped_gemm_scale_layout
+    note: Promote only after an exact, executable baseline is pinned.

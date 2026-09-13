@@ -1,0 +1,26 @@
+# Local agent/project context: deliberately never committed.
+.kairo-local/
+
+# Python and tooling
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Experiment outputs and machine-specific build artifacts
+artifacts/
+runs/
+results/
+profiles/
+*.nsys-rep
+*.ncu-rep
+
+# CUDA/PyTorch build outputs
+build/
+dist/
+*.egg-info/
+*.so
+*.ptx
+*.cubin

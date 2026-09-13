@@ -19,8 +19,13 @@ correctness:
 performance:
   shape: [1024, 1024, 1024]
   iterations: 50
-  kairo_ms: 0.230570
-  kairo_gflops: 9313.794
-  cublas_ms: 0.017413
-  cublas_gflops: 123325.605
-decision: Correctness and arbitrary-boundary handling pass; the simple tiled kernel is 13.2x slower than cuBLAS on the large shape and is retained as the Phase 1 reference for async staging, vectorized loads, and tensor-core optimization.
+  cublas_ms: 0.018292
+  cublas_gflops: 117397.080
+  variants:
+    tile16x16_output1x1:
+      kairo_ms: 0.235454
+      kairo_gflops: 9120.605
+    tile32x32_output2x2:
+      kairo_ms: 0.095379
+      kairo_gflops: 22515.219
+decision: Correctness and arbitrary-boundary handling pass; 2x2 register reuse improves the Kairo reference by 2.47x, but the optimized kernel remains 5.2x slower than cuBLAS and is the next tensor-core/async-staging target.

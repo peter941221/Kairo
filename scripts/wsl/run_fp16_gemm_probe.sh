@@ -15,4 +15,4 @@ binary="$build_dir/fp16_gemm_probe"
 "$nvcc" -std=c++17 -O3 -arch=sm_120 \
   "$root/scripts/wsl/fp16_gemm_probe.cu" \
   -I"$cuda_root/include" -L"$cuda_root/lib64" -lcublas -o "$binary"
-"$binary" "${1:-1024}" "${2:-1024}" "${3:-1024}" "${4:-50}"
+"$binary" "${1:-1024}" "${2:-1024}" "${3:-1024}" "${4:-50}" "${5:-tile32x32_output2x2}"

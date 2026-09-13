@@ -34,14 +34,14 @@ with source-controlled result tables.
 
 The first Kairo-owned tiled GEMM is implemented in
 `scripts/wsl/fp16_gemm_probe.cu` and built for `sm_120` by
-`scripts/wsl/run_fp16_gemm_probe.sh`. It uses a 16x16 shared-memory tile,
-FP32 accumulation, and handles non-multiple dimensions. On `[128,131,113]` it
-matched cuBLAS within `1.43e-6` maximum absolute error. On `[1024,1024,1024]`
-it measured 9,314 GFLOP/s versus 123,326 GFLOP/s for cuBLAS (0.231 ms versus
-0.017 ms). This is a correctness-first reference, not a performance claim;
-the 13.2x gap defines the optimization budget for asynchronous staging,
-vectorized loads, and tensor-core instructions. The reproducible parameters
-are recorded in `experiments/protocols/fp16-gemm-phase1.yaml`.
+`scripts/wsl/run_fp16_gemm_probe.sh`. It handles non-multiple dimensions and
+accumulates in FP32. On `[128,131,113]` it matched cuBLAS within `1.43e-6`
+maximum absolute error. On `[1024,1024,1024]`, the initial 16x16/1x1 tile
+reached 9,121 GFLOP/s; a 32x32 tile with 2x2 output reuse reached 22,515
+GFLOP/s, a 2.47x improvement. cuBLAS measured 117,397 GFLOP/s on the same
+run, so the optimized reference is still 5.2x behind and remains a target for
+asynchronous staging and tensor-core instructions. Reproducible parameters are
+recorded in `experiments/protocols/fp16-gemm-phase1.yaml`.
 
 Run it directly on the WSL 5090:
 

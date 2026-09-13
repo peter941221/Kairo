@@ -425,6 +425,9 @@ This is the first executable form of the workload-aware routing hypothesis.
 Supplying `--context-tokens` and `--generation-tokens` activates the envelope
 gate: Graph is eligible only for the measured 1K/128 route, while a 4K/256
 request stays on its separately measured eager profile.
+The same policy is executable through `scripts/wsl/run_routed_bench.sh`, which
+sets the vLLM nightly Graph/eager flags and invokes the common correctness plus
+throughput runner; uncovered routes fail closed.
 
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
 metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt

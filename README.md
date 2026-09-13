@@ -360,6 +360,20 @@ When context and generation lengths are supplied, Graph is selected only inside
 the measured 1K-context/128-output envelope; the same prompt at a 4K/256
 workload remains on its separately measured eager profile.
 
+Run the routed benchmark entry point (WSL/5090):
+
+```bash
+KAIRO_WORKLOAD_CONCURRENCY=32 \
+KAIRO_WORKLOAD_PROMPT_TOKENS=512 \
+KAIRO_WORKLOAD_CONTEXT_TOKENS=1024 \
+KAIRO_WORKLOAD_GENERATION_TOKENS=128 \
+  bash scripts/wsl/run_routed_bench.sh 18120
+```
+
+It applies the measured vLLM/CUTLASS Graph or eager settings automatically,
+and refuses an uncovered route. Set `KAIRO_ROUTED_DRY_RUN=1` to inspect the
+selected profile without starting the model.
+
 The runtime cache primitive in `src/kairo_lab/cache.py` provides content-
 addressed AOT/JIT artifact storage. Its key includes blueprint hash, full
 shape, driver version, GPU capability, and template version; metadata records

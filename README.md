@@ -91,6 +91,17 @@ wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/ws
 is currently a measured candidate rather than the global default; use the
 protocol record to compare it against the single-buffer control.
 
+Run a reproducible shape × variant matrix (single, m128, and double by
+default). Records are printed as JSONL; pass an output path to save them:
+
+```bash
+bash scripts/wsl/run_tma_wmma_matrix.sh .kairo-local/tma-wmma-matrix.jsonl
+```
+
+Use `KAIRO_TMA_SHAPES=M,N,K,iters;...` or `KAIRO_TMA_VARIANTS=single,m128`
+to narrow a sweep. Existing output files are protected unless
+`KAIRO_ALLOW_OVERWRITE=1` is set.
+
 `init-run` writes a machine-readable run record under `runs/`, which is ignored
 by Git. Keep the command, input manifests, source revision, and published result
 table together when reporting an experiment.

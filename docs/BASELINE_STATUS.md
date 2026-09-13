@@ -113,6 +113,14 @@ This is the first credible end-to-end performance wedge, but it is
 high-concurrency-specific and must survive repeated runs, longer prompts, and a
 correctness matrix before being promoted as the default configuration.
 
+The required longer-context check qualifies that result. With 2,048 requested
+prompt tokens (2,241--2,243 actual), 128 generated tokens, c16, and the same
+warmup/fixed-length protocol, ratio 8.0 reached 56.59 tok/s while ratio 4.59
+reached 57.65 tok/s. The ratio-8 allocation is therefore not a global win: its
+extra Mamba slot helps short-prompt c16 batching, but the smaller KV pool erases
+the benefit at this longer prompt shape. A production profile must choose the
+ratio from prompt/concurrency forecasts rather than hard-code 8.0.
+
 One additional scheduler probe set `KAIRO_NUM_CONTINUOUS_DECODE_STEPS=4` on the
 ratio-8 service. The identical c16 workload reached 103.08 tok/s with TTFT
 P50/P99 of 10.65/20.53 s, about 4% below the ratio-8 default of 107.37 tok/s.

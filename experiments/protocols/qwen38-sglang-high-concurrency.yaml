@@ -37,4 +37,4 @@ result:
   c16_ttft_p50_ms: 10076
   c16_ttft_p99_ms: 19665
   correctness: smoke_exact_KAIRO_OK
-  caveat: High-concurrency candidate; c1/c4 are neutral to slightly slower than ratio 4.59.
+  caveat: Short-prompt high-concurrency candidate only; c1/c4 are neutral to slightly slower than ratio 4.59, and 2K-prompt c16 is not faster.

@@ -106,19 +106,25 @@ envelope. vLLM/B12X remained ahead, but the gap narrowed as prefill work grew:
 | Runtime | Output tok/s | TTFT P50 / P99 | Success |
 |---|---:|---:|---:|
 | vLLM nightly + B12X | **133.38** | 3,167 / 5,628 ms | 16/16 |
-| SGLang main, ratio 8 | 56.59 | — | 16/16 |
+| SGLang main, ratio 8 | 56.59 (first) | — | 16/16 |
 | SGLang main, ratio 4.59 | 57.65 | — | 16/16 |
 
-The SGLang long-prompt run recorded output throughput but not a comparable TTFT
-series. The vLLM long-prompt point is about 2.31x the SGLang ratio-8 result, so
-the c16 lead survives beyond the short-prompt wedge, while the absolute
-advantage is smaller than at 512 tokens.
+The first SGLang long-prompt run recorded output throughput but not a comparable
+TTFT series. Against that first point, the vLLM long-prompt result was about
+2.31x faster, so the c16 lead survived beyond the short-prompt wedge while the
+absolute advantage was smaller than at 512 tokens.
 
 A second vLLM run under the same protocol reached 133.45 tok/s (versus
 133.38 tok/s initially), with 32/32 requests successful across the two runs.
 This narrow spread makes the long-prompt vLLM point repeatable enough for the
-next profiling stage, but the cross-runtime comparison still needs a repeated
-SGLang measurement with identical TTFT capture.
+next profiling stage; the repeated SGLang measurement below adds identical TTFT
+capture for the cross-runtime comparison.
+
+That SGLang repeat is now complete: ratio 8 reached 61.90 tok/s with TTFT P50/P99
+of 11,995/24,228 ms and 16/16 success. Across the two SGLang runs the output
+range is 56.59--61.90 tok/s; using the latest pair, vLLM is still about 2.15x
+faster at c16. The large, visible three-wave queue remains the optimization
+target rather than a model-quality difference.
 
 ### Deterministic correctness gate
 

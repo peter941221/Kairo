@@ -12,6 +12,28 @@ Last verified in WSL Ubuntu 24.04 on the local RTX 5090:
 | vLLM | CLI importable | 0.29.0 |
 | SGLang | service smoke passed in isolated env | 0.5.19 |
 
+## Fresh-model gate (2026-09-13)
+
+The workbench's primary candidate is now `nvidia/Qwen3.8-27B-NVFP4`, with
+`nvidia/Qwen3-8B-NVFP4` as the fast control. The Qwen3.8 checkpoint is fully
+downloaded at `/home/peter/kairo-models/Qwen3.8-27B-NVFP4` (about 21 GiB).
+
+- vLLM 0.29.0 resolved the `Qwen3_5ForConditionalGeneration` architecture,
+  selected the GDN decode path and FlashInfer NVFP4 GEMM, and loaded all three
+  safetensors shards in about 42 seconds using roughly 19 GiB of GPU memory.
+- The service did **not** pass `/health`: initialization remained in the
+  multimodal/FP8 autotune stage and the WSL GPU service became unresponsive.
+  A second attempt with `--skip-mm-profiling --language-model-only`, 4K context,
+  and 0.65 GPU utilization reproduced the stall. This is a runtime/initial-
+  bring-up blocker, not evidence that the weights are invalid.
+- The 8B NVFP4 control is also downloaded at
+  `/home/peter/kairo-models/Qwen3-8B-NVFP4`; its first vLLM gate hit the same
+  WSL failure before `/health`, so the next run must use an isolated/newer
+  serving environment rather than mutate the working TensorRT stack.
+- Until a newer pinned vLLM/SGLang environment clears this gate, the 0.5B model
+  remains the CI canary and the 8B NVFP4 model is the reproducible performance
+  control. No hero-model performance claim is made yet.
+
 ## Service smoke gate (Qwen2.5-0.5B-Instruct)
 
 - **vLLM 0.29.0: passed** on the RTX 5090. With CUDA 13.0 selected and

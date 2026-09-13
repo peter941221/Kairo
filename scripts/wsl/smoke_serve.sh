@@ -9,6 +9,10 @@ sglang_python="${KAIRO_SGLANG_PYTHON:-/home/peter/venv-gpu/bin/python}"
 gpu_memory_utilization="${KAIRO_GPU_MEMORY_UTILIZATION:-0.45}"
 max_model_len="${KAIRO_MAX_MODEL_LEN:-2048}"
 context_length="${KAIRO_CONTEXT_LENGTH:-2048}"
+kv_cache_dtype="${KAIRO_KV_CACHE_DTYPE:-}"
+trust_remote_code="${KAIRO_TRUST_REMOTE_CODE:-0}"
+skip_mm_profiling="${KAIRO_SKIP_MM_PROFILING:-0}"
+language_model_only="${KAIRO_LANGUAGE_MODEL_ONLY:-0}"
 log_file="$(mktemp /tmp/kairo-${backend:-unknown}.XXXXXX.log)"
 server_pid=""
 
@@ -26,26 +30,27 @@ if [[ "$backend" == "vllm" ]]; then
   export PATH="$CUDA_HOME/bin:$PATH"
   export LD_LIBRARY_PATH="$CUDA_HOME/lib64:${LD_LIBRARY_PATH:-}"
   export VLLM_WSL2_ENABLE_PIN_MEMORY=1
-  "$vllm_bin" serve "$model" \
-    --host 127.0.0.1 --port "$port" \
-    --served-model-name smoke \
-    --tensor-parallel-size 1 \
-    --gpu-memory-utilization "$gpu_memory_utilization" \
-    --max-model-len "$max_model_len" \
-    --enforce-eager >"$log_file" 2>&1 &
+  vllm_args=(serve "$model" --host 127.0.0.1 --port "$port"
+    --served-model-name smoke --tensor-parallel-size 1
+    --gpu-memory-utilization "$gpu_memory_utilization"
+    --max-model-len "$max_model_len" --enforce-eager)
+  [[ "$trust_remote_code" == "1" ]] && vllm_args+=(--trust-remote-code)
+  [[ -n "$kv_cache_dtype" ]] && vllm_args+=(--kv-cache-dtype "$kv_cache_dtype")
+  [[ "$skip_mm_profiling" == "1" ]] && vllm_args+=(--skip-mm-profiling)
+  [[ "$language_model_only" == "1" ]] && vllm_args+=(--language-model-only)
+  "$vllm_bin" "${vllm_args[@]}" >"$log_file" 2>&1 &
 elif [[ "$backend" == "sglang" ]]; then
   export CUDA_HOME=/usr/local/cuda-13.0
   export PATH="$CUDA_HOME/bin:$PATH"
   export LD_LIBRARY_PATH="$CUDA_HOME/lib64:${LD_LIBRARY_PATH:-}"
   export VLLM_WSL2_ENABLE_PIN_MEMORY=1
-  "$sglang_python" -m sglang.launch_server \
-    --model-path "$model" \
-    --host 127.0.0.1 --port "$port" \
-    --served-model-name smoke \
-    --tp-size 1 \
-    --mem-fraction-static "$gpu_memory_utilization" \
-    --context-length "$context_length" \
-    --disable-cuda-graph >"$log_file" 2>&1 &
+  sglang_args=( -m sglang.launch_server --model-path "$model"
+    --host 127.0.0.1 --port "$port" --served-model-name smoke --tp-size 1
+    --mem-fraction-static "$gpu_memory_utilization" --context-length "$context_length"
+    --disable-cuda-graph)
+  [[ "$trust_remote_code" == "1" ]] && sglang_args+=(--trust-remote-code)
+  [[ -n "$kv_cache_dtype" ]] && sglang_args+=(--kv-cache-dtype "$kv_cache_dtype")
+  "$sglang_python" "${sglang_args[@]}" >"$log_file" 2>&1 &
 else
   echo "usage: $0 {vllm|sglang} [model_path] [port]" >&2
   exit 2

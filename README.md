@@ -17,6 +17,11 @@ costs. The first target is selected from measured evidence, not intuition.
 - **Discovery:** a dense low-bit model is the controlled primary lane; MoE is a
   high-upside discovery lane once an executable baseline is available.
 
+The current hero candidate is `nvidia/Qwen3.8-27B-NVFP4`; the fast control is
+`nvidia/Qwen3-8B-NVFP4`. `Qwen2.5-0.5B-Instruct` remains only the CI/service
+canary. Candidate metadata lives in
+[`experiments/workloads/candidates.yaml`](experiments/workloads/candidates.yaml).
+
 ## Repository layout
 
 ```text
@@ -47,6 +52,15 @@ isolated PyTorch 2.13 environment for SGLang:
 ./scripts/wsl/smoke_serve.sh vllm
 KAIRO_SGLANG_PYTHON=/home/peter/venv-sglang/bin/python \
   ./scripts/wsl/smoke_serve.sh sglang
+```
+
+For the Qwen3.8 text-only bring-up gate, use conservative single-5090 settings:
+
+```bash
+KAIRO_MAX_MODEL_LEN=4096 KAIRO_GPU_MEMORY_UTILIZATION=0.65 \
+KAIRO_KV_CACHE_DTYPE=fp8_e4m3 KAIRO_TRUST_REMOTE_CODE=1 \
+KAIRO_SKIP_MM_PROFILING=1 KAIRO_LANGUAGE_MODEL_ONLY=1 \
+./scripts/wsl/smoke_serve.sh vllm /home/peter/kairo-models/Qwen3.8-27B-NVFP4 18085
 ```
 
 ## Decision gate

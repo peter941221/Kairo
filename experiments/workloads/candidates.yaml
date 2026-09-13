@@ -2,14 +2,29 @@ candidates:
   - id: dense_low_bit_primary
     status: candidate
     role: controlled_primary
+    model: nvidia/Qwen3.8-27B-NVFP4
+    precision: NVFP4/FP8 mixed precision
     selection_criteria:
       - public weights and license
       - executable on one RTX 5090 after the declared low-bit conversion
       - supported by at least two baseline runtimes
       - has a reproducible conversion recipe
+    note: Current hero candidate; official Blackwell-oriented checkpoint.
+  - id: qwen3_8b_nvfp4_control
+    status: control
+    role: reproducible_control
+    model: nvidia/Qwen3-8B-NVFP4
+    precision: NVFP4
+    note: Official Apache-2.0 checkpoint for fast iteration and kernel A/B tests.
   - id: qwen3_30b_a3b_moe
     status: discovery_only
     role: high_upside
     model: Qwen/Qwen3-30B-A3B
     investigation: token_packing_grouped_gemm_scale_layout
     note: Promote only after an exact, executable baseline is pinned.
+  - id: nemotron3_nano_omni_nvfp4
+    status: discovery_only
+    role: high_upside_hybrid_moe
+    model: nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4
+    investigation: mamba_moe_state_and_nvfp4_decode
+    note: New 30B/3B-active hybrid model; license and custom-code review required.

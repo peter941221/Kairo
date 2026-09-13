@@ -30,6 +30,7 @@ def run(
     warmups: int,
     backend: str,
     control_first: bool,
+    cuda_graph: bool,
 ) -> dict[str, object]:
     _prepare_import_path(backend)
     import torch
@@ -131,6 +132,38 @@ def run(
         elapsed_ms = measure(invoke)
         fp16_elapsed_ms = measure(invoke_fp16)
     pipeline_elapsed_ms = measure(invoke_pipeline)
+    graph_elapsed_ms = None
+    graph_error = None
+    graph_pipeline_error = None
+    if cuda_graph:
+        try:
+            pipeline_reference = invoke_pipeline().float()
+            torch.cuda.synchronize()
+            graph = torch.cuda.CUDAGraph()
+            capture_stream = torch.cuda.Stream()
+            torch.cuda.synchronize()
+            with torch.cuda.stream(capture_stream):
+                for _ in range(max(2, warmups)):
+                    invoke_pipeline()
+            capture_stream.synchronize()
+            torch.cuda.synchronize()
+            with torch.cuda.graph(graph, stream=capture_stream):
+                graph_output = invoke_pipeline()
+            torch.cuda.synchronize()
+
+            def invoke_graph() -> torch.Tensor:
+                graph.replay()
+                return graph_output
+
+            graph_elapsed_ms = measure(invoke_graph)
+            graph_output = graph_output.float()
+            torch.cuda.synchronize()
+            graph_error = float((graph_output - reference).abs().max().item())
+            graph_pipeline_error = float(
+                (graph_output - pipeline_reference).abs().max().item()
+            )
+        except Exception as exc:
+            graph_error = f"{type(exc).__name__}: {exc}"
     operations = 2.0 * m * n * k
     return {
         "gpu": torch.cuda.get_device_name(),
@@ -151,6 +184,12 @@ def run(
         "quantized_pipeline_ms": pipeline_elapsed_ms,
         "quantized_pipeline_gflops": operations / (pipeline_elapsed_ms * 1.0e6),
         "quantized_pipeline_speedup_vs_fp16": fp16_elapsed_ms / pipeline_elapsed_ms,
+        "cuda_graph_pipeline_ms": graph_elapsed_ms,
+        "cuda_graph_pipeline_speedup_vs_fp16": (
+            fp16_elapsed_ms / graph_elapsed_ms if graph_elapsed_ms else None
+        ),
+        "cuda_graph_max_abs_error_vs_fp16": graph_error,
+        "cuda_graph_max_abs_error_vs_pipeline": graph_pipeline_error,
         "max_abs_error_vs_fp16": float(error.max().item()),
         "mean_abs_error_vs_fp16": float(error.mean().item()),
         "relative_mean_error_vs_fp16": float((error.mean() / reference.abs().mean()).item()),
@@ -167,6 +206,7 @@ def main() -> None:
     parser.add_argument("--warmups", type=int, default=5)
     parser.add_argument("--backend", choices=["cutlass", "b12x"], default="cutlass")
     parser.add_argument("--control-first", action="store_true")
+    parser.add_argument("--cuda-graph", action="store_true")
     args = parser.parse_args()
     print(
         json.dumps(
@@ -178,6 +218,7 @@ def main() -> None:
                 args.warmups,
                 args.backend,
                 args.control_first,
+                args.cuda_graph,
             )
         )
     )

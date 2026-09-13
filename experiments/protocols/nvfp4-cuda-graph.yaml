@@ -1,0 +1,45 @@
+name: nvfp4-cuda-graph-pipeline
+status: measured_experimental
+date: 2026-09-14
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  compute_capability: "12.0"
+  execution_environment: WSL2 Ubuntu 24.04
+runtime:
+  vllm_nvfp4_backend: cutlass
+  torch: 2.15.0.dev+cu130
+  capture: torch.cuda.CUDAGraph
+workload:
+  n: 4096
+  k: 4096
+  warmups: [30, 30, 20]
+  iterations: [500, 300, 200]
+  operation: activation_scaled_fp4_quant_then_cutlass_scaled_fp4_mm
+cells:
+  - m: 1
+    regular_pipeline_ms: 0.025759
+    cuda_graph_pipeline_ms: 0.018392
+    pipeline_reduction_percent: 28.6
+    fp16_mm_ms: 0.019737
+    graph_speedup_vs_fp16: 1.073
+    graph_max_abs_error_vs_pipeline: 0.0
+  - m: 32
+    regular_pipeline_ms: 0.026048
+    cuda_graph_pipeline_ms: 0.018406
+    pipeline_reduction_percent: 29.3
+    fp16_mm_ms: 0.020044
+    graph_speedup_vs_fp16: 1.089
+    graph_max_abs_error_vs_pipeline: 0.0
+  - m: 128
+    regular_pipeline_ms: 0.026368
+    cuda_graph_pipeline_ms: 0.018290
+    pipeline_reduction_percent: 30.6
+    fp16_mm_ms: 0.028464
+    graph_speedup_vs_fp16: 1.556
+    graph_max_abs_error_vs_pipeline: 0.0
+decision: CUDA Graph capture removes roughly 29--31% of activation-quantization pipeline time at the measured decode-like shapes while matching the regular pipeline bit-for-bit. This is a shape-static serving optimization; it must be integrated with request-shape bucketing and recaptured on shape changes before production use.
+evidence:
+  commands:
+    - bash scripts/wsl/run_nvfp4_probe.sh --m 1 --n 4096 --k 4096 --iterations 500 --warmups 30 --cuda-graph
+    - bash scripts/wsl/run_nvfp4_probe.sh --m 32 --n 4096 --k 4096 --iterations 300 --warmups 30 --cuda-graph
+    - bash scripts/wsl/run_nvfp4_probe.sh --m 128 --n 4096 --k 4096 --iterations 200 --warmups 20 --cuda-graph

@@ -145,6 +145,12 @@ This is a vendor-kernel baseline for the NVFP4 phase, not yet a Kairo kernel
 claim; it reports quantization error against the FP16 reference and includes
 the activation-quantization pipeline cost.
 
+For the experimental Kairo pipeline path, add `--cuda-graph` to capture the
+quantization and CUTLASS GEMM as one static-shape replay. Current 4K matrix
+results show roughly 29--31% lower pipeline time with bit-exact agreement to
+the regular pipeline; see
+[`nvfp4-cuda-graph.yaml`](experiments/protocols/nvfp4-cuda-graph.yaml).
+
 The model-level CUTLASS serving gate is reproducible with:
 
 ```bash

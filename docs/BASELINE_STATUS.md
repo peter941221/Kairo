@@ -159,6 +159,16 @@ NVFP4 GEMM (or amortize it across decode steps), rather than merely calling
 the vendor GEMM. The pipeline data is recorded in
 `experiments/protocols/nvfp4-pipeline-overhead.yaml`.
 
+The first Kairo-owned pipeline optimization is now measured: capturing
+activation quantization plus CUTLASS GEMM in `torch.cuda.CUDAGraph` reduces
+pipeline time by 28.6--30.6% at M=1/32/128 (N=K=4096), with graph output
+matching the regular pipeline at max absolute error 0.0. The graph path turns
+the previously losing M=1/32 pipeline cells into 1.07x/1.09x FP16 controls and
+raises M=128 to 1.56x in this run. This requires static shape buckets and
+recapture when dimensions change; it is an integration candidate, not yet a
+drop-in vLLM backend. Reproduce with `--cuda-graph`; the full matrix is in
+`experiments/protocols/nvfp4-cuda-graph.yaml`.
+
 At a larger, layer-like N=K=8192 shape, the quantized pipeline remains fast:
 2.82, 105.48, and 471.08 TFLOP/s at M=1/32/128, versus same-process FP16
 controls of 1.61, 48.48, and 177.72 TFLOP/s (1.75×/2.18×/2.65×). An

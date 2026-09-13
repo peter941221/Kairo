@@ -32,4 +32,9 @@ performance:
       kairo_ms: 0.094581
       kairo_gflops: 22705.204
       max_abs_error_vs_cublas: 0.00003433
-decision: Correctness and arbitrary-boundary handling pass; 2x2 register reuse improves the Kairo reference by about 2.5x. The first async-copy variant is within measurement noise of the synchronous tile, so tensor-core MMA is the next optimization target.
+    wmma_fp16:
+      kairo_ms_range: [0.064431, 0.064579]
+      kairo_gflops_range: [33253.486, 33329.788]
+      max_abs_error_vs_cublas: 0.00003433
+      correctness: true
+decision: Correctness and arbitrary-boundary handling pass; 2x2 register reuse improves the Kairo reference by about 2.5x, and WMMA tensor-core MMA reaches about 33.3 TFLOP/s (3.4x faster than the tiled reference). The async-copy-only variant is within measurement noise, so the next target is a native Blackwell MMA/TMA pipeline.

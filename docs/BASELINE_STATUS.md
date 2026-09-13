@@ -50,6 +50,14 @@ within run-to-run noise. We therefore reject async copy alone as the current
 performance lever and will reserve the shared-memory pipeline for a
 tensor-core MMA implementation.
 
+The controlled `wmma_fp16` variant now uses one warp per 16x16 output tile and
+passes the aligned 1K shape with a maximum absolute error of `3.43e-5` versus
+cuBLAS. Three 50-iteration runs measured 33,253--33,330 GFLOP/s, roughly 3.4x
+the tiled scalar reference. It still trails cuBLAS, but this is the first
+Kairo-owned tensor-core result and provides a credible starting point for
+Blackwell-specific WGMMA/TMA work. Non-16-divisible shapes are explicitly
+rejected by this variant and must use the fallback path.
+
 Run it directly on the WSL 5090:
 
 ```bash

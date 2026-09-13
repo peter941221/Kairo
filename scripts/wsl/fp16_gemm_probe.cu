@@ -2,6 +2,7 @@
 #include <cuda_pipeline.h>
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
+#include <mma.h>
 
 #include <algorithm>
 #include <cmath>
@@ -160,6 +161,29 @@ __global__ void kairo_fp16_tiled_gemm_2x2_async(const __half* a, const __half* b
     if (row + 1 < m && col + 1 < n) c[(row + 1) * n + col + 1] = accum11;
 }
 
+// One warp owns a 16x16 output tile and uses FP16 tensor-core MMA. This path
+// intentionally accepts only dimensions divisible by 16 and is guarded by
+// the launcher; arbitrary-boundary inputs use the shared-memory fallback.
+__global__ void kairo_fp16_wmma(const __half* a, const __half* b, float* c,
+                                int m, int n, int k) {
+    using namespace nvcuda::wmma;
+    constexpr int TILE = 16;
+    const int warp = threadIdx.x / 32;
+    const int row = blockIdx.y * 64 + warp * TILE;
+    const int col = blockIdx.x * TILE;
+    if (row >= m || col >= n) return;
+    fragment<accumulator, TILE, TILE, TILE, float> accumulator;
+    fill_fragment(accumulator, 0.0f);
+    for (int base = 0; base < k; base += TILE) {
+        fragment<matrix_a, TILE, TILE, TILE, __half, row_major> a_fragment;
+        fragment<matrix_b, TILE, TILE, TILE, __half, row_major> b_fragment;
+        load_matrix_sync(a_fragment, a + row * k + base, k);
+        load_matrix_sync(b_fragment, b + base * n + col, n);
+        mma_sync(accumulator, a_fragment, b_fragment, accumulator);
+    }
+    store_matrix_sync(c + row * n + col, accumulator, n, mem_row_major);
+}
+
 static void check(cudaError_t status, const char* operation) {
     if (status != cudaSuccess) {
         std::fprintf(stderr, "%s: %s\n", operation, cudaGetErrorString(status));
@@ -196,6 +220,11 @@ int main(int argc, char** argv) {
     const char* requested_variant = argc > 5 ? argv[5] : "tile32x32_output2x2";
     const bool optimized = std::strcmp(requested_variant, "tile16x16_output1x1") != 0;
     const bool async_variant = std::strcmp(requested_variant, "tile32x32_output2x2_async") == 0;
+    const bool wmma_variant = std::strcmp(requested_variant, "wmma_fp16") == 0;
+    if (wmma_variant && ((m % 16) != 0 || (n % 16) != 0 || (k % 16) != 0)) {
+        std::fprintf(stderr, "wmma_fp16 requires dimensions divisible by 16\n");
+        return 2;
+    }
     if (m < 1 || n < 1 || k < 1 || iterations < 1) {
         std::fprintf(stderr, "dimensions and iterations must be positive\n");
         return 2;
@@ -223,10 +252,13 @@ int main(int argc, char** argv) {
     check(cudaMemcpy(device_a, host_a.data(), host_a.size() * sizeof(__half), cudaMemcpyHostToDevice), "copy(a)");
     check(cudaMemcpy(device_b, host_b.data(), host_b.size() * sizeof(__half), cudaMemcpyHostToDevice), "copy(b)");
 
-    const dim3 block(16, 16);
-    const dim3 grid = optimized ? dim3((n + 31) / 32, (m + 31) / 32)
-                                : dim3((n + 15) / 16, (m + 15) / 16);
-    if (async_variant) {
+    const dim3 block = wmma_variant ? dim3(128, 1, 1) : dim3(16, 16, 1);
+    const dim3 grid = wmma_variant ? dim3((n + 15) / 16, (m + 63) / 64)
+                                   : (optimized ? dim3((n + 31) / 32, (m + 31) / 32)
+                                                : dim3((n + 15) / 16, (m + 15) / 16));
+    if (wmma_variant) {
+        kairo_fp16_wmma<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
+    } else if (async_variant) {
         kairo_fp16_tiled_gemm_2x2_async<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
     } else if (optimized) {
         kairo_fp16_tiled_gemm_2x2<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
@@ -268,7 +300,9 @@ int main(int argc, char** argv) {
     check(cudaEventCreate(&stop), "cudaEventCreate(stop)");
     check(cudaEventRecord(start), "custom start");
     for (int iteration = 0; iteration < iterations; ++iteration) {
-        if (async_variant) {
+        if (wmma_variant) {
+            kairo_fp16_wmma<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
+        } else if (async_variant) {
             kairo_fp16_tiled_gemm_2x2_async<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
         } else if (optimized) {
             kairo_fp16_tiled_gemm_2x2<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);

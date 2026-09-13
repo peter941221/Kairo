@@ -54,8 +54,9 @@ wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/ws
 ```
 
 The probe defaults to the `tile32x32_output2x2` variant; pass
-`tile16x16_output1x1` or `tile32x32_output2x2_async` as a fifth argument to
-reproduce the comparison variants.
+`tile16x16_output1x1`, `tile32x32_output2x2_async`, or `wmma_fp16` as a fifth
+argument to reproduce the comparison variants. `wmma_fp16` requires dimensions
+divisible by 16.
 
 `init-run` writes a machine-readable run record under `runs/`, which is ignored
 by Git. Keep the command, input manifests, source revision, and published result

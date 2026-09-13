@@ -1,5 +1,5 @@
 name: qwen38-vllm-nightly-cutlass-serving
-status: pilot
+status: repeated-pilot
 date: 2026-09-14
 hardware: RTX 5090 32GB, WSL2 Ubuntu-24.04
 model: /home/peter/kairo-models/Qwen3.8-27B-NVFP4
@@ -25,16 +25,18 @@ workload:
   disable_thinking: true
   ignore_eos: true
 result:
-  successful_requests: 16
-  output_tokens_per_second: 295.01
-  input_tokens_per_second: 659.60
-  ttft_p50_ms: 1045.85
-  ttft_p99_ms: 1385.59
-  wall_seconds: 13.8841
+  successful_requests_per_repeat: 16
+  repeats: 2
+  output_tokens_per_second: [288.03, 295.76]
+  output_tokens_per_second_mean: 291.90
+  output_tokens_per_second_range: [288.03, 295.76]
+  ttft_p50_ms: [1126.60, 1093.52]
+  ttft_p99_ms: [1475.32, 1472.56]
+  wall_seconds: [14.221, 13.849]
 comparison:
   paired_vllm_nightly_b12x_output_tokens_per_second: 191.93
-  approximate_delta_percent: 53.7
-  note: CUTLASS is faster on this repeated fixed-length c16 point; repeat on fresh services and longer prompts before routing production traffic.
+  approximate_delta_percent_vs_191_93: 52.1
+  note: CUTLASS is faster on two warm-cache repeats of the fixed-length c16 point; repeat on fresh services and longer prompts before routing production traffic.
 evidence:
   command: KAIRO_BENCH_REQUESTS=16 KAIRO_BENCH_GENERATION_TOKENS=256 KAIRO_BENCH_WARMUP=2 KAIRO_BENCH_CONCURRENCY=16 bash scripts/wsl/run_qwen_cutlass_bench.sh 18091
-  raw_output: .kairo-local/qwen-cutlass-c16-fair.out
+  raw_output: .kairo-local/qwen-cutlass-c16-repeat.out

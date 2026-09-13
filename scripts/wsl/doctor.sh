@@ -44,3 +44,12 @@ PY
 else
   echo "PyTorch: not installed"
 fi
+
+"$python_bin" - <<'PY'
+import importlib.metadata
+for package in ("vllm", "sglang", "tensorrt-llm"):
+    try:
+        print(f"{package}={importlib.metadata.version(package)}")
+    except importlib.metadata.PackageNotFoundError:
+        print(f"{package}=not-installed")
+PY

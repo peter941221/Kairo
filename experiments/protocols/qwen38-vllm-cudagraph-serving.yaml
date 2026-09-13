@@ -165,6 +165,15 @@ stability_run:
   correctness_cases: 4
   correctness_passed: 4
   raw_output: .kairo-local/routed-c32-p512-stability5.out
+default_gate_integration:
+  route: qwen38-vllm-nightly-cutlass-full-decode-graph-c32-p512
+  requested_context_tokens: 1024
+  requested_generation_tokens: 128
+  correctness_cases: 4
+  correctness_passed: 4
+  throughput_tok_s: 630.56
+  successful_requests: 32
+  raw_output: .kairo-local/routed-default-gate-c32-p512.out
 eager_control:
   throughput_repeats: [154.62, 152.94]
   throughput_mean: 153.78

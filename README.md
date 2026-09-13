@@ -390,7 +390,9 @@ log under `.kairo-local`; set `KAIRO_ROUTED_OUTPUT` to choose another path or
 The measured memory/context limits are enforced by default; set
 `KAIRO_ROUTED_ALLOW_OVERRIDES=1` only for an explicitly experimental run.
 The complementary c16/prompt512 4K/256 workload automatically selects eager
-and has also passed its 4/4 correctness and 16/16 success gate.
+and has also passed its 4/4 correctness and 16/16 success gate. The
+correctness gate and post-run stability audit are enabled by default;
+`KAIRO_ROUTED_SKIP_GATE=1` is an explicit experimental escape hatch.
 
 The profiler fallback records CUDA operator attribution when Nsight counters are
 not exposed:

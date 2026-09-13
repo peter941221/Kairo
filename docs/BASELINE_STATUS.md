@@ -450,6 +450,12 @@ the eager route, passed 4/4 correctness, completed 16/16 requests, and measured
 The routed launcher enforces the measured context and sequence limits by
 default; broader settings require the explicit `KAIRO_ROUTED_ALLOW_OVERRIDES=1`
 escape hatch and are not covered by the published route.
+The routed runner now enables correctness by default and runs the machine
+stability audit after capture; skipping it requires the explicit
+`KAIRO_ROUTED_SKIP_GATE=1` override.
+An invocation with no explicit correctness flag was also verified: the default
+gate ran 4/4, completed 32/32 requests, measured 630.56 tok/s, and passed the
+post-run stability audit.
 
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
 metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt

@@ -41,6 +41,7 @@ export KAIRO_BENCH_CONCURRENCY="$concurrency"
 export KAIRO_BENCH_PROMPT_TOKENS="$prompt_tokens"
 export KAIRO_BENCH_GENERATION_TOKENS="$generation_tokens"
 export KAIRO_BENCH_REQUESTS="${KAIRO_BENCH_REQUESTS:-$concurrency}"
+export KAIRO_RUN_CORRECTNESS="${KAIRO_RUN_CORRECTNESS:-1}"
 export KAIRO_LINEAR_BACKEND="${linear_backend:-cutlass}"
 if [[ "$cudagraph_mode" == "FULL_DECODE_ONLY" ]]; then
   export KAIRO_ENFORCE_EAGER=0
@@ -79,4 +80,7 @@ set +e
 "$root/scripts/wsl/run_qwen_cutlass_bench.sh" "$port" 2>&1 | tee "$output_file"
 status="${PIPESTATUS[0]}"
 set -e
+if [[ "$status" -eq 0 && "${KAIRO_ROUTED_SKIP_GATE:-0}" != "1" ]]; then
+  "$python_bin" "$root/scripts/wsl/analyze_stability.py" "$output_file"
+fi
 exit "$status"

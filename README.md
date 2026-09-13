@@ -318,6 +318,13 @@ The policy selects vLLM/CUTLASS for both measured c16 prompt cells and SGLang
 for measured c1/c4 short cells; every other shape returns `manual` until
 measured.
 
+The runtime cache primitive in `src/kairo_lab/cache.py` provides content-
+addressed AOT/JIT artifact storage. Its key includes blueprint hash, full
+shape, driver version, GPU capability, and template version; metadata records
+integrity, hit/miss counts, and explainable fingerprint invalidation. It is
+ready to back PTX/Cubin or serialized graph packages without silently reusing
+artifacts across hardware changes.
+
 To apply that decision automatically when launching SGLang:
 
 ```bash

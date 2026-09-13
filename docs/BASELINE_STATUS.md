@@ -178,6 +178,14 @@ compilation controls, but keeps the safe eager default. The microbenchmark
 result therefore stands as a shape-static building block, not a claim that
 vLLM service graphs already work.
 
+The workbench now has a content-addressed runtime cache primitive in
+`src/kairo_lab/cache.py`. It keys opaque PTX/Cubin/graph artifacts by blueprint
+hash, full shape, driver version, GPU capability, and template version, writes
+payload and metadata atomically, verifies SHA-256 integrity, and reports hit,
+miss, and explainable fingerprint-invalidation counters. This closes the PRD
+cache contract at the library layer; wiring it into a compiled-kernel loader
+remains the next integration step.
+
 At a larger, layer-like N=K=8192 shape, the quantized pipeline remains fast:
 2.82, 105.48, and 471.08 TFLOP/s at M=1/32/128, versus same-process FP16
 controls of 1.61, 48.48, and 177.72 TFLOP/s (1.75×/2.18×/2.65×). An

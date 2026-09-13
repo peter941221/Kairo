@@ -21,6 +21,32 @@ class StabilityTests(unittest.TestCase):
         self.assertEqual(result["throughput_median_tok_s"], 110.0)
         self.assertTrue(result["all_requests_successful"])
 
+    def test_summarizes_latency_across_repeats(self):
+        payload = "\n".join(
+            json.dumps(
+                {
+                    "config": {"concurrency": 2},
+                    "summary": {
+                        "ok": 2,
+                        "failed": 0,
+                        "output_tokens_per_s": 100.0,
+                        "ttft_p50_ms": value,
+                        "ttft_p99_ms": value + 10,
+                        "total_p50_ms": value + 100,
+                        "total_p99_ms": value + 200,
+                    },
+                }
+            )
+            for value in (20.0, 30.0, 40.0)
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "raw.out"
+            path.write_text(payload, encoding="utf-8")
+            result = stability.summarize(path)
+        self.assertEqual(result["ttft_p50_ms_per_repeat"], [20.0, 30.0, 40.0])
+        self.assertEqual(result["ttft_p50_ms_median"], 30.0)
+        self.assertEqual(result["total_p99_ms_median"], 230.0)
+
     def test_missing_correctness_is_reported(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "raw.out"

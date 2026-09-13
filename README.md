@@ -407,6 +407,9 @@ python3 scripts/wsl/analyze_stability.py \
   .kairo-local/routed-c32-p512-stability5.out
 ```
 
+The summary retains TTFT and total-latency P50/P99 for every repeat and reports
+their cross-repeat medians alongside throughput.
+
 Compare a candidate against a same-workload baseline and enforce the 20%
 north-star gate:
 

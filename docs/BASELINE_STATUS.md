@@ -221,6 +221,8 @@ explicit `--drop-first` analysis still reports 2.0063x.
 The benchmark runner now records an optional declared `context_tokens` field;
 routed and SGLang entry points populate it automatically, preventing a 1K/4K
 context mix-up from being treated as a fair A/B.
+Stability summaries also retain TTFT and total-latency P50/P99 per repeat and
+their medians, so a throughput win can be checked against interactive latency.
 
 `recommend-nvfp4` now exposes the measured Graph allowlist: exact 4K
 N/K shapes at M=1/32/128 select `cuda_graph_shape_bucket` with replay

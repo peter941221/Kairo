@@ -59,6 +59,15 @@ def summarize(path: Path) -> dict[str, object]:
             if correctness else None
         ),
     }
+    for metric in ("ttft_p50_ms", "ttft_p99_ms", "total_p50_ms", "total_p99_ms"):
+        values = [
+            float(value["summary"][metric])
+            for value in benches
+            if isinstance(value["summary"].get(metric), (int, float))
+        ]
+        if values:
+            result[f"{metric}_per_repeat"] = [round(item, 2) for item in values]
+            result[f"{metric}_median"] = round(statistics.median(values), 2)
     workloads = []
     for bench in benches:
         config = bench.get("config")

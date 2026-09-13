@@ -46,6 +46,11 @@ The plan makes the order explicit: validate, lookup/build, load, correctness
 gate, then benchmark. Its digest is directly compatible with
 `RuntimeKernelCache`.
 
+`src/kairo_lab/dispatch.py` provides the same contract in-process for a real
+compiler/launcher or a test double: cache misses build once, launches are
+reported as `kairo`, and build/launch failures use an explicit fallback with a
+machine-readable reason.
+
 ## Repository layout
 
 ```text

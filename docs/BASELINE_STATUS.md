@@ -245,6 +245,11 @@ combinations stop before compilation rather than being silently guessed.
 constructing the same content-addressed `RuntimeKernelCache` key (including
 driver, GPU capability, template version, and shape) and making the correctness
 gate precede benchmarking.
+`RuntimeDispatcher` now wires that plan to `RuntimeKernelCache` with injected
+compiler and launcher callbacks. It preserves single-flight builds and returns
+explicit `kairo` versus `fallback` results, including the failure stage and
+reason, so a future CUDA extension can be integrated without changing the
+experiment contract.
 
 - vLLM 0.29.0 resolved the `Qwen3_5ForConditionalGeneration` architecture,
   selected the GDN decode path and FlashInfer NVFP4 GEMM, and loaded all three

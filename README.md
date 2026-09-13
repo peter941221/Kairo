@@ -391,10 +391,10 @@ The routed entry point then sustained five consecutive c32 batches with 0
 failures each and 639.73 tok/s median (618.27–665.29 range).
 
 The latest pinned Qwen3.8-27B validation repeats that exact c32/prompt512
-workload in fresh services: Graph **685.29 tok/s** versus eager **303.55 tok/s**,
-or **2.2576x / +125.76%**. Both sides generated exactly 128 tokens, passed 4/4
+workload in fresh services: Graph **645.08 tok/s** versus eager **308.51 tok/s**,
+or **2.0909x / +109.09%**. Both sides generated exactly 128 tokens, passed 4/4
 correctness, and completed 32/32 requests; Graph also improved TTFT P50
-(842.42ms vs 1034.19ms) and Total P99 (5949.90ms vs 13473.77ms). Raw logs,
+(899.54ms vs 1040.60ms) and Total P99 (6325.84ms vs 13257.14ms). Raw logs,
 commands, and pinned model revision are recorded in the protocol's
 `pinned_current_validation` block.
 

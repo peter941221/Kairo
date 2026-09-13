@@ -83,3 +83,16 @@ class ComparisonTests(unittest.TestCase):
             result = compare_logs(candidate, baseline)
         self.assertFalse(result["workload_match"])
         self.assertFalse(result["promotion_gate"])
+
+    def test_single_repeat_is_exploratory_not_promotable_by_default(self):
+        with tempfile.TemporaryDirectory() as directory:
+            candidate = Path(directory) / "candidate.out"
+            baseline = Path(directory) / "baseline.out"
+            write_log(candidate, [200.0])
+            write_log(baseline, [100.0])
+            result = compare_logs(candidate, baseline)
+            exploratory = compare_logs(candidate, baseline, minimum_repeats=1)
+        self.assertFalse(result["correctness_and_success_ok"])
+        self.assertFalse(result["promotion_gate"])
+        self.assertTrue(exploratory["correctness_and_success_ok"])
+        self.assertTrue(exploratory["promotion_gate"])

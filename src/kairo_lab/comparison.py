@@ -8,10 +8,10 @@ from pathlib import Path
 from .stability import summarize
 
 
-def _usable(summary: dict[str, object]) -> bool:
+def _usable(summary: dict[str, object], minimum_repeats: int) -> bool:
     correctness = summary.get("correctness") or {}
     return bool(
-        summary.get("bench_repeats", 0)
+        int(summary.get("bench_repeats", 0)) >= minimum_repeats
         and summary.get("all_requests_successful")
         and correctness.get("passed") == correctness.get("total")
     )
@@ -23,6 +23,7 @@ def compare_logs(
     *,
     minimum_ratio: float = 1.20,
     drop_first: bool = False,
+    minimum_repeats: int = 2,
 ) -> dict[str, object]:
     """Compare candidate throughput against a same-workload baseline.
 
@@ -34,6 +35,8 @@ def compare_logs(
 
     if minimum_ratio <= 0:
         raise ValueError("minimum_ratio must be positive")
+    if minimum_repeats < 1:
+        raise ValueError("minimum_repeats must be positive")
     candidate = summarize(candidate_path)
     baseline = summarize(baseline_path)
     candidate_workload = candidate.get("workload")
@@ -55,7 +58,10 @@ def compare_logs(
     candidate_median = statistics.median(candidate_values) if candidate_values else 0.0
     baseline_median = statistics.median(baseline_values) if baseline_values else 0.0
     ratio = candidate_median / baseline_median if baseline_median else 0.0
-    correctness_ok = _usable(candidate) and _usable(baseline)
+    correctness_ok = (
+        _usable(candidate, minimum_repeats)
+        and _usable(baseline, minimum_repeats)
+    )
     return {
         "candidate": candidate,
         "baseline": baseline,
@@ -66,6 +72,7 @@ def compare_logs(
         "throughput_ratio": round(ratio, 4),
         "throughput_delta_percent": round((ratio - 1.0) * 100, 2) if ratio else 0.0,
         "minimum_ratio": minimum_ratio,
+        "minimum_repeats": minimum_repeats,
         "correctness_and_success_ok": correctness_ok,
         "promotion_gate": bool(
             correctness_ok and workload_match and ratio >= minimum_ratio

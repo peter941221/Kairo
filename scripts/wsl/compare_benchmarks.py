@@ -18,6 +18,12 @@ def main() -> None:
     parser.add_argument("baseline", type=Path)
     parser.add_argument("--minimum-ratio", type=float, default=1.20)
     parser.add_argument(
+        "--minimum-repeats",
+        type=int,
+        default=2,
+        help="minimum measured repeats per log for promotion (default: 2)",
+    )
+    parser.add_argument(
         "--drop-first",
         action="store_true",
         help="exclude the first repeat from both medians (explicit capture-cost analysis)",
@@ -28,6 +34,7 @@ def main() -> None:
         args.baseline,
         minimum_ratio=args.minimum_ratio,
         drop_first=args.drop_first,
+        minimum_repeats=args.minimum_repeats,
     )
     print(json.dumps(result, indent=2) + "\n")
     raise SystemExit(0 if result["promotion_gate"] else 1)

@@ -193,7 +193,9 @@ hash, full shape, driver version, GPU capability, and template version, writes
 payload and metadata atomically, verifies SHA-256 integrity, and reports hit,
 miss, and explainable fingerprint-invalidation counters. This closes the PRD
 cache contract at the library layer; wiring it into a compiled-kernel loader
-remains the next integration step.
+remains the next integration step. Concurrent first misses now use a per-key
+single-flight lock, so only one caller builds an artifact while waiters reuse
+the published result.
 
 `recommend-nvfp4` now exposes the measured Graph allowlist: exact 4K
 N/K shapes at M=1/32/128 select `cuda_graph_shape_bucket` with replay

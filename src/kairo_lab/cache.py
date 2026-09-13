@@ -63,6 +63,9 @@ class RuntimeKernelCache:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
+        # A per-digest lock prevents a thundering herd from compiling the same
+        # artifact when several runtime requests miss at once.
+        self._build_locks: dict[str, threading.Lock] = {}
         self._stats = {
             "hits": 0,
             "misses": 0,
@@ -156,14 +159,22 @@ class RuntimeKernelCache:
             return artifact_path
 
     def get_or_build(self, key: KernelCacheKey, builder: Callable[[], bytes]) -> tuple[bytes, bool]:
-        """Return ``(payload, cache_hit)`` and atomically publish misses."""
+        """Return ``(payload, cache_hit)`` and single-flight publish misses."""
 
         payload = self.load(key)
         if payload is not None:
             return payload, True
-        payload = builder()
-        self.store(key, payload)
-        return payload, False
+        with self._lock:
+            build_lock = self._build_locks.setdefault(key.digest, threading.Lock())
+        with build_lock:
+            # Another caller may have completed the build while this caller
+            # waited for the per-key lock.
+            payload = self.load(key)
+            if payload is not None:
+                return payload, True
+            payload = builder()
+            self.store(key, payload)
+            return payload, False
 
     def stats(self) -> dict[str, object]:
         with self._lock:
@@ -171,4 +182,3 @@ class RuntimeKernelCache:
                 **self._stats,
                 "miss_reasons": dict(self._stats["miss_reasons"]),
             }
-

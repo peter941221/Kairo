@@ -406,7 +406,8 @@ addressed AOT/JIT artifact storage. Its key includes blueprint hash, full
 shape, driver version, GPU capability, and template version; metadata records
 integrity, hit/miss counts, and explainable fingerprint invalidation. It is
 ready to back PTX/Cubin or serialized graph packages without silently reusing
-artifacts across hardware changes.
+artifacts across hardware changes. Concurrent first misses are single-flight,
+so a burst of requests cannot trigger duplicate builds for one key.
 
 Ask the executable policy whether an NVFP4 shape is eligible for Graph replay:
 

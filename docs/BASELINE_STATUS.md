@@ -75,11 +75,23 @@ warmups and thinking disabled:
 |---:|---:|---:|---:|---:|
 | 1 | 4 | 183 / 185 ms | 17.80 s | 14.30 tok/s |
 | 4 | 8 | 367 / 885 ms | 18.75 s | 54.59 tok/s |
+| 16 | 16 | 10,432 / 39,140 ms | 30.78 s | 68.37 tok/s |
 
 The fixed-length pass confirms the earlier scaling direction while removing
-early-EOS noise: four-way batching delivered 3.82x the single-request output
-rate. These are still baseline observations; the next comparison should repeat
-the matrix across backends and include longer prompt/prefill points.
+early-EOS noise: four-way batching delivered 3.82x and c16 delivered 4.78x the
+single-request output rate. At c16, however, TTFT P99 reached 39.1 s and the
+samples arrived in visibly separated waves, making scheduler capacity/queueing
+the first end-to-end optimization hypothesis. These are still baseline
+observations; the next comparison should repeat the matrix across backends and
+include longer prompt/prefill points.
+
+As a first scheduler experiment, the same c16 run was repeated with
+`KAIRO_MAX_RUNNING_REQUESTS=16` (the default was left untouched in the baseline
+run). It produced 16/16 successes, 64.95 tok/s, TTFT P50/P99 of 22.36/45.02 s,
+and a 63.06 s wall time. The result is slightly slower than the default
+configuration (68.37 tok/s) and has worse queueing, so simply raising the
+running-request cap is rejected as an optimization. The wave pattern points to
+batch formation or decode scheduling as the next controlled variable.
 
 A matching prefill probe (2,048 requested prompt tokens, 2,241 actual tokens,
 one generated token, concurrency 1, four requests) produced TTFT P50 238 ms and

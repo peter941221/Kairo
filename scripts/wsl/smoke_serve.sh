@@ -24,6 +24,7 @@ fp8_gemm_backend="${KAIRO_FP8_GEMM_BACKEND:-}"
 disable_thinking="${KAIRO_DISABLE_THINKING:-0}"
 linear_backend="${KAIRO_LINEAR_BACKEND:-}"
 moe_backend="${KAIRO_MOE_BACKEND:-}"
+max_running_requests="${KAIRO_MAX_RUNNING_REQUESTS:-}"
 log_file="$(mktemp /tmp/kairo-${backend:-unknown}.XXXXXX.log)"
 server_pid=""
 
@@ -51,6 +52,7 @@ if [[ "$backend" == "vllm" ]]; then
   [[ "$language_model_only" == "1" ]] && vllm_args+=(--language-model-only)
   [[ -n "$linear_backend" ]] && vllm_args+=(--linear-backend "$linear_backend")
   [[ -n "$moe_backend" ]] && vllm_args+=(--moe-backend "$moe_backend")
+  [[ -n "$max_running_requests" ]] && vllm_args+=(--max-num-seqs "$max_running_requests")
   [[ "$disable_flashinfer_autotune" == "1" ]] && vllm_args+=(--no-enable-flashinfer-autotune)
   "$vllm_bin" "${vllm_args[@]}" >"$log_file" 2>&1 &
 elif [[ "$backend" == "sglang" ]]; then
@@ -75,6 +77,7 @@ elif [[ "$backend" == "sglang" ]]; then
   [[ "$skip_server_warmup" == "1" ]] && sglang_args+=(--skip-server-warmup)
   [[ "$trust_remote_code" == "1" ]] && sglang_args+=(--trust-remote-code)
   [[ -n "$kv_cache_dtype" ]] && sglang_args+=(--kv-cache-dtype "$kv_cache_dtype")
+  [[ -n "$max_running_requests" ]] && sglang_args+=(--max-running-requests "$max_running_requests")
   "$sglang_python" "${sglang_args[@]}" >"$log_file" 2>&1 &
 else
   echo "usage: $0 {vllm|sglang} [model_path] [port]" >&2

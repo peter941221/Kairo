@@ -76,6 +76,12 @@ KAIRO_TRUST_REMOTE_CODE=1 \
 ./scripts/wsl/smoke_serve.sh sglang /home/peter/kairo-models/Qwen3.8-27B-NVFP4 18086
 ```
 
+For the experimentally validated high-concurrency variant, add
+`KAIRO_MAMBA_FULL_MEMORY_RATIO=8`. It currently improves the fixed c16 decode
+point substantially, while c1/c4 are neutral to slightly slower; see
+[`docs/BASELINE_STATUS.md`](docs/BASELINE_STATUS.md) before using it as a
+general default.
+
 ## Decision gate
 
 After baseline profiling, promote a hotspot only if it has a credible route to a

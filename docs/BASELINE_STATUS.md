@@ -93,6 +93,26 @@ configuration (68.37 tok/s) and has worse queueing, so simply raising the
 running-request cap is rejected as an optimization. The wave pattern points to
 batch formation or decode scheduling as the next controlled variable.
 
+### Mamba budget experiment
+
+The SGLang source log identified the concrete capacity limit: with the default
+`mamba_full_memory_ratio=4.59`, the Mamba state cache capped the server at 8
+running requests. Raising only this ratio to 8.0 increased the automatic cap to
+9 (all other model, backend, context, KV, and precision settings stayed fixed):
+
+| Mamba ratio | Auto cap | c1 output | c4 output | c16 output | c16 TTFT P50 / P99 |
+|---:|---:|---:|---:|---:|---:|
+| 4.59 | 8 | 14.30 tok/s | 54.59 tok/s | 62.79 tok/s | 23.12 / 45.75 s |
+| 8.0 | 9 | 14.42 tok/s | 53.04 tok/s | **107.37 tok/s** | 10.08 / 19.67 s |
+
+The c16 pair used fresh services, two warmups, 16 requests, 512 requested
+prompt tokens (572 actual), exactly 256 generated tokens, and
+`ignore_eos=true`. The ratio-8 point therefore delivers a measured +71% c16
+throughput over the paired ratio-4.59 run, while c1/c4 remain effectively flat.
+This is the first credible end-to-end performance wedge, but it is
+high-concurrency-specific and must survive repeated runs, longer prompts, and a
+correctness matrix before being promoted as the default configuration.
+
 A matching prefill probe (2,048 requested prompt tokens, 2,241 actual tokens,
 one generated token, concurrency 1, four requests) produced TTFT P50 238 ms and
 input throughput 9,080 tok/s. It is a warm-cache observation and should be

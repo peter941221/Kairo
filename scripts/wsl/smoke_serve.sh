@@ -19,6 +19,7 @@ disable_flashinfer_autotune="${KAIRO_DISABLE_FLASHINFER_AUTOTUNE:-0}"
 health_timeout="${KAIRO_HEALTH_TIMEOUT:-120}"
 skip_server_warmup="${KAIRO_SKIP_SERVER_WARMUP:-0}"
 mamba_ssm_dtype="${KAIRO_MAMBA_SSM_DTYPE:-float32}"
+mamba_full_memory_ratio="${KAIRO_MAMBA_FULL_MEMORY_RATIO:-4.59}"
 fp4_gemm_backend="${KAIRO_FP4_GEMM_BACKEND:-}"
 fp8_gemm_backend="${KAIRO_FP8_GEMM_BACKEND:-}"
 disable_thinking="${KAIRO_DISABLE_THINKING:-0}"
@@ -68,7 +69,7 @@ elif [[ "$backend" == "sglang" ]]; then
     --mem-fraction-static "$gpu_memory_utilization" --context-length "$context_length"
     --disable-cuda-graph)
   if [[ "$sglang_qwen38" == "1" ]]; then
-    sglang_args+=(--chunked-prefill-size 2048 --mamba-full-memory-ratio 4.59
+    sglang_args+=(--chunked-prefill-size 2048 --mamba-full-memory-ratio "$mamba_full_memory_ratio"
       --mamba-radix-cache-strategy extra_buffer --mamba-ssm-dtype "$mamba_ssm_dtype")
   fi
   [[ "$disable_flashinfer_autotune" == "1" ]] && sglang_args+=(--disable-flashinfer-autotune)

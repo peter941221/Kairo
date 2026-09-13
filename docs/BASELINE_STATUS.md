@@ -35,7 +35,8 @@ versions (notably torch 2.13.0 and framework-specific CUDA wheels). Therefore:
 
 - the service smoke result is valid only for the explicitly recorded backend
   environment and launch flags;
-- no throughput or latency claim is valid yet;
+- no optimization or performance-win claim is valid yet; measurements below are
+  baseline observations only;
 - the next gate is a pinned decode/prefill baseline with repeated samples;
 - if either backend fails, create a dedicated pinned environment instead of
   mutating `venv-gpu` further.
@@ -62,3 +63,16 @@ prompt tokens, 64 generated tokens, one warmup, four requests, and concurrency
 These are wiring and reproducibility checks on a 0.5B model, not the Kairo
 result. The next run expands concurrency and prompt lengths under the v0
 protocol before selecting a kernel hotspot.
+
+An additional concurrency-4 pass (same prompt/generation sizes, eight requests)
+already exposes a useful direction signal:
+
+| Backend | TTFT P50 / P99 (ms) | Total P50 (ms) | Aggregate output tok/s |
+|---|---:|---:|---:|
+| vLLM 0.29.0 | 25.9 / 27.7 | 497.2 | 512.4 |
+| SGLang 0.5.19 | 301.0 / 576.7 | 879.4 | 290.4 |
+
+This is still a tiny smoke workload, but the 4-way queueing gap is large enough
+to justify profiling scheduler/batching and decode-kernel behavior next. It is
+not yet a claim of a Kairo win: both backends need the same longer matrix,
+steady-state sampling, and correctness checks.

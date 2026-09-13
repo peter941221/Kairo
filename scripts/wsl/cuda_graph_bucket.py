@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import threading
 from dataclasses import dataclass
 from typing import Callable, Any
 
@@ -54,24 +55,27 @@ class CudaGraphBucketCache:
         self.torch = torch_module
         self.warmups = warmups
         self._buckets: dict[tuple[int, ...], CudaGraphBucket] = {}
+        self._lock = threading.RLock()
         self._hits = 0
         self._captures = 0
 
     def get_or_capture(self, shape: tuple[int, ...], factory: Callable[[], Any]) -> CudaGraphBucket:
         key = tuple(int(value) for value in shape)
-        bucket = self._buckets.get(key)
-        if bucket is not None:
-            self._hits += 1
+        with self._lock:
+            bucket = self._buckets.get(key)
+            if bucket is not None:
+                self._hits += 1
+                return bucket
+            bucket = CudaGraphBucket(self.torch, key, self.warmups)
+            bucket.capture(factory)
+            self._buckets[key] = bucket
+            self._captures += 1
             return bucket
-        bucket = CudaGraphBucket(self.torch, key, self.warmups)
-        bucket.capture(factory)
-        self._buckets[key] = bucket
-        self._captures += 1
-        return bucket
 
     def stats(self) -> dict[str, int]:
-        return {
-            "buckets": len(self._buckets),
-            "captures": self._captures,
-            "hits": self._hits,
-        }
+        with self._lock:
+            return {
+                "buckets": len(self._buckets),
+                "captures": self._captures,
+                "hits": self._hits,
+            }

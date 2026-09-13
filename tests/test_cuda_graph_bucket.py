@@ -1,5 +1,6 @@
 import unittest
 from contextlib import nullcontext
+from concurrent.futures import ThreadPoolExecutor
 
 from scripts.wsl.cuda_graph_bucket import CudaGraphBucketCache
 
@@ -61,3 +62,20 @@ class CudaGraphBucketTests(unittest.TestCase):
         first.replay()
         self.assertEqual(torch.cuda.graphs[0].replays, 1)
         self.assertEqual(len(calls), 3)  # two warmups plus capture body
+
+    def test_concurrent_first_requests_share_capture(self):
+        torch = _FakeTorch()
+        cache = CudaGraphBucketCache(torch, warmups=2)
+
+        def factory():
+            return "output"
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            buckets = list(
+                pool.map(
+                    lambda _index: cache.get_or_capture((128, 4096, 4096), factory),
+                    range(8),
+                )
+            )
+        self.assertEqual(len({id(bucket) for bucket in buckets}), 1)
+        self.assertEqual(cache.stats(), {"buckets": 1, "captures": 1, "hits": 7})

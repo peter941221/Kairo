@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-from kairo_lab.comparison import compare_logs
+from kairo_lab.comparison import compare_logs, render_markdown
 
 
 def main() -> None:
@@ -23,6 +23,7 @@ def main() -> None:
         default=2,
         help="minimum measured repeats per log for promotion (default: 2)",
     )
+    parser.add_argument("--format", choices=["json", "markdown"], default="json")
     parser.add_argument(
         "--drop-first",
         action="store_true",
@@ -36,7 +37,10 @@ def main() -> None:
         drop_first=args.drop_first,
         minimum_repeats=args.minimum_repeats,
     )
-    print(json.dumps(result, indent=2) + "\n")
+    if args.format == "markdown":
+        print(render_markdown(result), end="")
+    else:
+        print(json.dumps(result, indent=2) + "\n")
     raise SystemExit(0 if result["promotion_gate"] else 1)
 
 

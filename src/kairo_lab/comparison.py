@@ -2,10 +2,58 @@
 
 from __future__ import annotations
 
+import json
 import statistics
 from pathlib import Path
 
 from .stability import summarize
+
+
+def render_markdown(result: dict[str, object]) -> str:
+    """Render a comparison result as a compact, publication-ready table."""
+
+    candidate = result.get("candidate") or {}
+    baseline = result.get("baseline") or {}
+    workload = candidate.get("workload") or baseline.get("workload") or {}
+
+    def value(summary: dict[str, object], key: str, default: str = "n/a") -> object:
+        item = summary.get(key, default)
+        if key == "source" and isinstance(item, str):
+            return item.replace("\\", "/")
+        if key == "correctness" and isinstance(item, dict):
+            return f"{item.get('passed', 'n/a')}/{item.get('total', 'n/a')}"
+        return item
+
+    gate = "PASS" if result.get("promotion_gate") else "FAIL"
+    lines = [
+        "## Kairo benchmark comparison",
+        "",
+        f"**Promotion gate: {gate}** (minimum ratio "
+        f"{result.get('minimum_ratio', 'n/a')}, effective repeats "
+        f"{result.get('effective_minimum_repeats', 'n/a')})",
+        "",
+        "| Metric | Candidate | Baseline |",
+        "|---|---:|---:|",
+        f"| Source | `{value(candidate, 'source')}` | `{value(baseline, 'source')}` |",
+        f"| Repeats | {value(candidate, 'bench_repeats')} | {value(baseline, 'bench_repeats')} |",
+        f"| Correctness | {value(candidate, 'correctness')} | {value(baseline, 'correctness')} |",
+        f"| Workload consistent | {value(candidate, 'workload_consistent')} | {value(baseline, 'workload_consistent')} |",
+        f"| Throughput median (tok/s) | {value(candidate, 'throughput_median_tok_s')} | {value(baseline, 'throughput_median_tok_s')} |",
+        f"| TTFT P50 median (ms) | {value(candidate, 'ttft_p50_ms_median')} | {value(baseline, 'ttft_p50_ms_median')} |",
+        f"| Total P99 median (ms) | {value(candidate, 'total_p99_ms_median')} | {value(baseline, 'total_p99_ms_median')} |",
+        "",
+        f"**Throughput ratio:** {result.get('throughput_ratio', 'n/a')}x "
+        f"({result.get('throughput_delta_percent', 'n/a')}%)",
+        f"**Workload match:** `{result.get('workload_match', False)}`; "
+        f"**Correctness/request gate:** `{result.get('correctness_and_success_ok', False)}`",
+        "",
+        "### Workload identity",
+        "",
+        "```json",
+        json.dumps(workload, indent=2, sort_keys=True),
+        "```",
+    ]
+    return "\n".join(lines) + "\n"
 
 
 def _usable(summary: dict[str, object], minimum_repeats: int) -> bool:

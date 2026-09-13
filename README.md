@@ -426,6 +426,9 @@ python3 scripts/wsl/compare_benchmarks.py \
   .kairo-local/qwen3-8b-c16-p512-eager-repeats3.out
 ```
 
+Add `--format markdown` to emit a compact table suitable for a GitHub issue or
+experiment report; JSON remains the default machine-readable output.
+
 The command refuses promotion on workload mismatch, inconsistent parameters
 across repeats, failed correctness, failed requests, or insufficient speedup.
 It also requires at least two effective measured repeats per log by default;

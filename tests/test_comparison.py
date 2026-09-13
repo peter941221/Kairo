@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kairo_lab.comparison import compare_logs
+from kairo_lab.comparison import compare_logs, render_markdown
 
 
 def write_log(path: Path, values, *, prompt=512, context=None, prompts=None, passed=4):
@@ -107,3 +107,15 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(result["effective_minimum_repeats"], 3)
         self.assertFalse(result["correctness_and_success_ok"])
         self.assertFalse(result["promotion_gate"])
+
+    def test_markdown_report_contains_gate_and_latency(self):
+        with tempfile.TemporaryDirectory() as directory:
+            candidate = Path(directory) / "candidate.out"
+            baseline = Path(directory) / "baseline.out"
+            write_log(candidate, [200.0, 220.0])
+            write_log(baseline, [100.0, 110.0])
+            report = render_markdown(compare_logs(candidate, baseline))
+        self.assertIn("Promotion gate: PASS", report)
+        self.assertIn("Throughput median (tok/s)", report)
+        self.assertIn("TTFT P50 median (ms)", report)
+        self.assertIn("Workload identity", report)

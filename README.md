@@ -54,6 +54,12 @@ probe reports a structured unsupported result rather than failing the lab):
 wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/wsl/probe_tcgen05.sh'
 ```
 
+Run the verified 2D TMA + mbarrier copy closure:
+
+```powershell
+wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/wsl/run_tma_copy_probe.sh'
+```
+
 Run the first Kairo-owned FP16 tiled GEMM (correctness plus cuBLAS timing):
 
 ```powershell

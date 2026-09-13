@@ -38,6 +38,15 @@ actionable SM120 boundary, not a missing-header problem. Kairo therefore keeps
 WMMA/cp.async as the RTX 5090 fallback and does not claim a `tcgen05` kernel
 until a toolchain and hardware path explicitly support SM120.
 
+In contrast, `scripts/wsl/run_tma_copy_probe.sh` successfully executed a real
+2D `cp.async.bulk.tensor` transfer on the same SM120 GPU. It uses a host-created
+`CUtensorMap`, a shared `mbarrier`, and a 16x16 FP32 tile; the returned tile had
+maximum absolute error `0.0`. This separates the capability decision cleanly:
+`tcgen05` is unavailable through the current SM120 path, while TMA is available
+and ready to be integrated with the WMMA GEMM. The reproducible probe is
+captured in `experiments/protocols/tma-copy-phase0.yaml` and the raw result in
+`.kairo-local/tma-copy-probe.json`.
+
 ## Phase 1 FP16 GEMM closure
 
 The first Kairo-owned tiled GEMM is implemented in

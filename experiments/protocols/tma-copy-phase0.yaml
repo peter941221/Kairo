@@ -1,0 +1,17 @@
+name: tma-copy-phase0
+status: measured_hardware_capability
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  compute_capability: "12.0"
+  execution_environment: WSL2 Ubuntu 24.04
+toolchain:
+  cuda: 13.0.0
+  target: sm_120
+operation:
+  implementation: scripts/wsl/tma_copy_probe.cu
+  instruction_path: cp.async.bulk.tensor.2d + mbarrier + CUtensorMap
+  tile_shape: [16, 16]
+result:
+  max_abs_error: 0.0
+  tma_copy_ok: true
+decision: TMA is executable on the RTX 5090 path; integrate it into the shared WMMA GEMM only after preserving a fallback for unsupported tensor-map shapes.

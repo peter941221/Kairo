@@ -310,10 +310,11 @@ the 2K-prompt workload. The exact command and raw output are captured in
 the model.
 
 The CLI now exposes this evidence as a bounded runtime policy via
-`recommend-runtime`: measured c16 cells select vLLM nightly+B12X, while the
-measured c1/c4 short cells select SGLang. Unmeasured shapes return `manual`
-instead of silently extrapolating. This is the first executable form of the
-workload-aware routing hypothesis.
+`recommend-runtime`: the repeated short-prompt c16 cell selects vLLM nightly
+CUTLASS, the long-prompt c16 cell selects vLLM nightly+B12X, and measured c1/c4
+short cells select SGLang. Unmeasured shapes return `manual` instead of silently
+extrapolating. This is the first executable form of the workload-aware routing
+hypothesis.
 
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
 metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt

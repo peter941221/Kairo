@@ -59,13 +59,23 @@ def recommend_runtime(model: str, concurrency: int, prompt_tokens: int) -> dict[
         raise ValueError(f"Unsupported runtime model: {model}")
     if concurrency < 1 or prompt_tokens < 1:
         raise ValueError("concurrency and prompt_tokens must be positive")
-    if concurrency == 16 and prompt_tokens in {512, 2048}:
+    if concurrency == 16 and prompt_tokens == 512:
+        return {
+            "model": model,
+            "backend": "vllm-nightly",
+            "profile": "qwen38-vllm-nightly-cutlass-c16",
+            "linear_backend": "cutlass",
+            "confidence": "measured_repeated",
+            "reason": "CUTLASS won two warm-cache c16 repeats at the short prompt",
+        }
+    if concurrency == 16 and prompt_tokens == 2048:
         return {
             "model": model,
             "backend": "vllm-nightly",
             "profile": "qwen38-vllm-nightly-b12x-c16",
+            "linear_backend": "b12x",
             "confidence": "measured_cross_runtime",
-            "reason": "vLLM/B12X wins both measured c16 prompt cells",
+            "reason": "B12X remains the only measured winner for the long prompt",
         }
     if concurrency in {1, 4} and prompt_tokens == 512:
         return {

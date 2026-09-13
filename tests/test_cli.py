@@ -37,8 +37,13 @@ class CliTests(unittest.TestCase):
         self.assertEqual(long_prompt["confidence"], "baseline_or_unvalidated")
 
     def test_runtime_policy_only_selects_measured_cells(self):
+        short = cli.recommend_runtime("qwen38", concurrency=16, prompt_tokens=512)
+        self.assertEqual(short["backend"], "vllm-nightly")
+        self.assertEqual(short["linear_backend"], "cutlass")
+        self.assertEqual(short["confidence"], "measured_repeated")
         high = cli.recommend_runtime("qwen38", concurrency=16, prompt_tokens=2048)
         self.assertEqual(high["backend"], "vllm-nightly")
+        self.assertEqual(high["linear_backend"], "b12x")
         low = cli.recommend_runtime("qwen38", concurrency=4, prompt_tokens=512)
         self.assertEqual(low["backend"], "sglang")
         unknown = cli.recommend_runtime("qwen38", concurrency=8, prompt_tokens=512)

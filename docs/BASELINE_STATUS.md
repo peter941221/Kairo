@@ -107,3 +107,21 @@ trials plus profiler traces before a target is selected.
 Note: the earlier decode tables were collected before the per-request nonce was
 added. They remain useful for queueing direction, but formal decode comparisons
 must be rerun with the nonce-enabled runner and repeated trials.
+
+## First operator profiles
+
+Nsight Systems is installed, but its service trace did not contain child-worker
+CUDA kernels. Nsight Compute is blocked by the host policy
+`ERR_NVGPUCTRPERM` (GPU performance counters are not exposed to this WSL user).
+The in-process fallback `scripts/wsl/profile_transformers.py` does capture CUDA
+operators without those counters:
+
+- 4K-class prefill, two forwards: `aten::mm`/CUTLASS accounted for about 63%
+  of self CUDA time; FlashAttention accounted for about 18%.
+- 512-token KV-cache decode, 16 steps: GEMV/GEMM kernels accounted for about
+  74% combined; FlashAttention was about 8.5%.
+
+These are direct Transformers profiles rather than vLLM/SGLang worker traces,
+so they define kernel hypotheses—not proof of the serving-runtime bottleneck.
+The next experiment should use the same shapes in an in-process backend probe,
+or enable GPU performance counters, before implementing a custom kernel.

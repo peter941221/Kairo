@@ -47,6 +47,14 @@ and ready to be integrated with the WMMA GEMM. The reproducible probe is
 captured in `experiments/protocols/tma-copy-phase0.yaml` and the raw result in
 `.kairo-local/tma-copy-probe.json`.
 
+The Phase 0 roofline input is now measured by
+`scripts/wsl/run_memory_bandwidth_probe.sh`: a contiguous 512 MiB `uint4`
+device read/write kernel reached 1417.461, 1528.578, and 1531.124 GB/s across
+three independent processes (median 1528.578 GB/s, 7.44% range). The result is
+an achieved workload bandwidth, not a theoretical GDDR7 peak; raw JSONL is
+kept in `.kairo-local/memory-bandwidth-probe-repeats.jsonl` and the protocol is
+`experiments/protocols/memory-bandwidth-phase0.yaml`.
+
 ## Phase 1 FP16 GEMM closure
 
 The first Kairo-owned tiled GEMM is implemented in

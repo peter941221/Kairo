@@ -1,0 +1,23 @@
+status: measured_hardware_capability
+experiment: rtx5090-device-memory-bandwidth
+date_utc: 2026-09-14
+purpose: Measure a local GDDR7 read/write roofline input without assuming a vendor peak.
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  compute_capability: "12.0"
+  driver: "596.36"
+  cuda: "13.0"
+  wsl: Ubuntu-24.04
+method:
+  kernel: contiguous uint4 device-to-device read/write
+  bytes: 536870912
+  iterations: 20
+  independent_process_repeats: 3
+  timing: CUDA events, warmup excluded
+result:
+  raw_output: .kairo-local/memory-bandwidth-probe-repeats.jsonl
+  read_write_gbps_repeats: [1417.461, 1528.578, 1531.124]
+  read_write_gbps_median: 1528.578
+  relative_range_percent_of_median: 7.44
+  note: This is an achieved read+write bandwidth measurement, not a claim of theoretical peak.
+decision: Use the repeated median as a roofline input and retain the range as a clock/contention uncertainty bound for subsequent Kairo kernel experiments.

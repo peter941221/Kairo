@@ -128,6 +128,20 @@ swizzled destination cannot be consumed by the existing row-major WMMA loads.
 The result is recorded in `experiments/protocols/tma-wmma-swizzle-probe.yaml`;
 future swizzle work must provide a matching shared-memory access mapping.
 
+### NVFP4 vendor baseline
+
+The isolated vLLM nightly environment exposes a working CUTLASS NVFP4 path on
+SM120 (`cutlass_fp4_supported=true`). With N=K=4096 and 50 iterations it
+measures 1.29 TFLOP/s at M=1, 54.79 TFLOP/s at M=32, and 183.05 TFLOP/s at
+M=128. The corresponding FP16 cuBLAS control at M=128 is 132.12 TFLOP/s, so
+the vendor FP4 path is about 38% faster for this decode-adjacent shape. The
+NVFP4 output is finite; quantization error against the original FP16 operands
+is 13--14% relative mean and is not a substitute for model-level accuracy.
+The full command and raw records are captured in
+`experiments/protocols/nvfp4-cutlass-phase0.yaml` and
+`.kairo-local/nvfp4-cutlass-4096.jsonl`. This is now the highest-value path
+for a Kairo-owned optimization, but no custom-kernel win is claimed yet.
+
 Run it directly on the WSL 5090:
 
 ```bash

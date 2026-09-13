@@ -122,6 +122,15 @@ The policy promotes the measured winner (`m128` or `m256`) only for exact
 measured cells; unknown aligned shapes remain on the single-buffer control
 until the matrix covers them.
 
+Probe the installed vLLM CUTLASS NVFP4 path (isolated nightly environment):
+
+```bash
+bash scripts/wsl/run_nvfp4_probe.sh --m 32 --n 4096 --k 4096 --iterations 50
+```
+
+This is a vendor-kernel baseline for the NVFP4 phase, not yet a Kairo kernel
+claim; it reports quantization error against the FP16 reference.
+
 `init-run` writes a machine-readable run record under `runs/`, which is ignored
 by Git. Keep the command, input manifests, source revision, and published result
 table together when reporting an experiment.

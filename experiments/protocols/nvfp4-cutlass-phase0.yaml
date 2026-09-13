@@ -1,0 +1,44 @@
+name: nvfp4-cutlass-phase0
+status: measured_vendor_baseline
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  compute_capability: "12.0"
+  execution_environment: WSL2 Ubuntu 24.04
+toolchain:
+  cuda: 13.0.0
+  torch: 2.15.0.dev20260913+cu130
+  vllm: 0.29.1rc1.dev18+gfa1b3b192
+kernel:
+  implementation: vllm._custom_ops.cutlass_scaled_fp4_mm
+  quantizer: vllm._custom_ops.scaled_fp4_quant
+  weight_scale_layout: swizzle_blockscale
+  output_dtype: float16
+support:
+  cutlass_fp4_supported: true
+matrix:
+  n: 4096
+  k: 4096
+  iterations: 50
+  cells:
+    - m: 1
+      mm_ms: 0.025987
+      gflops: 1291.191
+      relative_mean_error_vs_fp16: 0.131278
+      finite: true
+    - m: 32
+      mm_ms: 0.019599
+      gflops: 54786.324
+      relative_mean_error_vs_fp16: 0.134639
+      finite: true
+    - m: 128
+      mm_ms: 0.023463
+      gflops: 183052.469
+      relative_mean_error_vs_fp16: 0.134361
+      finite: true
+fp16_control:
+  shape: [128, 4096, 4096]
+  implementation: cublas_gemm_ex
+  iterations: 20
+  mm_ms: 0.032509
+  gflops: 132117.075
+decision: The installed vendor NVFP4 path is available on SM120 and reaches 183 TFLOP/s at M=128, about 38% above the FP16 cuBLAS control for that shape. M=1 remains launch-bound at 1.29 TFLOP/s. Quantization error versus the original FP16 weights/activations is about 13--14% relative mean and must be validated at model level; this is a baseline and a high-value target, not yet a Kairo-owned kernel claim.

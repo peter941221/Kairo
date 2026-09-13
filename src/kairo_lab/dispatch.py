@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -18,6 +19,8 @@ class DispatchResult:
     cache_hit: bool
     plan: dict[str, Any]
     fallback_reason: str | None = None
+    artifact_ms: float | None = None
+    launch_ms: float | None = None
 
 
 class DispatchError(RuntimeError):
@@ -67,11 +70,13 @@ class RuntimeDispatcher:
             gpu_capability=gpu_capability,
             template_version=template_version,
         )
+        artifact_started = time.perf_counter()
         try:
             artifact, cache_hit = self.cache.get_or_build(
                 key, lambda: self.builder(report, tuple(shape))
             )
         except Exception as exc:
+            artifact_ms = (time.perf_counter() - artifact_started) * 1000.0
             if fallback is None:
                 raise DispatchError(f"artifact build failed: {exc}") from exc
             return DispatchResult(
@@ -80,10 +85,14 @@ class RuntimeDispatcher:
                 cache_hit=False,
                 plan=plan,
                 fallback_reason=f"build:{type(exc).__name__}: {exc}",
+                artifact_ms=round(artifact_ms, 3),
             )
+        artifact_ms = (time.perf_counter() - artifact_started) * 1000.0
+        launch_started = time.perf_counter()
         try:
             output = self.launcher(artifact, report)
         except Exception as exc:
+            launch_ms = (time.perf_counter() - launch_started) * 1000.0
             if fallback is None:
                 raise DispatchError(f"artifact launch failed: {exc}") from exc
             return DispatchResult(
@@ -92,10 +101,15 @@ class RuntimeDispatcher:
                 cache_hit=cache_hit,
                 plan=plan,
                 fallback_reason=f"launch:{type(exc).__name__}: {exc}",
+                artifact_ms=round(artifact_ms, 3),
+                launch_ms=round(launch_ms, 3),
             )
+        launch_ms = (time.perf_counter() - launch_started) * 1000.0
         return DispatchResult(
             output=output,
             backend="kairo",
             cache_hit=cache_hit,
             plan=plan,
+            artifact_ms=round(artifact_ms, 3),
+            launch_ms=round(launch_ms, 3),
         )

@@ -37,6 +37,10 @@ class DispatchTests(unittest.TestCase):
         self.assertFalse(first.cache_hit)
         self.assertTrue(second.cache_hit)
         self.assertEqual(self.builds, 1)
+        self.assertIsNotNone(first.artifact_ms)
+        self.assertIsNotNone(first.launch_ms)
+        self.assertGreaterEqual(first.artifact_ms, 0.0)
+        self.assertGreaterEqual(first.launch_ms, 0.0)
         self.assertIn("run_correctness_gate", first.plan["steps"])
 
     def test_launch_failure_uses_explainable_fallback(self):

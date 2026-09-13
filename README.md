@@ -333,6 +333,14 @@ The c32/prompt512 point also held: Graph median **667.01** versus eager
 The routed entry point then sustained five consecutive c32 batches with 0
 failures each and 639.73 tok/s median (618.27–665.29 range).
 
+Summarize any repeated raw log and fail if correctness or request success is
+incomplete:
+
+```bash
+python3 scripts/wsl/analyze_stability.py \
+  .kairo-local/routed-c32-p512-stability5.out
+```
+
 Run the lightweight correctness gate against any OpenAI-compatible service:
 
 ```bash

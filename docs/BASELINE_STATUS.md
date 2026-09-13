@@ -420,6 +420,10 @@ consecutive batches. Every batch completed 32/32 requests with zero failures;
 throughput was 665.29, 638.58, 639.73, 618.27, and 657.79 tok/s (median
 **639.73**, range **7.35%** of median), after a 4/4 correctness pass. This is
 a same-service stability gate, not a substitute for fresh-service variance.
+The raw log can be checked mechanically with
+`python3 scripts/wsl/analyze_stability.py`; it extracts all benchmark JSON
+objects, strips PTY control codes, and exits non-zero on any failed request or
+incomplete correctness gate.
 
 The CLI now exposes this evidence as a bounded runtime policy via
 `recommend-runtime`: the measured c8/prompt256 cell selects vLLM nightly

@@ -235,6 +235,10 @@ shared-memory budgets, and explicit dynamic dimensions, then emits a stable
 blueprint hash and cache-key plan. The checked-in
 `experiments/blueprints/fp16-tma-wmma.yaml` is a valid SM120 example; invalid
 combinations stop before compilation rather than being silently guessed.
+`plan-blueprint` extends the report into an executable shape-specific plan,
+constructing the same content-addressed `RuntimeKernelCache` key (including
+driver, GPU capability, template version, and shape) and making the correctness
+gate precede benchmarking.
 
 - vLLM 0.29.0 resolved the `Qwen3_5ForConditionalGeneration` architecture,
   selected the GDN decode path and FlashInfer NVFP4 GEMM, and loaded all three

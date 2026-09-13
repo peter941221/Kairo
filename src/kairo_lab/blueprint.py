@@ -12,6 +12,8 @@ import json
 from copy import deepcopy
 from typing import Any
 
+from .cache import KernelCacheKey
+
 
 class BlueprintValidationError(ValueError):
     """A blueprint violates a named constraint."""
@@ -198,5 +200,55 @@ def validate_blueprint(blueprint: dict[str, Any]) -> dict[str, Any]:
             "fallback": root.get("fallback", "reference"),
             "epilogue": epilogue_kind,
             "schedule": schedule,
+        },
+    }
+
+
+def make_compile_plan(
+    report: dict[str, Any],
+    shape: tuple[int, ...],
+    *,
+    driver_version: str,
+    gpu_capability: str,
+    template_version: str = "v1",
+) -> dict[str, Any]:
+    """Build an executable compile/load plan from a validated report.
+
+    The cache key is created by the same primitive used by runtime artifacts,
+    so a plan cannot accidentally omit shape or hardware identity. Compilation
+    and benchmark steps remain explicit gates in the returned plan.
+    """
+
+    if not report.get("valid") or not isinstance(report.get("blueprint_hash"), str):
+        raise BlueprintValidationError("report", "must be a valid validate_blueprint result")
+    if not shape or any(isinstance(item, bool) or not isinstance(item, int) or item < 1 for item in shape):
+        raise BlueprintValidationError("shape", "must contain positive integer dimensions")
+    key = KernelCacheKey(
+        blueprint_hash=report["blueprint_hash"],
+        shape=tuple(shape),
+        driver_version=driver_version,
+        gpu_capability=gpu_capability,
+        template_version=template_version,
+    )
+    return {
+        "plan_version": 1,
+        "topology": report["topology"],
+        "blueprint_hash": report["blueprint_hash"],
+        "shape": list(shape),
+        "cache_key": {**key.as_dict(), "digest": key.digest},
+        "steps": [
+            "validate_blueprint",
+            "lookup_or_build_artifact",
+            "load_function_handle",
+            "run_correctness_gate",
+            "run_benchmark",
+        ],
+        "gates": {
+            "correctness_required_before_benchmark": True,
+            "fallback": report["derived"]["fallback"],
+        },
+        "resources": {
+            "shared_memory_estimate_bytes": report["derived"]["shared_memory_estimate_bytes"],
+            "shared_memory_limit_bytes": report["derived"]["shared_memory_limit_bytes"],
         },
     }

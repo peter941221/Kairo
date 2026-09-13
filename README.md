@@ -34,6 +34,18 @@ tile alignment, asynchronous TMA/mbarrier requirements, shared-memory budgets,
 and explicit dynamic dimensions. It returns a blueprint hash and the cache-key
 dimensions used by the runtime.
 
+Turn a validated blueprint into an executable cache-aware plan for one shape:
+
+```bash
+bash scripts/wsl/run_lab.sh plan-blueprint \
+  --file experiments/blueprints/fp16-tma-wmma.yaml \
+  --shape 1024 1024 1024 --driver-version 596.36 --gpu-capability sm120
+```
+
+The plan makes the order explicit: validate, lookup/build, load, correctness
+gate, then benchmark. Its digest is directly compatible with
+`RuntimeKernelCache`.
+
 ## Repository layout
 
 ```text

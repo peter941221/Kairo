@@ -1,6 +1,10 @@
 import unittest
 
-from kairo_lab.blueprint import BlueprintValidationError, validate_blueprint
+from kairo_lab.blueprint import (
+    BlueprintValidationError,
+    make_compile_plan,
+    validate_blueprint,
+)
 
 
 def valid_blueprint(**overrides):
@@ -69,3 +73,26 @@ class BlueprintTests(unittest.TestCase):
         self.assertEqual(report["derived"]["dynamic_dimensions"], ["m"])
         with self.assertRaisesRegex(BlueprintValidationError, "dynamic_dimensions"):
             validate_blueprint(valid_blueprint(dynamic_dimensions=["batch"]))
+
+    def test_compile_plan_uses_hardware_and_shape_in_cache_key(self):
+        report = validate_blueprint(valid_blueprint())
+        plan = make_compile_plan(
+            report,
+            (1024, 1024, 1024),
+            driver_version="596.36",
+            gpu_capability="sm120",
+        )
+        self.assertEqual(plan["steps"][0], "validate_blueprint")
+        self.assertTrue(plan["gates"]["correctness_required_before_benchmark"])
+        self.assertEqual(plan["cache_key"]["shape"], [1024, 1024, 1024])
+        self.assertEqual(plan["cache_key"]["gpu_capability"], "sm120")
+        self.assertEqual(len(plan["cache_key"]["digest"]), 64)
+
+    def test_compile_plan_rejects_unvalidated_report(self):
+        with self.assertRaisesRegex(BlueprintValidationError, "valid"):
+            make_compile_plan(
+                {"valid": False},
+                (128, 128, 64),
+                driver_version="596.36",
+                gpu_capability="sm120",
+            )

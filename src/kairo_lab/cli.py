@@ -10,7 +10,7 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
-from .blueprint import validate_blueprint
+from .blueprint import make_compile_plan, validate_blueprint
 from .cache import RuntimeKernelCache
 
 
@@ -376,6 +376,14 @@ def main() -> None:
         "validate-blueprint", help="validate a declarative kernel blueprint"
     )
     blueprint_parser.add_argument("--file", type=Path, required=True)
+    plan_parser = subcommands.add_parser(
+        "plan-blueprint", help="create a cache-aware compile/benchmark plan"
+    )
+    plan_parser.add_argument("--file", type=Path, required=True)
+    plan_parser.add_argument("--shape", type=int, nargs=3, metavar=("M", "N", "K"), required=True)
+    plan_parser.add_argument("--driver-version", required=True)
+    plan_parser.add_argument("--gpu-capability", required=True)
+    plan_parser.add_argument("--template-version", default="v1")
     run_parser = subcommands.add_parser("init-run", help="create an ignored run record")
     run_parser.add_argument("--lane", default="decode", choices=["decode", "prefill", "discovery"])
     profile_parser = subcommands.add_parser(
@@ -415,6 +423,20 @@ def main() -> None:
         print(json.dumps(RuntimeKernelCache(args.root).inspect(), indent=2))
     elif args.command == "validate-blueprint":
         print(json.dumps(validate_blueprint(_load_blueprint(args.file)), indent=2))
+    elif args.command == "plan-blueprint":
+        report = validate_blueprint(_load_blueprint(args.file))
+        print(
+            json.dumps(
+                make_compile_plan(
+                    report,
+                    tuple(args.shape),
+                    driver_version=args.driver_version,
+                    gpu_capability=args.gpu_capability,
+                    template_version=args.template_version,
+                ),
+                indent=2,
+            )
+        )
     elif args.command == "init-run":
         print(init_run(args.lane))
     elif args.command == "recommend-profile":

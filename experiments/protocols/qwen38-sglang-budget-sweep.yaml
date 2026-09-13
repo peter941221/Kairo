@@ -1,0 +1,39 @@
+name: qwen38-sglang-mamba-budget-sweep
+status: measured_experimental
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  execution_environment: WSL2 Ubuntu 24.04
+model:
+  id: nvidia/Qwen3.8-27B-NVFP4
+  local_path: /home/peter/kairo-models/Qwen3.8-27B-NVFP4
+runtime:
+  backend: sglang
+  source_revision: 14b647c
+  python: /home/peter/venv-sglang/bin/python
+  settings:
+    mem_fraction_static: 0.80
+    context_length: 4096
+    kv_cache_dtype: fp8_e4m3
+    mamba_ssm_dtype: bfloat16
+    fp4_gemm_backend: flashinfer_cudnn
+workload:
+  lane: decode
+  prompt_tokens_requested: 512
+  prompt_tokens_actual: 572
+  generation_tokens: 256
+  concurrency: 16
+  warmup: 2
+  requests: 16
+  disable_thinking: true
+  ignore_eos: true
+results:
+  ratio_8:
+    output_tokens_per_second: 107.37
+    waves: [6, 6, 4]
+  ratio_12:
+    output_tokens_per_second: 111.25
+    waves: [8, 8]
+  ratio_16:
+    output_tokens_per_second: 111.30
+    waves: [8, 8]
+decision: Ratios 12 and 16 plateau on the short prompt; keep ratio 8 as the documented default until repeated sweeps, and use the budget override for experiments.

@@ -140,6 +140,9 @@ shapes remain on the ratio-4.59 baseline until measured.
 Ratio 12 is now captured as a separate experimental probe: it improves the
 512-token c16 point slightly but loses at 2K prompts, reinforcing the need for
 workload-aware selection rather than a single global setting.
+Ratio 16 was also tested and plateaued; see the
+[`qwen38-sglang-budget-sweep.yaml`](experiments/protocols/qwen38-sglang-budget-sweep.yaml)
+manifest for the measured wave sizes.
 
 The first fair cross-runtime matrix is now recorded in
 [`docs/BASELINE_STATUS.md`](docs/BASELINE_STATUS.md): vLLM nightly+B12X reaches

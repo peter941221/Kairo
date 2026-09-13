@@ -248,6 +248,12 @@ as an experimental profile in
 `experiments/protocols/qwen38-sglang-ratio12-probe.yaml`; it is not promoted to
 the recommender until repeated trials and a correctness pass are complete.
 
+A ratio-16 short-prompt probe reached 111.30 tok/s with the same 8+8 wave
+pattern as ratio 12, so increasing the Mamba budget beyond 12 provides no
+measured gain on this shape. The complete short-prompt sweep is captured in
+`experiments/protocols/qwen38-sglang-budget-sweep.yaml`; ratio 8 remains the
+documented default and ratios 12/16 are explicit experiment overrides.
+
 One additional scheduler probe set `KAIRO_NUM_CONTINUOUS_DECODE_STEPS=4` on the
 ratio-8 service. The identical c16 workload reached 103.08 tok/s with TTFT
 P50/P99 of 10.65/20.53 s, about 4% below the ratio-8 default of 107.37 tok/s.

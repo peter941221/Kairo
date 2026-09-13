@@ -59,9 +59,14 @@ fi
 
 for repeat in $(seq 1 "$repeats"); do
   echo "benchmark_repeat=$repeat"
-  "$python_bin" "$root/scripts/wsl/bench_openai.py" \
-    --base-url "http://127.0.0.1:${port}" --model smoke --lane decode \
-    --concurrency "$concurrency" --prompt-tokens "$prompt_tokens" \
-    --generation-tokens "$generation_tokens" --warmup "$warmup" \
+  bench_args=(
+    --base-url "http://127.0.0.1:${port}" --model smoke --lane decode
+    --concurrency "$concurrency" --prompt-tokens "$prompt_tokens"
+    --generation-tokens "$generation_tokens" --warmup "$warmup"
     --requests "$requests" --disable-thinking --ignore-eos
+  )
+  [[ -n "${KAIRO_BENCH_CONTEXT_TOKENS:-}" ]] && bench_args+=(
+    --context-tokens "$KAIRO_BENCH_CONTEXT_TOKENS"
+  )
+  "$python_bin" "$root/scripts/wsl/bench_openai.py" "${bench_args[@]}"
 done

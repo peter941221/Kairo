@@ -210,6 +210,9 @@ configs, complete correctness and request-success gates on both logs, then
 compare medians against a configurable minimum ratio. On the Qwen3-8B Graph /
 eager logs this gate reports 2.0282x (+102.82%) and `promotion_gate=true`; an
 explicit `--drop-first` analysis still reports 2.0063x.
+The benchmark runner now records an optional declared `context_tokens` field;
+routed and SGLang entry points populate it automatically, preventing a 1K/4K
+context mix-up from being treated as a fair A/B.
 
 `recommend-nvfp4` now exposes the measured Graph allowlist: exact 4K
 N/K shapes at M=1/32/128 select `cuda_graph_shape_bucket` with replay

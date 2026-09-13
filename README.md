@@ -415,7 +415,9 @@ python3 scripts/wsl/compare_benchmarks.py \
 
 The command refuses promotion on workload mismatch, failed correctness, failed
 requests, or insufficient speedup. Use `--drop-first` only as an explicit
-steady-state capture-cost analysis.
+steady-state capture-cost analysis. Routed and SGLang runners pass their
+declared context limit into each raw benchmark record, so context mismatches
+are visible to the gate.
 
 Run the lightweight correctness gate against any OpenAI-compatible service:
 

@@ -129,6 +129,7 @@ def run(args: argparse.Namespace) -> dict:
             "requests": args.requests,
             "disable_thinking": args.disable_thinking,
             "ignore_eos": args.ignore_eos,
+            **({"context_tokens": args.context_tokens} if args.context_tokens else {}),
         },
         "summary": {
             "ok": len(good),
@@ -158,6 +159,11 @@ def main() -> None:
     parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument("--prompt-tokens", type=int, default=512)
     parser.add_argument("--generation-tokens", type=int, default=256)
+    parser.add_argument(
+        "--context-tokens",
+        type=int,
+        help="declared service context limit to include in the audit record",
+    )
     parser.add_argument("--warmup", type=int, default=1)
     parser.add_argument("--requests", type=int, default=8)
     parser.add_argument("--timeout", type=float, default=300)

@@ -50,11 +50,17 @@ fi
 
 for repeat in $(seq 1 "$repeats"); do
   echo "benchmark_repeat=$repeat"
-  /home/peter/venv-vllm-nightly/bin/python "$root/scripts/wsl/bench_openai.py" \
-    --base-url "http://127.0.0.1:${port}" --model smoke --lane decode \
-    --concurrency "${KAIRO_BENCH_CONCURRENCY:-16}" \
-    --prompt-tokens "${KAIRO_BENCH_PROMPT_TOKENS:-512}" \
-    --generation-tokens "${KAIRO_BENCH_GENERATION_TOKENS:-256}" \
-    --warmup "${KAIRO_BENCH_WARMUP:-1}" \
+  bench_args=(
+    --base-url "http://127.0.0.1:${port}" --model smoke --lane decode
+    --concurrency "${KAIRO_BENCH_CONCURRENCY:-16}"
+    --prompt-tokens "${KAIRO_BENCH_PROMPT_TOKENS:-512}"
+    --generation-tokens "${KAIRO_BENCH_GENERATION_TOKENS:-256}"
+    --warmup "${KAIRO_BENCH_WARMUP:-1}"
     --requests "${KAIRO_BENCH_REQUESTS:-32}" --disable-thinking --ignore-eos
+  )
+  [[ -n "${KAIRO_BENCH_CONTEXT_TOKENS:-}" ]] && bench_args+=(
+    --context-tokens "$KAIRO_BENCH_CONTEXT_TOKENS"
+  )
+  /home/peter/venv-vllm-nightly/bin/python "$root/scripts/wsl/bench_openai.py" \
+    "${bench_args[@]}"
 done

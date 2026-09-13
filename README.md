@@ -398,6 +398,13 @@ correctness, and completed 32/32 requests; Graph also improved TTFT P50
 commands, and pinned model revision are recorded in the protocol's
 `pinned_current_validation` block.
 
+Validate that protocol block against the ignored raw logs at any time:
+
+```bash
+python3 scripts/wsl/validate_serving_protocol.py \
+  experiments/protocols/qwen38-vllm-cudagraph-serving.yaml
+```
+
 The newer `Qwen3-8B-NVFP4` control is now covered as a separate measured
 runtime profile. At c16/prompt512 with 1K context and 128 generated tokens,
 three Graph repeats measured 1942.58, 2216.16, and 2177.49 tok/s (median

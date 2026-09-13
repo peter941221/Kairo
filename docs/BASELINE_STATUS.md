@@ -103,3 +103,7 @@ With the per-request nonce enabled to avoid prefix-cache reuse, the runner used
 The roughly 1.9x prefill gap makes prefill scheduling/attention a second strong
 profiling candidate. These numbers are still smoke-scale and require repeated
 trials plus profiler traces before a target is selected.
+
+Note: the earlier decode tables were collected before the per-request nonce was
+added. They remain useful for queueing direction, but formal decode comparisons
+must be rerun with the nonce-enabled runner and repeated trials.

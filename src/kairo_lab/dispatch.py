@@ -20,6 +20,8 @@ class DispatchResult:
     plan: dict[str, Any]
     fallback_reason: str | None = None
     artifact_ms: float | None = None
+    correctness_ms: float | None = None
+    correctness_ok: bool | None = None
     launch_ms: float | None = None
 
 
@@ -30,19 +32,22 @@ class DispatchError(RuntimeError):
 class RuntimeDispatcher:
     """Execute a validated blueprint through an injected compiler/launcher.
 
-    The workbench does not hard-code a CUDA compiler. Callers inject a builder
-    and launcher, which keeps this layer usable for PTX, Cubin, graph packages,
-    and deterministic test doubles while preserving one dispatch contract.
+    The workbench does not hard-code a CUDA compiler. Callers inject a builder,
+    correctness gate, and launcher, which keeps this layer usable for PTX,
+    Cubin, graph packages, and deterministic test doubles while preserving one
+    dispatch contract.
     """
 
     def __init__(
         self,
         cache: RuntimeKernelCache,
         builder: Callable[[dict[str, Any], tuple[int, ...]], bytes],
+        correctness: Callable[[bytes, dict[str, Any], tuple[int, ...]], bool],
         launcher: Callable[[bytes, dict[str, Any]], Any],
     ):
         self.cache = cache
         self.builder = builder
+        self.correctness = correctness
         self.launcher = launcher
 
     def dispatch(
@@ -88,6 +93,26 @@ class RuntimeDispatcher:
                 artifact_ms=round(artifact_ms, 3),
             )
         artifact_ms = (time.perf_counter() - artifact_started) * 1000.0
+        correctness_started = time.perf_counter()
+        try:
+            correctness_ok = bool(self.correctness(artifact, report, tuple(shape)))
+            if not correctness_ok:
+                raise RuntimeError("correctness gate returned false")
+        except Exception as exc:
+            correctness_ms = (time.perf_counter() - correctness_started) * 1000.0
+            if fallback is None:
+                raise DispatchError(f"correctness validation failed: {exc}") from exc
+            return DispatchResult(
+                output=fallback(exc),
+                backend="fallback",
+                cache_hit=cache_hit,
+                plan=plan,
+                fallback_reason=f"correctness:{type(exc).__name__}: {exc}",
+                artifact_ms=round(artifact_ms, 3),
+                correctness_ms=round(correctness_ms, 3),
+                correctness_ok=False,
+            )
+        correctness_ms = (time.perf_counter() - correctness_started) * 1000.0
         launch_started = time.perf_counter()
         try:
             output = self.launcher(artifact, report)
@@ -102,6 +127,8 @@ class RuntimeDispatcher:
                 plan=plan,
                 fallback_reason=f"launch:{type(exc).__name__}: {exc}",
                 artifact_ms=round(artifact_ms, 3),
+                correctness_ms=round(correctness_ms, 3),
+                correctness_ok=True,
                 launch_ms=round(launch_ms, 3),
             )
         launch_ms = (time.perf_counter() - launch_started) * 1000.0
@@ -111,5 +138,7 @@ class RuntimeDispatcher:
             cache_hit=cache_hit,
             plan=plan,
             artifact_ms=round(artifact_ms, 3),
+            correctness_ms=round(correctness_ms, 3),
+            correctness_ok=True,
             launch_ms=round(launch_ms, 3),
         )

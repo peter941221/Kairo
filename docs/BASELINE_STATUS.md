@@ -202,8 +202,9 @@ cache contract at the library layer; wiring it into a compiled-kernel loader
 remains the next integration step. Concurrent first misses now use a per-key
 single-flight lock, so only one caller builds an artifact while waiters reuse
 the published result. Runtime dispatch now records artifact lookup/build time
-separately from launch time, preserving the PRD's startup-versus-steady-state
-boundary. The `cache-inspect` CLI audits on-disk metadata, payload
+and correctness-gate time separately from launch time, preserving the PRD's
+startup-versus-steady-state boundary and refusing to launch an unvalidated
+artifact. The `cache-inspect` CLI audits on-disk metadata, payload
 hashes, missing artifacts, and orphan files without changing runtime counters.
 
 `src/kairo_lab/comparison.py` and `scripts/wsl/compare_benchmarks.py` now turn

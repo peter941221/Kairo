@@ -20,7 +20,9 @@ class DispatchTests(unittest.TestCase):
             return f"artifact:{report['blueprint_hash']}:{shape}".encode()
 
         return RuntimeDispatcher(
-            RuntimeKernelCache(Path(self.directory.name)), builder, launcher
+            RuntimeKernelCache(Path(self.directory.name)), builder,
+            lambda _artifact, _report, _shape: True,
+            launcher,
         )
 
     def kwargs(self):
@@ -38,6 +40,8 @@ class DispatchTests(unittest.TestCase):
         self.assertTrue(second.cache_hit)
         self.assertEqual(self.builds, 1)
         self.assertIsNotNone(first.artifact_ms)
+        self.assertIsNotNone(first.correctness_ms)
+        self.assertTrue(first.correctness_ok)
         self.assertIsNotNone(first.launch_ms)
         self.assertGreaterEqual(first.artifact_ms, 0.0)
         self.assertGreaterEqual(first.launch_ms, 0.0)
@@ -59,6 +63,7 @@ class DispatchTests(unittest.TestCase):
         dispatcher = RuntimeDispatcher(
             RuntimeKernelCache(Path(self.directory.name)),
             lambda _report, _shape: (_ for _ in ()).throw(ValueError("compile rejected")),
+            lambda _artifact, _report, _shape: True,
             lambda _artifact, _report: "unreachable",
         )
         with self.assertRaises(DispatchError):
@@ -71,3 +76,22 @@ class DispatchTests(unittest.TestCase):
         )
         self.assertEqual(result.backend, "fallback")
         self.assertIn("build:ValueError", result.fallback_reason)
+
+    def test_correctness_failure_blocks_launch(self):
+        launches = []
+        dispatcher = RuntimeDispatcher(
+            RuntimeKernelCache(Path(self.directory.name)),
+            lambda _report, _shape: b"artifact",
+            lambda _artifact, _report, _shape: False,
+            lambda _artifact, _report: launches.append(True),
+        )
+        result = dispatcher.dispatch(
+            valid_blueprint(),
+            (128, 128, 64),
+            fallback=lambda exc: f"reference:{exc}",
+            **self.kwargs(),
+        )
+        self.assertEqual(result.backend, "fallback")
+        self.assertFalse(result.correctness_ok)
+        self.assertIn("correctness:RuntimeError", result.fallback_reason)
+        self.assertEqual(launches, [])

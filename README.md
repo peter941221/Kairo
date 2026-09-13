@@ -102,7 +102,8 @@ export LD_LIBRARY_PATH=/home/peter/venv-vllm-nightly/lib/python3.12/site-package
   /home/peter/kairo-models/Qwen3.8-27B-NVFP4 --port 18087 \
   --served-model-name smoke --tensor-parallel-size 1 \
   --gpu-memory-utilization 0.80 --max-model-len 1024 \
-  --enforce-eager --trust-remote-code --kv-cache-dtype fp8_e4m3 \
+  --enforce-eager --generation-config vllm --trust-remote-code \
+  --kv-cache-dtype fp8_e4m3 \
   --skip-mm-profiling --language-model-only --max-num-seqs 16 \
   --linear-backend b12x
 ```

@@ -76,3 +76,30 @@ This is still a tiny smoke workload, but the 4-way queueing gap is large enough
 to justify profiling scheduler/batching and decode-kernel behavior next. It is
 not yet a claim of a Kairo win: both backends need the same longer matrix,
 steady-state sampling, and correctness checks.
+
+The protocol's concurrency-16 point (16 requests) strengthens that signal:
+
+| Backend | TTFT P50 / P99 (ms) | Total P50 (ms) | Aggregate output tok/s |
+|---|---:|---:|---:|
+| vLLM 0.29.0 | 40.8 / 45.3 | 595.1 | 1,691.1 |
+| SGLang 0.5.19 | 147.9 / 149.8 | 784.5 | 1,296.9 |
+
+At this workload vLLM is about 30% ahead in aggregate decode throughput and has
+roughly 3.6x lower TTFT P50. Treat this as a hypothesis-generating baseline;
+the next experiment is to reproduce it with longer generations and profiler
+traces before touching kernels.
+
+## First prefill measurement (4K class prompt)
+
+With the per-request nonce enabled to avoid prefix-cache reuse, the runner used
+4,484 actual input tokens, one generated token, four requests, and concurrency
+1. Services were configured for a 16K context window:
+
+| Backend | TTFT P50 / P99 (ms) | Input tok/s |
+|---|---:|---:|
+| vLLM 0.29.0 | 38.6 / 40.3 | 112,448 |
+| SGLang 0.5.19 | 61.6 / 119.9 | 58,170 |
+
+The roughly 1.9x prefill gap makes prefill scheduling/attention a second strong
+profiling candidate. These numbers are still smoke-scale and require repeated
+trials plus profiler traces before a target is selected.

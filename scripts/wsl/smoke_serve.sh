@@ -6,6 +6,9 @@ model="${2:-/home/peter/kairo-models/Qwen2.5-0.5B-Instruct}"
 port="${3:-18080}"
 vllm_bin="${KAIRO_VLLM_BIN:-/home/peter/venv-gpu/bin/vllm}"
 sglang_python="${KAIRO_SGLANG_PYTHON:-/home/peter/venv-gpu/bin/python}"
+gpu_memory_utilization="${KAIRO_GPU_MEMORY_UTILIZATION:-0.45}"
+max_model_len="${KAIRO_MAX_MODEL_LEN:-2048}"
+context_length="${KAIRO_CONTEXT_LENGTH:-2048}"
 log_file="$(mktemp /tmp/kairo-${backend:-unknown}.XXXXXX.log)"
 server_pid=""
 
@@ -27,8 +30,8 @@ if [[ "$backend" == "vllm" ]]; then
     --host 127.0.0.1 --port "$port" \
     --served-model-name smoke \
     --tensor-parallel-size 1 \
-    --gpu-memory-utilization 0.45 \
-    --max-model-len 2048 \
+    --gpu-memory-utilization "$gpu_memory_utilization" \
+    --max-model-len "$max_model_len" \
     --enforce-eager >"$log_file" 2>&1 &
 elif [[ "$backend" == "sglang" ]]; then
   export CUDA_HOME=/usr/local/cuda-13.0
@@ -40,8 +43,8 @@ elif [[ "$backend" == "sglang" ]]; then
     --host 127.0.0.1 --port "$port" \
     --served-model-name smoke \
     --tp-size 1 \
-    --mem-fraction-static 0.45 \
-    --context-length 2048 \
+    --mem-fraction-static "$gpu_memory_utilization" \
+    --context-length "$context_length" \
     --disable-cuda-graph >"$log_file" 2>&1 &
 else
   echo "usage: $0 {vllm|sglang} [model_path] [port]" >&2

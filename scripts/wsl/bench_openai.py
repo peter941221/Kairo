@@ -34,16 +34,17 @@ def _percentile(values: list[float], percentile: float) -> float | None:
     return values[low] + (values[high] - values[low]) * (rank - low)
 
 
-def _prompt(token_target: int) -> str:
+def _prompt(token_target: int, request_id: int) -> str:
     # The server's usage field is authoritative; this deterministic text gives
     # the runner a stable target without requiring a tokenizer dependency.
-    return ("Kairo benchmark token. " * max(1, token_target // 4 + 1))[: token_target * 5]
+    prefix = f"Kairo request {request_id}. "
+    return (prefix + ("Kairo benchmark token. " * max(1, token_target // 4 + 1)))[: token_target * 5]
 
 
 def _one(args: argparse.Namespace, request_id: int) -> Sample:
     body = {
         "model": args.model,
-        "messages": [{"role": "user", "content": _prompt(args.prompt_tokens)}],
+        "messages": [{"role": "user", "content": _prompt(args.prompt_tokens, request_id)}],
         "max_tokens": args.generation_tokens,
         "temperature": 0,
         "stream": True,
@@ -106,6 +107,7 @@ def run(args: argparse.Namespace) -> dict:
     ttft = [sample.ttft_ms for sample in good if sample.ttft_ms is not None]
     total = [sample.total_ms for sample in good if sample.total_ms is not None]
     completion = [sample.completion_tokens for sample in good if sample.completion_tokens]
+    prompt = [sample.prompt_tokens for sample in good if sample.prompt_tokens]
     return {
         "timestamp_utc": datetime.now(UTC).isoformat(),
         "base_url": args.base_url,
@@ -127,10 +129,11 @@ def run(args: argparse.Namespace) -> dict:
             "total_p50_ms": _percentile(total, 50),
             "total_p99_ms": _percentile(total, 99),
             "output_tokens_per_s": sum(completion) / elapsed if completion else None,
+            "input_tokens_per_s": sum(prompt) / elapsed if prompt else None,
             "prompt_tokens_actual": statistics.mean(
-                [sample.prompt_tokens for sample in good if sample.prompt_tokens]
+                prompt
             )
-            if any(sample.prompt_tokens for sample in good)
+            if prompt
             else None,
         },
         "samples": [asdict(sample) for sample in samples],

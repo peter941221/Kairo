@@ -13,6 +13,15 @@ prompt_tokens="${KAIRO_WORKLOAD_PROMPT_TOKENS:-512}"
 context_tokens="${KAIRO_WORKLOAD_CONTEXT_TOKENS:-}"
 generation_tokens="${KAIRO_WORKLOAD_GENERATION_TOKENS:-}"
 
+case "$profile_model" in
+  qwen38)
+    export KAIRO_MODEL_REVISION="${KAIRO_MODEL_REVISION:-dbb8f445b3145f8a4c18ddc769f032d57d32867c}"
+    ;;
+  qwen3_8b)
+    export KAIRO_MODEL_REVISION="${KAIRO_MODEL_REVISION:-ccd10a893cbca613259517c3efe08e151ddf2b8e}"
+    ;;
+esac
+
 if [[ -z "$context_tokens" || -z "$generation_tokens" ]]; then
   echo "set KAIRO_WORKLOAD_CONTEXT_TOKENS and KAIRO_WORKLOAD_GENERATION_TOKENS" >&2
   exit 2

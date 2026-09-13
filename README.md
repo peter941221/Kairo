@@ -98,6 +98,11 @@ python3 scripts/wsl/verify_model_snapshot.py \
   --expected-revision dbb8f445b3145f8a4c18ddc769f032d57d32867c
 ```
 
+The Qwen serving runners perform this check automatically when
+`KAIRO_MODEL_REVISION` is set (the routed runner sets it for the pinned Qwen
+profiles). Set `KAIRO_VERIFY_MODEL_REVISION=0` only for an explicitly
+unversioned exploratory model.
+
 Check whether the current toolkit exposes Blackwell `tcgen05` on SM120 (the
 probe reports a structured unsupported result rather than failing the lab):
 

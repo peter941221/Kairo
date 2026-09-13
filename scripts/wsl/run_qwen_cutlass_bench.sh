@@ -29,6 +29,11 @@ export KAIRO_HEALTH_TIMEOUT="${KAIRO_HEALTH_TIMEOUT:-300}"
 repeats="${KAIRO_BENCH_REPEATS:-1}"
 run_correctness="${KAIRO_RUN_CORRECTNESS:-0}"
 
+if [[ "${KAIRO_VERIFY_MODEL_REVISION:-1}" == "1" && -n "${KAIRO_MODEL_REVISION:-}" ]]; then
+  "${KAIRO_VERIFY_PYTHON:-python3}" "$root/scripts/wsl/verify_model_snapshot.py" \
+    --model-path "$model" --expected-revision "$KAIRO_MODEL_REVISION" >&2
+fi
+
 "$root/scripts/wsl/smoke_serve.sh" vllm-nightly "$model" "$port" >"$log_file" 2>&1 &
 service_pid=$!
 for _ in $(seq 1 "$KAIRO_HEALTH_TIMEOUT"); do

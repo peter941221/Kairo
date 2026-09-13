@@ -96,3 +96,14 @@ class ComparisonTests(unittest.TestCase):
         self.assertFalse(result["promotion_gate"])
         self.assertTrue(exploratory["correctness_and_success_ok"])
         self.assertTrue(exploratory["promotion_gate"])
+
+    def test_drop_first_requires_two_remaining_repeats(self):
+        with tempfile.TemporaryDirectory() as directory:
+            candidate = Path(directory) / "candidate.out"
+            baseline = Path(directory) / "baseline.out"
+            write_log(candidate, [200.0, 210.0])
+            write_log(baseline, [100.0, 105.0])
+            result = compare_logs(candidate, baseline, drop_first=True)
+        self.assertEqual(result["effective_minimum_repeats"], 3)
+        self.assertFalse(result["correctness_and_success_ok"])
+        self.assertFalse(result["promotion_gate"])

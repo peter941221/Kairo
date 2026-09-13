@@ -58,9 +58,10 @@ def compare_logs(
     candidate_median = statistics.median(candidate_values) if candidate_values else 0.0
     baseline_median = statistics.median(baseline_values) if baseline_values else 0.0
     ratio = candidate_median / baseline_median if baseline_median else 0.0
+    effective_minimum_repeats = minimum_repeats + (1 if drop_first else 0)
     correctness_ok = (
-        _usable(candidate, minimum_repeats)
-        and _usable(baseline, minimum_repeats)
+        _usable(candidate, effective_minimum_repeats)
+        and _usable(baseline, effective_minimum_repeats)
     )
     return {
         "candidate": candidate,
@@ -73,6 +74,7 @@ def compare_logs(
         "throughput_delta_percent": round((ratio - 1.0) * 100, 2) if ratio else 0.0,
         "minimum_ratio": minimum_ratio,
         "minimum_repeats": minimum_repeats,
+        "effective_minimum_repeats": effective_minimum_repeats,
         "correctness_and_success_ok": correctness_ok,
         "promotion_gate": bool(
             correctness_ok and workload_match and ratio >= minimum_ratio

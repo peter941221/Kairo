@@ -428,7 +428,8 @@ python3 scripts/wsl/compare_benchmarks.py \
 
 The command refuses promotion on workload mismatch, inconsistent parameters
 across repeats, failed correctness, failed requests, or insufficient speedup.
-It also requires at least two measured repeats per log by default; use
+It also requires at least two effective measured repeats per log by default;
+`--drop-first` therefore requires three raw repeats. Use
 `--minimum-repeats 1` only for explicitly exploratory output. Use `--drop-first`
 only as an explicit steady-state capture-cost analysis.
 Routed and SGLang runners pass their

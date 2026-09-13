@@ -224,8 +224,8 @@ the north-star claim into a machine gate. They require matching benchmark
 configs, complete correctness and request-success gates on both logs, then
 compare medians against a configurable minimum ratio. Every repeat within each
 log must also keep the same workload identity, so parameter drift cannot
-manufacture a speedup; promotion additionally requires two repeats per log by
-default. On the Qwen3-8B Graph /
+manufacture a speedup; promotion additionally requires two effective repeats
+per log by default (three raw repeats when dropping the first). On the Qwen3-8B Graph /
 eager logs this gate reports 2.0282x (+102.82%) and `promotion_gate=true`; an
 explicit `--drop-first` analysis still reports 2.0063x.
 The benchmark runner now records an optional declared `context_tokens` field;

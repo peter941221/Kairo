@@ -22,7 +22,15 @@ def _prepare_import_path(backend: str) -> None:
     sys.path.append("/home/peter/venv-gpu/lib/python3.12/site-packages")
 
 
-def run(m: int, n: int, k: int, iterations: int, warmups: int, backend: str) -> dict[str, object]:
+def run(
+    m: int,
+    n: int,
+    k: int,
+    iterations: int,
+    warmups: int,
+    backend: str,
+    control_first: bool,
+) -> dict[str, object]:
     _prepare_import_path(backend)
     import torch
     from vllm._custom_ops import scaled_fp4_quant
@@ -71,29 +79,34 @@ def run(m: int, n: int, k: int, iterations: int, warmups: int, backend: str) -> 
             )
         return cutlass_scaled_fp4_mm(x_fp4, weight_fp4, x_scale, weight_scale, alpha, torch.float16)
 
-    for _ in range(warmups):
-        invoke()
-    torch.cuda.synchronize()
-    output = invoke().float()
-    torch.cuda.synchronize()
-    error = (output - reference).abs()
-    start = torch.cuda.Event(enable_timing=True)
-    stop = torch.cuda.Event(enable_timing=True)
-    start.record()
-    for _ in range(iterations):
-        invoke()
-    stop.record()
-    stop.synchronize()
-    elapsed_ms = start.elapsed_time(stop) / iterations
-    for _ in range(warmups):
-        torch.mm(x, weight.T)
-    torch.cuda.synchronize()
-    start.record()
-    for _ in range(iterations):
-        torch.mm(x, weight.T)
-    stop.record()
-    stop.synchronize()
-    fp16_elapsed_ms = start.elapsed_time(stop) / iterations
+    def invoke_fp16() -> torch.Tensor:
+        return torch.mm(x, weight.T)
+
+    def measure(function) -> float:
+        for _ in range(warmups):
+            function()
+        torch.cuda.synchronize()
+        start = torch.cuda.Event(enable_timing=True)
+        stop = torch.cuda.Event(enable_timing=True)
+        start.record()
+        for _ in range(iterations):
+            function()
+        stop.record()
+        stop.synchronize()
+        return start.elapsed_time(stop) / iterations
+
+    if control_first:
+        fp16_elapsed_ms = measure(invoke_fp16)
+        output = invoke().float()
+        torch.cuda.synchronize()
+        error = (output - reference).abs()
+        elapsed_ms = measure(invoke)
+    else:
+        output = invoke().float()
+        torch.cuda.synchronize()
+        error = (output - reference).abs()
+        elapsed_ms = measure(invoke)
+        fp16_elapsed_ms = measure(invoke_fp16)
     operations = 2.0 * m * n * k
     return {
         "gpu": torch.cuda.get_device_name(),
@@ -101,6 +114,7 @@ def run(m: int, n: int, k: int, iterations: int, warmups: int, backend: str) -> 
         "shape": [m, n, k],
         "iterations": iterations,
         "variant": f"vllm_{backend}_nvfp4",
+        "measurement_order": "fp16_then_nvfp4" if control_first else "nvfp4_then_fp16",
         "fp4_supported": True,
         "input_packed_shape": list(x_fp4.shape),
         "weight_packed_shape": list(weight_fp4.shape),
@@ -125,8 +139,21 @@ def main() -> None:
     parser.add_argument("--iterations", type=int, default=50)
     parser.add_argument("--warmups", type=int, default=5)
     parser.add_argument("--backend", choices=["cutlass", "b12x"], default="cutlass")
+    parser.add_argument("--control-first", action="store_true")
     args = parser.parse_args()
-    print(json.dumps(run(args.m, args.n, args.k, args.iterations, args.warmups, args.backend)))
+    print(
+        json.dumps(
+            run(
+                args.m,
+                args.n,
+                args.k,
+                args.iterations,
+                args.warmups,
+                args.backend,
+                args.control_first,
+            )
+        )
+    )
 
 
 if __name__ == "__main__":

@@ -143,12 +143,13 @@ output is finite; quantization error against the original FP16 operands is
 `.kairo-local/nvfp4-cutlass-4096.jsonl`. This is now the highest-value path
 for a Kairo-owned optimization, but no custom-kernel win is claimed yet.
 
-A 1K-iteration threshold sweep (same-process FP16 control) suggests the
-CUTLASS crossover lies between M=1 (0.84× FP16) and M=8 (1.08×), rising to
-1.40×/1.55×/1.68× at M=32/64/128. Since process ordering and GPU clocks can
-move small-shape timings, this is a provisional threshold rather than a
-production rule; the next gate is interleaved backend/control ordering. The
-measurements are recorded in `experiments/protocols/nvfp4-cutlass-threshold.yaml`.
+A 1K-iteration threshold sweep (same-process FP16 control) shows the largest
+stable opportunity at M=128 (about 1.4--1.75× across ordered repeats). M=1 is
+at most marginal, while M=8--64 can move with process ordering and GPU clocks;
+earlier runs even crossed 1.0× at M=1/8/16. Therefore there is no universal
+hard-coded crossover yet: routing must use repeated per-shape measurements and
+include activation-quantization overhead. The measurements are recorded in
+`experiments/protocols/nvfp4-cutlass-threshold.yaml`.
 
 Run it directly on the WSL 5090:
 

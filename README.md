@@ -138,6 +138,9 @@ bash scripts/wsl/run_nvfp4_probe.sh --backend b12x --m 1 --n 4096 --k 4096 --ite
 This is a vendor-kernel baseline for the NVFP4 phase, not yet a Kairo kernel
 claim; it reports quantization error against the FP16 reference.
 
+Add `--control-first` to reverse the FP16/NVFP4 timing order when checking
+clock or launch-order sensitivity.
+
 `init-run` writes a machine-readable run record under `runs/`, which is ignored
 by Git. Keep the command, input manifests, source revision, and published result
 table together when reporting an experiment.

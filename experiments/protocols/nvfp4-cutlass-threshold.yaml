@@ -13,29 +13,36 @@ matrix:
   warmups: 20
   same_process_fp16_control: true
   raw: .kairo-local/nvfp4-cutlass-threshold.jsonl
+  ordering_raw: .kairo-local/nvfp4-ordering.jsonl
   cells:
     - m: 1
       nvfp4_gflops: 1654.419
       fp16_gflops: 1974.660
       speedup: 0.838
+      observed_speedup_range: [0.838, 1.224]
     - m: 8
       nvfp4_gflops: 16045.663
       fp16_gflops: 14813.743
       speedup: 1.083
+      observed_speedup_range: [0.951, 1.083]
     - m: 16
       nvfp4_gflops: 31818.478
       fp16_gflops: 27285.394
       speedup: 1.166
+      observed_speedup_range: [0.924, 1.166]
     - m: 32
       nvfp4_gflops: 51451.148
       fp16_gflops: 36760.821
       speedup: 1.400
+      observed_speedup_range: [0.850, 1.684]
     - m: 64
       nvfp4_gflops: 106833.685
       fp16_gflops: 68924.542
       speedup: 1.550
+      observed_speedup_range: [1.033, 1.550]
     - m: 128
       nvfp4_gflops: 249762.700
       fp16_gflops: 148310.159
       speedup: 1.684
-decision: The latest ordered run suggests a CUTLASS NVFP4 crossover between M=1 and M=8, with increasingly strong gains through M=128. Because separate process runs showed clock-sensitive variation, do not hard-code the crossover yet; repeat with backend/control order interleaving before routing production decode batches.
+      observed_speedup_range: [1.378, 1.750]
+decision: Interleaved ordering confirms a strong and repeatable M=128 gain, while M=1 is marginal and M=8--64 are timing-sensitive across process launches. Do not hard-code a universal crossover; use per-shape repeated measurements and include quantization overhead before routing production decode batches.

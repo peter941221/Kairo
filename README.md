@@ -165,6 +165,16 @@ Quantify scheduler waves from a saved benchmark result:
 python3 scripts/wsl/analyze_waves.py result.json --gap-ms 2000
 ```
 
+Ask the measured cross-runtime policy which lane covers a shape:
+
+```bash
+python -m kairo_lab.cli recommend-runtime \
+  --model qwen38 --concurrency 16 --prompt-tokens 2048
+```
+
+The policy selects vLLM/B12X for the measured c16 cells and SGLang for the
+measured c1/c4 short cells; every other shape returns `manual` until measured.
+
 To apply that decision automatically when launching SGLang:
 
 ```bash

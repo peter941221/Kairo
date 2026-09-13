@@ -48,6 +48,42 @@ def recommend_profile(model: str, concurrency: int, prompt_tokens: int) -> dict[
     }
 
 
+def recommend_runtime(model: str, concurrency: int, prompt_tokens: int) -> dict[str, object]:
+    """Select only runtime cells that have an observed cross-runtime result.
+
+    Unknown cells intentionally return ``manual`` instead of extrapolating a
+    benchmark point. This keeps the policy useful for an experiment router
+    without turning a two-point matrix into an unbounded performance claim.
+    """
+    if model != "qwen38":
+        raise ValueError(f"Unsupported runtime model: {model}")
+    if concurrency < 1 or prompt_tokens < 1:
+        raise ValueError("concurrency and prompt_tokens must be positive")
+    if concurrency == 16 and prompt_tokens in {512, 2048}:
+        return {
+            "model": model,
+            "backend": "vllm-nightly",
+            "profile": "qwen38-vllm-nightly-b12x-c16",
+            "confidence": "measured_cross_runtime",
+            "reason": "vLLM/B12X wins both measured c16 prompt cells",
+        }
+    if concurrency in {1, 4} and prompt_tokens == 512:
+        return {
+            "model": model,
+            "backend": "sglang",
+            "profile": "qwen38-sglang-ratio8-short",
+            "confidence": "measured_cross_runtime",
+            "reason": "SGLang is slightly faster at the measured c1/c4 short cells",
+        }
+    return {
+        "model": model,
+        "backend": "manual",
+        "profile": None,
+        "confidence": "unvalidated",
+        "reason": "No cross-runtime measurement covers this shape yet",
+    }
+
+
 def _nvcc_command() -> str | None:
     for candidate in ("/usr/local/cuda-13.0/bin/nvcc", "/usr/local/cuda-12.8/bin/nvcc"):
         if Path(candidate).exists():
@@ -115,19 +151,32 @@ def main() -> None:
     profile_parser.add_argument("--concurrency", type=int, required=True)
     profile_parser.add_argument("--prompt-tokens", type=int, required=True)
     profile_parser.add_argument("--format", choices=["json", "shell"], default="json")
+    runtime_parser = subcommands.add_parser(
+        "recommend-runtime", help="select a measured cross-runtime serving cell"
+    )
+    runtime_parser.add_argument("--model", default="qwen38", choices=["qwen38"])
+    runtime_parser.add_argument("--concurrency", type=int, required=True)
+    runtime_parser.add_argument("--prompt-tokens", type=int, required=True)
     args = parser.parse_args()
 
     if args.command == "env":
         print(json.dumps(environment(), indent=2))
     elif args.command == "init-run":
         print(init_run(args.lane))
-    else:
+    elif args.command == "recommend-profile":
         result = recommend_profile(args.model, args.concurrency, args.prompt_tokens)
         if args.format == "shell":
             print(f"export KAIRO_MAMBA_FULL_MEMORY_RATIO={result['mamba_full_memory_ratio']}")
             print(f"export KAIRO_PROFILE_ID={result['profile']}")
         else:
             print(json.dumps(result, indent=2))
+    else:
+        print(
+            json.dumps(
+                recommend_runtime(args.model, args.concurrency, args.prompt_tokens),
+                indent=2,
+            )
+        )
 
 
 if __name__ == "__main__":

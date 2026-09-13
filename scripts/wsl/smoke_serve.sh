@@ -6,6 +6,7 @@ model="${2:-/home/peter/kairo-models/Qwen2.5-0.5B-Instruct}"
 port="${3:-18080}"
 vllm_bin="${KAIRO_VLLM_BIN:-/home/peter/venv-gpu/bin/vllm}"
 sglang_python="${KAIRO_SGLANG_PYTHON:-/home/peter/venv-gpu/bin/python}"
+sglang_pythonpath="${KAIRO_SGLANG_PYTHONPATH:-}"
 gpu_memory_utilization="${KAIRO_GPU_MEMORY_UTILIZATION:-0.45}"
 max_model_len="${KAIRO_MAX_MODEL_LEN:-2048}"
 context_length="${KAIRO_CONTEXT_LENGTH:-2048}"
@@ -13,6 +14,11 @@ kv_cache_dtype="${KAIRO_KV_CACHE_DTYPE:-}"
 trust_remote_code="${KAIRO_TRUST_REMOTE_CODE:-0}"
 skip_mm_profiling="${KAIRO_SKIP_MM_PROFILING:-0}"
 language_model_only="${KAIRO_LANGUAGE_MODEL_ONLY:-0}"
+sglang_qwen38="${KAIRO_SGLANG_QWEN38_FLAGS:-0}"
+disable_flashinfer_autotune="${KAIRO_DISABLE_FLASHINFER_AUTOTUNE:-0}"
+health_timeout="${KAIRO_HEALTH_TIMEOUT:-120}"
+skip_server_warmup="${KAIRO_SKIP_SERVER_WARMUP:-0}"
+mamba_ssm_dtype="${KAIRO_MAMBA_SSM_DTYPE:-float32}"
 log_file="$(mktemp /tmp/kairo-${backend:-unknown}.XXXXXX.log)"
 server_pid=""
 
@@ -44,10 +50,19 @@ elif [[ "$backend" == "sglang" ]]; then
   export PATH="$CUDA_HOME/bin:$PATH"
   export LD_LIBRARY_PATH="$CUDA_HOME/lib64:${LD_LIBRARY_PATH:-}"
   export VLLM_WSL2_ENABLE_PIN_MEMORY=1
+  if [[ -n "$sglang_pythonpath" ]]; then
+    export PYTHONPATH="$sglang_pythonpath${PYTHONPATH:+:$PYTHONPATH}"
+  fi
   sglang_args=( -m sglang.launch_server --model-path "$model"
     --host 127.0.0.1 --port "$port" --served-model-name smoke --tp-size 1
     --mem-fraction-static "$gpu_memory_utilization" --context-length "$context_length"
     --disable-cuda-graph)
+  if [[ "$sglang_qwen38" == "1" ]]; then
+    sglang_args+=(--chunked-prefill-size 2048 --mamba-full-memory-ratio 4.59
+      --mamba-radix-cache-strategy extra_buffer --mamba-ssm-dtype "$mamba_ssm_dtype")
+  fi
+  [[ "$disable_flashinfer_autotune" == "1" ]] && sglang_args+=(--disable-flashinfer-autotune)
+  [[ "$skip_server_warmup" == "1" ]] && sglang_args+=(--skip-server-warmup)
   [[ "$trust_remote_code" == "1" ]] && sglang_args+=(--trust-remote-code)
   [[ -n "$kv_cache_dtype" ]] && sglang_args+=(--kv-cache-dtype "$kv_cache_dtype")
   "$sglang_python" "${sglang_args[@]}" >"$log_file" 2>&1 &
@@ -57,7 +72,7 @@ else
 fi
 server_pid=$!
 
-for _ in $(seq 1 120); do
+for _ in $(seq 1 "$health_timeout"); do
   if curl -fsS "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
     break
   fi

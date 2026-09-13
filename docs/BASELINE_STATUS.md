@@ -35,6 +35,14 @@ downloaded at `/home/peter/kairo-models/Qwen3.8-27B-NVFP4` (about 21 GiB).
   wheels are therefore a compatibility probe, not the vendor-supported path;
   the next bring-up should use a disposable nightly/dev container or source
   build, then return to the pinned wheel only for fair comparisons.
+- A source checkout of SGLang main (`14b647c`) was tested in the isolated
+  SGLang environment. With `--mamba-ssm-dtype bfloat16` and 0.80 static-memory
+  fraction it loaded the weights, allocated 4.22 GiB of Mamba state plus a
+  33,685-token FP8 KV pool, and reached "server fired up". The detokenizer then
+  stopped heartbeating while compiling a first-use FlashInfer FP4 extension, so
+  `/health` stayed 503 until the harness timeout. This narrows the next task to
+  first-use kernel compilation/heartbeat handling rather than model loading or
+  raw memory capacity.
 - Until a newer pinned vLLM/SGLang environment clears this gate, the 0.5B model
   remains the CI canary and the 8B NVFP4 model is the reproducible performance
   control. No hero-model performance claim is made yet.

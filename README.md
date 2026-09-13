@@ -63,6 +63,19 @@ KAIRO_SKIP_MM_PROFILING=1 KAIRO_LANGUAGE_MODEL_ONLY=1 \
 ./scripts/wsl/smoke_serve.sh vllm /home/peter/kairo-models/Qwen3.8-27B-NVFP4 18085
 ```
 
+To try the current SGLang main checkout without changing the pinned wheels:
+
+```bash
+KAIRO_SGLANG_PYTHON=/home/peter/venv-sglang/bin/python \
+KAIRO_SGLANG_PYTHONPATH=/home/peter/src/sglang/python \
+KAIRO_SGLANG_QWEN38_FLAGS=1 KAIRO_DISABLE_FLASHINFER_AUTOTUNE=1 \
+KAIRO_MAMBA_SSM_DTYPE=bfloat16 KAIRO_SKIP_SERVER_WARMUP=1 \
+KAIRO_HEALTH_TIMEOUT=240 KAIRO_GPU_MEMORY_UTILIZATION=0.80 \
+KAIRO_CONTEXT_LENGTH=4096 KAIRO_KV_CACHE_DTYPE=fp8_e4m3 \
+KAIRO_TRUST_REMOTE_CODE=1 \
+./scripts/wsl/smoke_serve.sh sglang /home/peter/kairo-models/Qwen3.8-27B-NVFP4 18086
+```
+
 ## Decision gate
 
 After baseline profiling, promote a hotspot only if it has a credible route to a

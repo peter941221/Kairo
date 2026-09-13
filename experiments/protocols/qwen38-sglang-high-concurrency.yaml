@@ -1,0 +1,40 @@
+name: qwen38-sglang-high-concurrency-ratio8
+status: experimental_candidate
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  execution_environment: WSL2 Ubuntu 24.04
+model:
+  id: nvidia/Qwen3.8-27B-NVFP4
+  local_path: /home/peter/kairo-models/Qwen3.8-27B-NVFP4
+runtime:
+  backend: sglang
+  source_revision: 14b647c
+  python: /home/peter/venv-sglang/bin/python
+  pythonpath: /home/peter/src/sglang/python
+  settings:
+    mem_fraction_static: 0.80
+    context_length: 4096
+    kv_cache_dtype: fp8_e4m3
+    mamba_ssm_dtype: bfloat16
+    mamba_full_memory_ratio: 8.0
+    fp4_gemm_backend: flashinfer_cudnn
+    disable_flashinfer_autotune: true
+    disable_cuda_graph: true
+    chunked_prefill_size: 2048
+    mamba_radix_cache_strategy: extra_buffer
+workload:
+  lane: decode
+  prompt_tokens_requested: 512
+  prompt_tokens_actual: 572
+  generation_tokens: 256
+  concurrency: [1, 4, 16]
+  warmup: 2
+  requests: {1: 4, 4: 8, 16: 16}
+  disable_thinking: true
+  ignore_eos: true
+result:
+  c16_output_tokens_per_second: 107.37
+  c16_ttft_p50_ms: 10076
+  c16_ttft_p99_ms: 19665
+  correctness: smoke_exact_KAIRO_OK
+  caveat: High-concurrency candidate; c1/c4 are neutral to slightly slower than ratio 4.59.

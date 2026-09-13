@@ -90,3 +90,7 @@ runtime even if Kairo can make it twice as fast.
 
 See [the v0 experiment protocol](docs/EXPERIMENT_PROTOCOL.md) for the exact
 fairness rules and selection gate.
+
+The validated high-concurrency Qwen3.8 candidate is captured as a runnable
+profile in
+[`experiments/protocols/qwen38-sglang-high-concurrency.yaml`](experiments/protocols/qwen38-sglang-high-concurrency.yaml).

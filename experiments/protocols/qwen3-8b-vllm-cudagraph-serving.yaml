@@ -14,7 +14,7 @@ model:
   repo: nvidia/Qwen3-8B-NVFP4
   local_path: /home/peter/kairo-models/Qwen3-8B-NVFP4
   quantization: NVFP4
-  weights_revision: local_snapshot_unpinned
+  weights_revision: ccd10a893cbca613259517c3efe08e151ddf2b8e
 runtime:
   backend: vllm-nightly
   vllm_version: 0.29.1rc1.dev18+gfa1b3b192

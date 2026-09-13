@@ -6,6 +6,7 @@ hardware:
 model:
   id: nvidia/Qwen3.8-27B-NVFP4
   local_path: /home/peter/kairo-models/Qwen3.8-27B-NVFP4
+  weights_revision: dbb8f445b3145f8a4c18ddc769f032d57d32867c
 runtime:
   backend: sglang
   source_revision: 14b647c

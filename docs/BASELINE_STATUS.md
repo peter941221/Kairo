@@ -261,6 +261,9 @@ bash scripts/wsl/run_fp16_gemm_probe.sh 1024 1024 1024 50
 The workbench's primary candidate is now `nvidia/Qwen3.8-27B-NVFP4`, with
 `nvidia/Qwen3-8B-NVFP4` as the fast control. The Qwen3.8 checkpoint is fully
 downloaded at `/home/peter/kairo-models/Qwen3.8-27B-NVFP4` (about 21 GiB).
+All serving protocols now pin the local Hugging Face snapshot revisions:
+`dbb8f445b3145f8a4c18ddc769f032d57d32867c` for Qwen3.8-27B and
+`ccd10a893cbca613259517c3efe08e151ddf2b8e` for Qwen3-8B.
 
 ### Declarative blueprint gate
 

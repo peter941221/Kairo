@@ -3,6 +3,7 @@ candidates:
     status: candidate
     role: controlled_primary
     model: nvidia/Qwen3.8-27B-NVFP4
+    weights_revision: dbb8f445b3145f8a4c18ddc769f032d57d32867c
     precision: NVFP4/FP8 mixed precision
     selection_criteria:
       - public weights and license
@@ -14,6 +15,7 @@ candidates:
     status: control
     role: reproducible_control
     model: nvidia/Qwen3-8B-NVFP4
+    weights_revision: ccd10a893cbca613259517c3efe08e151ddf2b8e
     precision: NVFP4
     measured_protocol: experiments/protocols/qwen3-8b-vllm-cudagraph-serving.yaml
     measured_cells:

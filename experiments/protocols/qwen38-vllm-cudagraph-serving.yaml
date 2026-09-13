@@ -3,6 +3,7 @@ status: measured_pilot
 date: 2026-09-14
 hardware: RTX 5090 32GB, WSL2 Ubuntu-24.04
 model: /home/peter/kairo-models/Qwen3.8-27B-NVFP4
+weights_revision: dbb8f445b3145f8a4c18ddc769f032d57d32867c
 runtime:
   engine: vllm-nightly
   torch: 2.15.0.dev+cu130

@@ -129,6 +129,8 @@ def run(args: argparse.Namespace) -> dict:
             "requests": args.requests,
             "disable_thinking": args.disable_thinking,
             "ignore_eos": args.ignore_eos,
+            "prompt_tokens_actual": statistics.mean(prompt) if prompt else None,
+            "generation_tokens_actual": statistics.mean(completion) if completion else None,
             **({"context_tokens": args.context_tokens} if args.context_tokens else {}),
         },
         "summary": {

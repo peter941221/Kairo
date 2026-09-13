@@ -81,6 +81,23 @@ def recommend_runtime(
         or (context_tokens <= 1024 and generation_tokens <= 128)
     )
     if model == "qwen3_8b":
+        if (
+            concurrency == 16
+            and prompt_tokens == 2048
+            and context_tokens == 4096
+            and generation_tokens == 128
+        ):
+            return {
+                "model": model,
+                "backend": "vllm-nightly",
+                "profile": "qwen3-8b-vllm-nightly-cutlass-full-decode-graph-c16-p2048-4k",
+                "linear_backend": "cutlass",
+                "cudagraph_mode": "FULL_DECODE_ONLY",
+                "max_num_seqs": 16,
+                "max_model_len": 4096,
+                "confidence": "measured_repeated",
+                "reason": "Qwen3-8B NVFP4 Graph retained a measured 1.69x steady-state lead at c16/prompt2048 with 4K context",
+            }
         if concurrency in {16, 32} and prompt_tokens == 512 and graph_envelope:
             return {
                 "model": model,

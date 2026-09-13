@@ -82,6 +82,34 @@ c32_extension:
     raw_output: .kairo-local/qwen3-8b-c32-p512-eager-repeats2.out
   graph_over_eager_median_ratio: 2.150
   graph_over_eager_median_percent: 115.0
+long_context_extension:
+  status: measured_experimental
+  workload:
+    concurrency: 16
+    requests: 16
+    prompt_tokens_requested: 2048
+    prompt_tokens_actual: 2241.75
+    generation_tokens: 128
+    context_tokens: 4096
+    max_num_seqs: 16
+  graph:
+    throughput_repeats_tok_s: [1138.87, 1863.42, 1876.42]
+    throughput_median_tok_s: 1863.42
+    steady_state_repeats_tok_s: [1863.42, 1876.42]
+    steady_state_mean_tok_s: 1869.92
+    steady_state_relative_range_percent: 0.70
+    correctness_cases: 4
+    correctness_passed: 4
+    raw_output: .kairo-local/qwen3-8b-c16-p2048-graph-repeats3.out
+  eager_control:
+    throughput_repeats_tok_s: [766.04, 1102.76]
+    steady_state_tok_s: 1102.76
+    correctness_cases: 4
+    correctness_passed: 4
+    raw_output: .kairo-local/qwen3-8b-c16-p2048-eager-repeats2.out
+  steady_state_graph_over_eager_ratio: 1.695
+  steady_state_graph_over_eager_percent: 69.5
+  caveat: Eager has one post-warmup sample; collect another fresh service before promoting this long-context route as a default.
 routed_integration:
   route: qwen3-8b-vllm-nightly-cutlass-full-decode-graph-c16-p512
   requested_context_tokens: 1024

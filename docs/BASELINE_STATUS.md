@@ -479,7 +479,11 @@ and 3946.07 tok/s (steady-state median **3946.07**) versus eager 1836.39 and
 1834.39 (median **1835.39**), a **2.15x / +115.0%** lead. Every repeat passed
 4/4 correctness and 32/32 request success; the two steady-state Graph repeats
 varied by only 0.32%. The recommender now covers both c16 and c32 for this
-exact Qwen3-8B workload bucket.
+exact Qwen3-8B workload bucket. At the 4K boundary (c16/prompt2048,
+generation128), Graph's two steady-state repeats averaged 1869.92 tok/s versus
+the eager post-warmup point of 1102.76 tok/s, a provisional **1.69x / +69.5%**
+lead. The exact long-context route is exposed for experiments, but remains
+experimental until the eager control receives another fresh-service repeat.
 
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
 metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt

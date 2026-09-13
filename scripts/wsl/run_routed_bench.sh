@@ -24,12 +24,13 @@ route_json="$(PYTHONPATH="$root/src${PYTHONPATH:+:$PYTHONPATH}" "$python_bin" -m
   --prompt-tokens "$prompt_tokens" --context-tokens "$context_tokens" \
   --generation-tokens "$generation_tokens")"
 
-readarray -t route_values < <("$python_bin" -c 'import json, sys; r=json.load(sys.stdin); print(r["backend"]); print(r.get("profile") or ""); print(r.get("cudagraph_mode") or ""); print(r.get("linear_backend") or ""); print(r.get("max_num_seqs") or "")' <<<"$route_json")
+readarray -t route_values < <("$python_bin" -c 'import json, sys; r=json.load(sys.stdin); print(r["backend"]); print(r.get("profile") or ""); print(r.get("cudagraph_mode") or ""); print(r.get("linear_backend") or ""); print(r.get("max_num_seqs") or ""); print(r.get("max_model_len") or "")' <<<"$route_json")
 backend="${route_values[0]}"
 profile="${route_values[1]}"
 cudagraph_mode="${route_values[2]}"
 linear_backend="${route_values[3]}"
 max_num_seqs="${route_values[4]}"
+route_max_model_len="${route_values[5]}"
 
 echo "route=$route_json" >&2
 if [[ "$backend" != "vllm-nightly" ]]; then
@@ -47,13 +48,13 @@ export KAIRO_LINEAR_BACKEND="${linear_backend:-cutlass}"
 if [[ "$cudagraph_mode" == "FULL_DECODE_ONLY" ]]; then
   export KAIRO_ENFORCE_EAGER=0
   export KAIRO_CUDAGRAPH_MODE="$cudagraph_mode"
-  # All currently routable Graph cells were measured with a 1K max length and
-  # 32 sequence slots. Do not inherit a broader caller setting by accident.
+  # Use the measured per-route context/sequence limits. Do not inherit a
+  # broader caller setting by accident.
   if [[ "${KAIRO_ROUTED_ALLOW_OVERRIDES:-0}" == "1" ]]; then
     export KAIRO_MAX_MODEL_LEN="${KAIRO_MAX_MODEL_LEN:-1024}"
     export KAIRO_MAX_RUNNING_REQUESTS="${KAIRO_MAX_RUNNING_REQUESTS:-${max_num_seqs:-$concurrency}}"
   else
-    export KAIRO_MAX_MODEL_LEN=1024
+    export KAIRO_MAX_MODEL_LEN="${route_max_model_len:-1024}"
     export KAIRO_MAX_RUNNING_REQUESTS="${max_num_seqs:-32}"
   fi
 else

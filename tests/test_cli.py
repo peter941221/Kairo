@@ -108,6 +108,12 @@ class CliTests(unittest.TestCase):
             context_tokens=4096, generation_tokens=256,
         )
         self.assertEqual(eager_c32["profile"], "qwen3-8b-vllm-nightly-cutlass-c32")
+        long_graph = cli.recommend_runtime(
+            "qwen3_8b", concurrency=16, prompt_tokens=2048,
+            context_tokens=4096, generation_tokens=128,
+        )
+        self.assertIn("p2048-4k", long_graph["profile"])
+        self.assertEqual(long_graph["max_model_len"], 4096)
         unknown = cli.recommend_runtime("qwen3_8b", concurrency=8, prompt_tokens=512)
         self.assertEqual(unknown["backend"], "manual")
 

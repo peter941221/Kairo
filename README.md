@@ -348,6 +348,11 @@ At c32/prompt512, the same new-model Graph lane measured 3393.21, 3958.74,
 and 3946.07 tok/s (steady-state median **3946.07**) versus eager 1836.39 and
 1834.39 (median **1835.39**): **2.15x / +115.0%**, with 4/4 correctness and
 32/32 success on every repeat. The c32 steady-state range was 0.32%.
+At the 4K boundary (c16/prompt2048/context4096/generation128), Graph's two
+steady-state repeats averaged 1869.92 tok/s versus the eager post-warmup point
+of 1102.76 tok/s, a provisional **1.69x / +69.5%**. This long-context cell is
+implemented as an explicit measured route but remains experimental until the
+eager control receives another fresh-service repeat.
 
 Summarize any repeated raw log and fail if correctness or request success is
 incomplete:

@@ -35,6 +35,18 @@ downloaded at `/home/peter/kairo-models/Qwen3.8-27B-NVFP4` (about 21 GiB).
   wheels are therefore a compatibility probe, not the vendor-supported path;
   the next bring-up should use a disposable nightly/dev container or source
   build, then return to the pinned wheel only for fair comparisons.
+
+### Isolated vLLM nightly probe
+
+The official CUDA 13.0 nightly index exposed
+`vllm-0.29.1rc1.dev18+gfa1b3b192`, which was installed into the isolated
+`/home/peter/venv-vllm-nightly` without changing the shared environments. The
+wheel imports only with a newer Torch ABI: using shared Torch 2.12.0 or
+isolated SGLang Torch 2.13.0 fails inside `torch._inductor` (a `CSE` generic
+signature mismatch). The matching CUDA 13.0 Torch 2.15 nightly index was
+reachable, but its pip process made no network connection or file progress for
+over five minutes and was stopped. No vLLM nightly health or performance claim
+is made; vLLM 0.29.0 and SGLang main remain separate reproducible lanes.
 - A source checkout of SGLang main (`14b647c`) was tested in the isolated
   SGLang environment. With `--mamba-ssm-dtype bfloat16` and 0.80 static-memory
   fraction it loaded the weights, allocated 4.22 GiB of Mamba state plus a

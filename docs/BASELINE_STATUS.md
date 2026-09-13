@@ -48,6 +48,28 @@ downloaded at `/home/peter/kairo-models/Qwen3.8-27B-NVFP4` (about 21 GiB).
   experimental Marlin backend override did not clear the health gate, so this
   remains an explicit pending backend/compile experiment rather than a claimed
   workaround.
+
+## Qwen3.8 first serving baseline
+
+After selecting `flashinfer_cudnn` for FP4 GEMM, the source SGLang lane passed
+the full smoke contract on the RTX 5090 (`/health` plus exact `KAIRO_OK`). The
+following warm-cache decode observations used 256 requested prompt tokens,
+64 generated tokens, FP8 KV cache, 4K context, Mamba bfloat16 state, and
+`chat_template_kwargs.enable_thinking=false`:
+
+| Concurrency | Requests | TTFT P50 | Aggregate output |
+|---:|---:|---:|---:|
+| 1 | 4 | 187 ms | 13.7 tok/s |
+| 4 | 8 | 277 ms | 44.0 tok/s |
+
+All requests succeeded. These are the first Qwen3.8 serving baselines, not a
+Kairo win claim; the Mamba bfloat16 setting and SGLang-main build are recorded
+as part of the configuration, and a pinned-runtime comparison is still needed.
+
+A matching prefill probe (2,048 requested prompt tokens, 2,241 actual tokens,
+one generated token, concurrency 1, four requests) produced TTFT P50 238 ms and
+input throughput 9,080 tok/s. It is a warm-cache observation and should be
+repeated before using it to select a prefill kernel target.
 - Until a newer pinned vLLM/SGLang environment clears this gate, the 0.5B model
   remains the CI canary and the 8B NVFP4 model is the reproducible performance
   control. No hero-model performance claim is made yet.

@@ -21,6 +21,7 @@ skip_server_warmup="${KAIRO_SKIP_SERVER_WARMUP:-0}"
 mamba_ssm_dtype="${KAIRO_MAMBA_SSM_DTYPE:-float32}"
 fp4_gemm_backend="${KAIRO_FP4_GEMM_BACKEND:-}"
 fp8_gemm_backend="${KAIRO_FP8_GEMM_BACKEND:-}"
+disable_thinking="${KAIRO_DISABLE_THINKING:-0}"
 log_file="$(mktemp /tmp/kairo-${backend:-unknown}.XXXXXX.log)"
 server_pid=""
 
@@ -95,9 +96,13 @@ if ! curl -fsS "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
 fi
 
 echo "backend=$backend health=ok"
+request_body='{"model":"smoke","messages":[{"role":"user","content":"Reply with exactly: KAIRO_OK"}],"max_tokens":16,"temperature":0}'
+if [[ "$disable_thinking" == "1" ]]; then
+  request_body='{"model":"smoke","messages":[{"role":"user","content":"Reply with exactly: KAIRO_OK"}],"max_tokens":16,"temperature":0,"chat_template_kwargs":{"enable_thinking":false}}'
+fi
 curl -fsS "http://127.0.0.1:$port/v1/chat/completions" \
   -H 'Content-Type: application/json' \
-  -d '{"model":"smoke","messages":[{"role":"user","content":"Reply with exactly: KAIRO_OK"}],"max_tokens":8,"temperature":0}'
+  -d "$request_body"
 echo
 if [[ "${KAIRO_KEEP_ALIVE:-0}" == "1" ]]; then
   echo "keep_alive=1; press Ctrl-C to stop"

@@ -264,6 +264,8 @@ downloaded at `/home/peter/kairo-models/Qwen3.8-27B-NVFP4` (about 21 GiB).
 All serving protocols now pin the local Hugging Face snapshot revisions:
 `dbb8f445b3145f8a4c18ddc769f032d57d32867c` for Qwen3.8-27B and
 `ccd10a893cbca613259517c3efe08e151ddf2b8e` for Qwen3-8B.
+`scripts/wsl/verify_model_snapshot.py` checks those revisions from the local
+download metadata before a serving run.
 
 ### Declarative blueprint gate
 

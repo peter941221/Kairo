@@ -89,6 +89,15 @@ python3 scripts/wsl/analyze_memory_bandwidth.py \
   .kairo-local/memory-bandwidth-probe-repeats.jsonl
 ```
 
+Before serving a pinned local checkpoint, verify its Hugging Face snapshot
+without re-hashing multi-gigabyte weight shards:
+
+```bash
+python3 scripts/wsl/verify_model_snapshot.py \
+  --model-path /home/peter/kairo-models/Qwen3.8-27B-NVFP4 \
+  --expected-revision dbb8f445b3145f8a4c18ddc769f032d57d32867c
+```
+
 Check whether the current toolkit exposes Blackwell `tcgen05` on SM120 (the
 probe reports a structured unsupported result rather than failing the lab):
 

@@ -66,6 +66,12 @@ the optimization target honest: a tensor-core API alone is not enough; tile
 occupancy, shared-memory movement, and Blackwell-native instruction selection
 must be addressed.
 
+The follow-up `wmma_fp16_shared` variant stages one 64x16 A tile and one 16x16
+B tile per block so four warps reuse B. It reached 34,307--34,475 GFLOP/s on
+three 4K runs (about +25% over direct WMMA), while measuring 31,632 GFLOP/s at
+1K (about 5% slower). Kairo therefore needs a shape-aware tile/staging policy;
+one kernel configuration is not optimal across the matrix.
+
 Run it directly on the WSL 5090:
 
 ```bash

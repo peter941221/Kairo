@@ -55,7 +55,8 @@ wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/ws
 
 The probe defaults to the `tile32x32_output2x2` variant; pass
 `tile16x16_output1x1`, `tile32x32_output2x2_async`, or `wmma_fp16` as a fifth
-argument to reproduce the comparison variants. `wmma_fp16` requires dimensions
+argument to reproduce the comparison variants. `wmma_fp16` and
+`wmma_fp16_shared` require dimensions
 divisible by 16; for very large shapes the probe uses the independent cuBLAS
 output as its correctness oracle instead of an O(MNK) CPU reference.
 

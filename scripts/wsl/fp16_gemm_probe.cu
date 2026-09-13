@@ -184,6 +184,54 @@ __global__ void kairo_fp16_wmma(const __half* a, const __half* b, float* c,
     store_matrix_sync(c + row * n + col, accumulator, n, mem_row_major);
 }
 
+// Stage one 64x16 A tile and one 16x16 B tile per block. Four warps reuse the
+// B tile instead of issuing the same global loads independently.
+__global__ void kairo_fp16_wmma_shared(const __half* a, const __half* b, float* c,
+                                        int m, int n, int k) {
+    using namespace nvcuda::wmma;
+    constexpr int TILE = 16;
+    __shared__ __half tile_a[64][TILE];
+    __shared__ __half tile_b[TILE][TILE];
+    const int warp = threadIdx.x / 32;
+    const int block_row = blockIdx.y * 64;
+    const int row = block_row + warp * TILE;
+    const int col = blockIdx.x * TILE;
+    fragment<accumulator, TILE, TILE, TILE, float> accumulator;
+    fill_fragment(accumulator, 0.0f);
+    for (int base = 0; base < k; base += TILE) {
+        for (int index = threadIdx.x; index < 64 * TILE; index += 128) {
+            const int local_row = index / TILE;
+            const int local_col = index % TILE;
+            const int global_row = block_row + local_row;
+            const int global_col = base + local_col;
+            tile_a[local_row][local_col] =
+                (global_row < m && global_col < k)
+                    ? a[global_row * k + global_col]
+                    : __float2half(0.0f);
+        }
+        for (int index = threadIdx.x; index < TILE * TILE; index += 128) {
+            const int local_row = index / TILE;
+            const int local_col = index % TILE;
+            const int global_row = base + local_row;
+            const int global_col = col + local_col;
+            tile_b[local_row][local_col] =
+                (global_row < k && global_col < n)
+                    ? b[global_row * n + global_col]
+                    : __float2half(0.0f);
+        }
+        __syncthreads();
+        if (row < m && col < n) {
+            fragment<matrix_a, TILE, TILE, TILE, __half, row_major> a_fragment;
+            fragment<matrix_b, TILE, TILE, TILE, __half, row_major> b_fragment;
+            load_matrix_sync(a_fragment, &tile_a[warp * TILE][0], TILE);
+            load_matrix_sync(b_fragment, &tile_b[0][0], TILE);
+            mma_sync(accumulator, a_fragment, b_fragment, accumulator);
+        }
+        __syncthreads();
+    }
+    if (row < m && col < n) store_matrix_sync(c + row * n + col, accumulator, n, mem_row_major);
+}
+
 static void check(cudaError_t status, const char* operation) {
     if (status != cudaSuccess) {
         std::fprintf(stderr, "%s: %s\n", operation, cudaGetErrorString(status));
@@ -221,7 +269,9 @@ int main(int argc, char** argv) {
     const bool optimized = std::strcmp(requested_variant, "tile16x16_output1x1") != 0;
     const bool async_variant = std::strcmp(requested_variant, "tile32x32_output2x2_async") == 0;
     const bool wmma_variant = std::strcmp(requested_variant, "wmma_fp16") == 0;
-    if (wmma_variant && ((m % 16) != 0 || (n % 16) != 0 || (k % 16) != 0)) {
+    const bool wmma_shared_variant = std::strcmp(requested_variant, "wmma_fp16_shared") == 0;
+    if ((wmma_variant || wmma_shared_variant) &&
+        ((m % 16) != 0 || (n % 16) != 0 || (k % 16) != 0)) {
         std::fprintf(stderr, "wmma_fp16 requires dimensions divisible by 16\n");
         return 2;
     }
@@ -252,11 +302,13 @@ int main(int argc, char** argv) {
     check(cudaMemcpy(device_a, host_a.data(), host_a.size() * sizeof(__half), cudaMemcpyHostToDevice), "copy(a)");
     check(cudaMemcpy(device_b, host_b.data(), host_b.size() * sizeof(__half), cudaMemcpyHostToDevice), "copy(b)");
 
-    const dim3 block = wmma_variant ? dim3(128, 1, 1) : dim3(16, 16, 1);
-    const dim3 grid = wmma_variant ? dim3((n + 15) / 16, (m + 63) / 64)
+    const dim3 block = (wmma_variant || wmma_shared_variant) ? dim3(128, 1, 1) : dim3(16, 16, 1);
+    const dim3 grid = (wmma_variant || wmma_shared_variant) ? dim3((n + 15) / 16, (m + 63) / 64)
                                    : (optimized ? dim3((n + 31) / 32, (m + 31) / 32)
                                                 : dim3((n + 15) / 16, (m + 15) / 16));
-    if (wmma_variant) {
+    if (wmma_shared_variant) {
+        kairo_fp16_wmma_shared<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
+    } else if (wmma_variant) {
         kairo_fp16_wmma<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
     } else if (async_variant) {
         kairo_fp16_tiled_gemm_2x2_async<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
@@ -308,7 +360,9 @@ int main(int argc, char** argv) {
     check(cudaEventCreate(&stop), "cudaEventCreate(stop)");
     check(cudaEventRecord(start), "custom start");
     for (int iteration = 0; iteration < iterations; ++iteration) {
-        if (wmma_variant) {
+        if (wmma_shared_variant) {
+            kairo_fp16_wmma_shared<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
+        } else if (wmma_variant) {
             kairo_fp16_wmma<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);
         } else if (async_variant) {
             kairo_fp16_tiled_gemm_2x2_async<<<grid, block>>>(device_a, device_b, device_custom, m, n, k);

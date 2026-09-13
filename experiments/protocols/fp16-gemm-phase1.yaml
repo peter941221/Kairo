@@ -46,4 +46,10 @@ performance:
     cublas_gflops: 209515.696
     cpu_reference_checked: false
     max_abs_error_vs_cublas: 0.0
-decision: Correctness and arbitrary-boundary handling pass; 2x2 register reuse improves the Kairo reference by about 2.5x, and WMMA tensor-core MMA reaches about 33.3 TFLOP/s on 1K and 27.4 TFLOP/s on 4K. The async-copy-only variant is within measurement noise, and WMMA remains 7.6x behind cuBLAS at 4K, so the next target is a native Blackwell MMA/TMA pipeline.
+    shared_staging_variant: wmma_fp16_shared
+    shared_staging_gflops_range: [34306.659, 34474.524]
+    shared_staging_ms_range: [3.986682, 4.006189]
+  one_k_shared_staging:
+    variant: wmma_fp16_shared
+    kairo_gflops: 31631.848
+decision: Correctness and arbitrary-boundary handling pass; 2x2 register reuse improves the Kairo reference by about 2.5x, and WMMA tensor-core MMA reaches about 33.3 TFLOP/s on 1K. At 4K, block-level shared staging reaches 34.3--34.5 TFLOP/s, about 25% above direct WMMA, while the same staging is 5% slower at 1K. The next target is a shape-aware Blackwell MMA/TMA pipeline.

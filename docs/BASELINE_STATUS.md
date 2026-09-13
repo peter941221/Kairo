@@ -54,6 +54,8 @@ three independent processes (median 1528.578 GB/s, 7.44% range). The result is
 an achieved workload bandwidth, not a theoretical GDDR7 peak; raw JSONL is
 kept in `.kairo-local/memory-bandwidth-probe-repeats.jsonl` and the protocol is
 `experiments/protocols/memory-bandwidth-phase0.yaml`.
+The dependency-free analyzer `scripts/wsl/analyze_memory_bandwidth.py` enforces
+the repeated-measurement gate when this baseline is regenerated.
 
 ## Phase 1 FP16 GEMM closure
 

@@ -16,6 +16,7 @@ method:
   timing: CUDA events, warmup excluded
 result:
   raw_output: .kairo-local/memory-bandwidth-probe-repeats.jsonl
+  analyzer: scripts/wsl/analyze_memory_bandwidth.py
   read_write_gbps_repeats: [1417.461, 1528.578, 1531.124]
   read_write_gbps_median: 1528.578
   relative_range_percent_of_median: 7.44

@@ -82,6 +82,13 @@ Run the Phase 0 RTX 5090 compiler and asynchronous-copy gate:
 wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/wsl/probe_capabilities.sh'
 ```
 
+The measured memory roofline can be rechecked from its raw repeats:
+
+```bash
+python3 scripts/wsl/analyze_memory_bandwidth.py \
+  .kairo-local/memory-bandwidth-probe-repeats.jsonl
+```
+
 Check whether the current toolkit exposes Blackwell `tcgen05` on SM120 (the
 probe reports a structured unsupported result rather than failing the lab):
 

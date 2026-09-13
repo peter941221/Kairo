@@ -415,6 +415,12 @@ At c32/prompt512 in the same 1K/128 envelope, Graph reached 675.77 and
 **272.00**): **2.45x / +145.2%**, with 4/4 correctness and 32/32 success.
 The c32 lead therefore survives both tested prompt buckets.
 
+The routed c32/prompt512 Graph was then held in one service for five
+consecutive batches. Every batch completed 32/32 requests with zero failures;
+throughput was 665.29, 638.58, 639.73, 618.27, and 657.79 tok/s (median
+**639.73**, range **7.35%** of median), after a 4/4 correctness pass. This is
+a same-service stability gate, not a substitute for fresh-service variance.
+
 The CLI now exposes this evidence as a bounded runtime policy via
 `recommend-runtime`: the measured c8/prompt256 cell selects vLLM nightly
 CUTLASS `FULL_DECODE_ONLY` Graph with `max_num_seqs=32`; both repeated c16

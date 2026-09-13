@@ -330,6 +330,8 @@ headline point for the workbench.
 
 The c32/prompt512 point also held: Graph median **667.01** versus eager
 **272.00 tok/s** (2.45x, +145.2%; 4/4 correctness, 32/32 success).
+The routed entry point then sustained five consecutive c32 batches with 0
+failures each and 639.73 tok/s median (618.27–665.29 range).
 
 Run the lightweight correctness gate against any OpenAI-compatible service:
 

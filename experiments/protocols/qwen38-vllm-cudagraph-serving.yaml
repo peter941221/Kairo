@@ -143,6 +143,18 @@ routed_runner_integration:
   ttft_p50_ms: 875.07
   successful_requests: 32
   raw_output: .kairo-local/routed-c32-p512-integration.out
+stability_run:
+  route: qwen38-vllm-nightly-cutlass-full-decode-graph-c32-p512
+  repeats: 5
+  successful_requests_per_repeat: [32, 32, 32, 32, 32]
+  failed_requests_per_repeat: [0, 0, 0, 0, 0]
+  throughput_tok_s: [665.29, 638.58, 639.73, 618.27, 657.79]
+  throughput_median: 639.73
+  throughput_range_tok_s: [618.27, 665.29]
+  relative_range_percent_of_median: 7.35
+  correctness_cases: 4
+  correctness_passed: 4
+  raw_output: .kairo-local/routed-c32-p512-stability5.out
 eager_control:
   throughput_repeats: [154.62, 152.94]
   throughput_mean: 153.78

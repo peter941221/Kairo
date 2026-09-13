@@ -79,8 +79,20 @@ KAIRO_TRUST_REMOTE_CODE=1 \
 The vendor-recommended vLLM nightly path is isolated in
 `/home/peter/venv-vllm-nightly` and launched through
 `scripts/wsl/vllm_nightly.py`. It is a bring-up lane only until the SM120
-CUTLASS/B12X dependencies are complete; do not mix it into the pinned
-`venv-gpu` baseline.
+CUTLASS/B12X dependencies are complete; the current isolated environment has
+those dependencies and passes the Qwen3.8 smoke gate. Do not mix it into the
+pinned `venv-gpu` baseline. The essential 5090 backend override is:
+
+```bash
+export LD_LIBRARY_PATH=/home/peter/venv-vllm-nightly/lib/python3.12/site-packages/nvidia/nvshmem/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cudnn/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cublas/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cuda_runtime/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cusparselt/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/nccl/lib
+/home/peter/venv-vllm-nightly/bin/python scripts/wsl/vllm_nightly.py serve \
+  /home/peter/kairo-models/Qwen3.8-27B-NVFP4 --port 18087 \
+  --served-model-name smoke --tensor-parallel-size 1 \
+  --gpu-memory-utilization 0.80 --max-model-len 1024 \
+  --enforce-eager --trust-remote-code --kv-cache-dtype fp8_e4m3 \
+  --skip-mm-profiling --language-model-only --max-num-seqs 16 \
+  --linear-backend b12x
+```
 
 For the experimentally validated high-concurrency variant, add
 `KAIRO_MAMBA_FULL_MEMORY_RATIO=8`. It currently improves the fixed c16 decode
@@ -110,6 +122,13 @@ Use the conservative workload-aware recommender before launching an experiment:
 
 It selects ratio 8 only for the measured short-prompt c16 shape; all other
 shapes remain on the ratio-4.59 baseline until measured.
+
+The first fair cross-runtime matrix is now recorded in
+[`docs/BASELINE_STATUS.md`](docs/BASELINE_STATUS.md): vLLM nightly+B12X reaches
+193.95 tok/s at the 4K-configured c16 point versus 107.37 tok/s for SGLang
+ratio 8, while SGLang remains slightly ahead at c1/c4. Treat this as a
+shape-specific scheduling lead until the longer-prompt and correctness
+repeats are complete.
 
 To apply that decision automatically when launching SGLang:
 

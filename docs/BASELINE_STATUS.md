@@ -9,7 +9,8 @@ Last verified in WSL Ubuntu 24.04 on the local RTX 5090:
 | CUDA compiler | usable for native probe | CUDA 13.0 (`/usr/local/cuda-13.0/bin/nvcc`) |
 | PyTorch | GPU visible | 2.12.0+cu130; `torch.cuda.is_available()=True` |
 | TensorRT-LLM | importable | 1.3.0rc25 |
-| vLLM | CLI importable | 0.29.0 |
+| vLLM | CLI importable | 0.29.0 (pinned) |
+| vLLM nightly + B12X | service smoke passed in isolated env | 0.29.1rc1.dev18 + Torch 2.15 nightly |
 | SGLang | service smoke passed in isolated env | 0.5.19 |
 
 ## Fresh-model gate (2026-09-13)
@@ -51,19 +52,51 @@ paths.
 
 The first serving attempt then exposed a concrete SM120 dependency boundary:
 the default FP8 scaled-MM path asks shared FlashInfer to JIT-build a
-`sm120` extension during KV-cache profiling. Forcing
-`--linear-backend flashinfer_cudnn` avoids that path for layers with a cuDNN
-kernel but falls back to automatic selection for unsupported layer types;
-forcing `b12x` requires the optional CUTLASS DSL stack, which is not yet
-installed in the disposable environment. The nightly process therefore does
-not reach `/health` in the current mix, and no nightly throughput claim is
-made. This is now a reproducible runtime/backend blocker rather than an
-ambiguous model-load stall. vLLM 0.29.0 and SGLang main remain separate,
-working comparison lanes.
+`sm120` extension during KV-cache profiling. That path is slow and can stall
+the WSL service. The isolated environment now includes the optional B12X
+backend and its CUDA 13 CUTLASS DSL stack; with
+`--linear-backend b12x`, the nightly engine reaches `/health` and returns the
+exact `KAIRO_OK` smoke response.
 
 The isolated launcher is kept in `scripts/wsl/vllm_nightly.py`; it makes the
 nightly vLLM/Torch site win while reusing shared CUDA Python dependencies, so
 future backend experiments do not mutate the pinned serving environment.
+
+### vLLM nightly B12X serving comparison
+
+The first fixed-length cross-runtime point used the same Qwen3.8-NVFP4
+checkpoint, 572 actual prompt tokens, 256 generated tokens, two warmups,
+thinking disabled, `ignore_eos=true`, and c16 requests. Both services ran on
+one RTX 5090 with FP8 KV cache and `max-model-len=1024`; the 1024 limit is
+intentional for this bounded scheduling probe and is not the 4K protocol.
+
+| Runtime | Backend | Requests | Success | TTFT P50 / P99 | Aggregate output |
+|---|---|---:|---:|---:|---:|
+| vLLM nightly | B12X | 16 | 16/16 | 912 / 1,254 ms | **186.06 tok/s** |
+| SGLang main | FP4 FlashInfer cuDNN, Mamba ratio 8 | 16 | 16/16 | 10,288 / 19,590 ms | 108.49 tok/s |
+
+The vLLM point is 71.5% faster on this bounded 1K/c16 shape, while its
+per-request completion time is about 22 s and the server admits more requests
+in one wave. This is a runtime scheduling result, not yet a general Kairo win;
+the 4K-configured matrix below is the relevant comparison.
+
+The same matrix was then repeated with `max-model-len=4096` and
+`max-num-seqs=16` for vLLM (SGLang used its 4K context profile). The prompt and
+generation lengths remained fixed, so startup/context capacity was the only
+changed serving envelope:
+
+| Runtime | c1 output | c4 output | c16 output | c16 TTFT P50 / P99 |
+|---|---:|---:|---:|---:|
+| vLLM nightly + B12X | 13.20 tok/s | 49.13 tok/s | **193.95 tok/s** | 940 / 1,255 ms |
+| SGLang main, ratio 8 | 14.42 tok/s | 53.04 tok/s | 107.37 tok/s | 10,080 / 19,670 ms |
+
+The vLLM c16 result was repeated twice (193.95 and 194.11 tok/s; all 32
+requests succeeded), giving a +80.7% throughput delta over the paired SGLang
+point. At c1/c4, SGLang remains slightly faster. The shape-specific reversal
+is the strongest current lead: vLLM/B12X keeps a much larger effective decode
+batch, while SGLang's Mamba cache forms multiple waves. It is a measurable
+runtime/scheduling wedge, not yet a kernel-publication claim; repeat it with
+long prompts and a correctness matrix before presenting it publicly.
 - A source checkout of SGLang main (`14b647c`) was tested in the isolated
   SGLang environment. With `--mamba-ssm-dtype bfloat16` and 0.80 static-memory
   fraction it loaded the weights, allocated 4.22 GiB of Mamba state plus a
@@ -167,14 +200,11 @@ TTFT P50/P99 of 227/259 ms, and 9,460 input tok/s. This is close enough to the
 earlier reading to treat the prefill point as stable for the current runtime,
 while still requiring cross-backend repetition before optimization claims.
 
-For the vLLM comparison, forcing its `flashinfer_cudnn` linear backend selected
-`FlashInferCudnnNvFp4LinearKernel` and reduced weight-load time to roughly 11 s,
-but the Qwen3.8 engine still failed to reach `/health` during GDN/attention
-initialization. The serving baseline above therefore uses SGLang main; vLLM is
-kept as a pending runtime comparison rather than treated as a failed model.
-- Until a newer pinned vLLM/SGLang environment clears this gate, the 0.5B model
-  remains the CI canary and the 8B NVFP4 model is the reproducible performance
-  control. No hero-model performance claim is made yet.
+The pinned vLLM 0.29.0 lane remains a compatibility probe and still stalls on
+Qwen3.8 initialization. The isolated nightly+B12X lane is the reproducible
+vLLM comparison path. The 0.5B model remains the CI canary; Qwen3.8 is now the
+hero performance lane, but any public win claim must use the 4K matrix and a
+correctness repeat.
 
 ## Service smoke gate (Qwen2.5-0.5B-Instruct)
 

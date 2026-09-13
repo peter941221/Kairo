@@ -19,7 +19,12 @@ GPU_SITE = Path("/home/peter/venv-gpu/lib/python3.12/site-packages")
 def main() -> None:
     if str(GPU_SITE) not in sys.path:
         nightly_site = next(
-            (index for index, entry in enumerate(sys.path) if "venv-vllm-nightly" in entry),
+            (
+                index
+                for index, entry in enumerate(sys.path)
+                if "venv-vllm-nightly" in entry
+                and Path(entry).name == "site-packages"
+            ),
             len(sys.path) - 1,
         )
         sys.path.insert(nightly_site + 1, str(GPU_SITE))

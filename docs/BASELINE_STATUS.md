@@ -301,20 +301,23 @@ approximately +52.1%). This is the first model-level
 signal that the CUTLASS path can turn the isolated NVFP4 kernel advantage into
 a serving advantage on the 5090.
 
-This is a pilot, not yet a production default: the comparison is one fresh
-service per backend and CUTLASS still needs repeated fresh-service runs plus
-the 2K-prompt workload. The exact command and raw output are captured in
+The same 2K-prompt c16 workload also reached 154.60 and 152.33 tok/s across two
+repeats (about +15.0% over the paired B12X 133.38--133.45 tok/s). This extends
+the CUTLASS lead beyond short prompts, although the absolute gain is smaller.
+
+This is a pilot, not yet a blanket production default: the comparisons use one
+fresh service per backend and need broader concurrency/shape coverage. The exact
+command and raw output are captured in
 `experiments/protocols/qwen38-vllm-cutlass-serving.yaml` and
 `.kairo-local/qwen-cutlass-c16-fair.out`. The runner supports
 `KAIRO_BENCH_REPEATS=N` to repeat warm-cache measurements without reloading
 the model.
 
 The CLI now exposes this evidence as a bounded runtime policy via
-`recommend-runtime`: the repeated short-prompt c16 cell selects vLLM nightly
-CUTLASS, the long-prompt c16 cell selects vLLM nightly+B12X, and measured c1/c4
-short cells select SGLang. Unmeasured shapes return `manual` instead of silently
-extrapolating. This is the first executable form of the workload-aware routing
-hypothesis.
+`recommend-runtime`: both repeated c16 cells select vLLM nightly CUTLASS, while
+measured c1/c4 short cells select SGLang. Unmeasured shapes return `manual`
+instead of silently extrapolating. This is the first executable form of the
+workload-aware routing hypothesis.
 
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
 metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt

@@ -33,10 +33,22 @@ result:
   ttft_p50_ms: [1126.60, 1093.52]
   ttft_p99_ms: [1475.32, 1472.56]
   wall_seconds: [14.221, 13.849]
+long_prompt_result:
+  requested_prompt_tokens: 2048
+  actual_prompt_tokens: 2241.75
+  generation_tokens: 128
+  repeats: 2
+  successful_requests_per_repeat: 16
+  output_tokens_per_second: [154.60, 152.33]
+  output_tokens_per_second_mean: 153.46
+  ttft_p50_ms: [3576.46, 3747.55]
+  paired_b12x_output_tokens_per_second: [133.38, 133.45]
+  approximate_delta_percent: 15.0
+  raw_output: .kairo-local/qwen-cutlass-long-c16.out
 comparison:
   paired_vllm_nightly_b12x_output_tokens_per_second: 191.93
   approximate_delta_percent_vs_191_93: 52.1
-  note: CUTLASS is faster on two warm-cache repeats of the fixed-length c16 point; repeat on fresh services and longer prompts before routing production traffic.
+  note: CUTLASS is faster on two warm-cache repeats at both 512- and 2048-token c16 cells; repeat on fresh services and broader concurrency before routing production traffic.
 evidence:
   command: KAIRO_BENCH_REQUESTS=16 KAIRO_BENCH_GENERATION_TOKENS=256 KAIRO_BENCH_WARMUP=2 KAIRO_BENCH_CONCURRENCY=16 bash scripts/wsl/run_qwen_cutlass_bench.sh 18091
   raw_output: .kairo-local/qwen-cutlass-c16-repeat.out

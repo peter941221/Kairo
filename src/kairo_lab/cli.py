@@ -72,10 +72,10 @@ def recommend_runtime(model: str, concurrency: int, prompt_tokens: int) -> dict[
         return {
             "model": model,
             "backend": "vllm-nightly",
-            "profile": "qwen38-vllm-nightly-b12x-c16",
-            "linear_backend": "b12x",
-            "confidence": "measured_cross_runtime",
-            "reason": "B12X remains the only measured winner for the long prompt",
+            "profile": "qwen38-vllm-nightly-cutlass-c16",
+            "linear_backend": "cutlass",
+            "confidence": "measured_repeated",
+            "reason": "CUTLASS won two warm-cache c16 repeats at the long prompt",
         }
     if concurrency in {1, 4} and prompt_tokens == 512:
         return {

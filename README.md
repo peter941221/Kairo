@@ -267,9 +267,8 @@ scheduling lead until a broader task suite and repeated trials are complete.
 
 The newer CUTLASS path has now passed two same-service repeats on the short
 prompt c16 cell at 288.03 and 295.76 tok/s (32/32 successful), about 52% above
-the paired B12X point. The recommender therefore selects CUTLASS for that exact
-measured cell and keeps B12X for the measured 2K-prompt cell; other shapes stay
-manual until measured.
+the paired B12X point. The recommender therefore selects CUTLASS for both
+measured c16 prompt cells; other shapes stay manual until measured.
 
 Run the lightweight correctness gate against any OpenAI-compatible service:
 
@@ -291,8 +290,8 @@ python -m kairo_lab.cli recommend-runtime \
   --model qwen38 --concurrency 16 --prompt-tokens 2048
 ```
 
-The policy selects vLLM/CUTLASS for short c16, vLLM/B12X for long c16, and
-SGLang for measured c1/c4 short cells; every other shape returns `manual` until
+The policy selects vLLM/CUTLASS for both measured c16 prompt cells and SGLang
+for measured c1/c4 short cells; every other shape returns `manual` until
 measured.
 
 To apply that decision automatically when launching SGLang:

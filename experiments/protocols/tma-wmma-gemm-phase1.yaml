@@ -63,4 +63,14 @@ performance:
       kairo_gflops: 42332.302
       single_buffer_control_gflops: 39179.652
       max_abs_error_vs_cublas: 0.00010109
+  post_wsl_restart_validation:
+    note: "Fresh process after WSL recovery; confirms the SM120 TMA path remains usable"
+    shape: [1024, 1024, 1024]
+    iterations: 20
+    kairo_ms: 0.060552
+    kairo_gflops: 35465.114
+    cublas_ms: 0.016755
+    cublas_gflops: 128168.197
+    max_abs_error_vs_cublas: 0.0
+    raw_output: .kairo-local/tma-wmma-restart-1024.json
 decision: TMA integration is correct and improves the 4K WMMA path by about 1.5x, but remains behind cuBLAS. The first double-buffered control is also correct but slower than the single-buffer baseline (about 8% at 1K and 3% at 4K); keep it only as a regression fixture. The m128 variant is correct across square and rectangular checks and improves the single-buffer path by about 8% on the rectangular cell and 11--13% on 4K square, so it is the leading aligned-shape candidate. Do not route all workloads to it until more boundary and occupancy cells are measured.

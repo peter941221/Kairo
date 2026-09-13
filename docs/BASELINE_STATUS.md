@@ -96,6 +96,12 @@ one transaction-counted mbarrier, and a 64x16 block tile. The 1K result is
 absolute error against cuBLAS on the checked shapes. Relative to direct WMMA,
 TMA improves the 4K point by roughly 1.5x; cuBLAS remains faster.
 
+After recovering WSL from the later SGLang autotune failure, a fresh process
+reran the 1K TMA+WMMA cell at 35,465 GFLOP/s with zero error versus cuBLAS.
+This post-restart validation is recorded in the protocol's
+`post_wsl_restart_validation` block and confirms the SM120 TMA path itself was
+not damaged by the runtime incident.
+
 The follow-up double-buffered control is also correct (zero error), but did
 not improve these shapes: 32,108 versus 34,926 GFLOP/s at 1K and 40,801 versus
 41,917 GFLOP/s at 4K. The extra barrier/synchronization overhead currently

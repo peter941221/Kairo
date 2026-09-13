@@ -26,6 +26,7 @@ disable_thinking="${KAIRO_DISABLE_THINKING:-0}"
 linear_backend="${KAIRO_LINEAR_BACKEND:-}"
 moe_backend="${KAIRO_MOE_BACKEND:-}"
 max_running_requests="${KAIRO_MAX_RUNNING_REQUESTS:-}"
+num_continuous_decode_steps="${KAIRO_NUM_CONTINUOUS_DECODE_STEPS:-}"
 log_file="$(mktemp /tmp/kairo-${backend:-unknown}.XXXXXX.log)"
 server_pid=""
 
@@ -79,6 +80,7 @@ elif [[ "$backend" == "sglang" ]]; then
   [[ "$trust_remote_code" == "1" ]] && sglang_args+=(--trust-remote-code)
   [[ -n "$kv_cache_dtype" ]] && sglang_args+=(--kv-cache-dtype "$kv_cache_dtype")
   [[ -n "$max_running_requests" ]] && sglang_args+=(--max-running-requests "$max_running_requests")
+  [[ -n "$num_continuous_decode_steps" ]] && sglang_args+=(--num-continuous-decode-steps "$num_continuous_decode_steps")
   "$sglang_python" "${sglang_args[@]}" >"$log_file" 2>&1 &
 else
   echo "usage: $0 {vllm|sglang} [model_path] [port]" >&2

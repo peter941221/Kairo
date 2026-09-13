@@ -113,6 +113,12 @@ This is the first credible end-to-end performance wedge, but it is
 high-concurrency-specific and must survive repeated runs, longer prompts, and a
 correctness matrix before being promoted as the default configuration.
 
+One additional scheduler probe set `KAIRO_NUM_CONTINUOUS_DECODE_STEPS=4` on the
+ratio-8 service. The identical c16 workload reached 103.08 tok/s with TTFT
+P50/P99 of 10.65/20.53 s, about 4% below the ratio-8 default of 107.37 tok/s.
+The extra continuous steps are therefore rejected for this workload; the
+current candidate remains ratio-only.
+
 A matching prefill probe (2,048 requested prompt tokens, 2,241 actual tokens,
 one generated token, concurrency 1, four requests) produced TTFT P50 238 ms and
 input throughput 9,080 tok/s. It is a warm-cache observation and should be

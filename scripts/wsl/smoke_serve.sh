@@ -19,6 +19,8 @@ disable_flashinfer_autotune="${KAIRO_DISABLE_FLASHINFER_AUTOTUNE:-0}"
 health_timeout="${KAIRO_HEALTH_TIMEOUT:-120}"
 skip_server_warmup="${KAIRO_SKIP_SERVER_WARMUP:-0}"
 mamba_ssm_dtype="${KAIRO_MAMBA_SSM_DTYPE:-float32}"
+fp4_gemm_backend="${KAIRO_FP4_GEMM_BACKEND:-}"
+fp8_gemm_backend="${KAIRO_FP8_GEMM_BACKEND:-}"
 log_file="$(mktemp /tmp/kairo-${backend:-unknown}.XXXXXX.log)"
 server_pid=""
 
@@ -62,6 +64,8 @@ elif [[ "$backend" == "sglang" ]]; then
       --mamba-radix-cache-strategy extra_buffer --mamba-ssm-dtype "$mamba_ssm_dtype")
   fi
   [[ "$disable_flashinfer_autotune" == "1" ]] && sglang_args+=(--disable-flashinfer-autotune)
+  [[ -n "$fp4_gemm_backend" ]] && sglang_args+=(--fp4-gemm-backend "$fp4_gemm_backend")
+  [[ -n "$fp8_gemm_backend" ]] && sglang_args+=(--fp8-gemm-backend "$fp8_gemm_backend")
   [[ "$skip_server_warmup" == "1" ]] && sglang_args+=(--skip-server-warmup)
   [[ "$trust_remote_code" == "1" ]] && sglang_args+=(--trust-remote-code)
   [[ -n "$kv_cache_dtype" ]] && sglang_args+=(--kv-cache-dtype "$kv_cache_dtype")

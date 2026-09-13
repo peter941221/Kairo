@@ -27,7 +27,7 @@ Last verified in WSL Ubuntu 24.04 on the local RTX 5090:
 ## Important qualification
 
 vLLM and SGLang were installed into the existing `/home/peter/venv-gpu`
-  environment without dependency resolution so that the TensorRT CUDA 13 stack
+environment without dependency resolution so that the TensorRT CUDA 13 stack
 would not be replaced. Their package metadata requests a newer/different set of
 versions (notably torch 2.13.0 and framework-specific CUDA wheels). Therefore:
 

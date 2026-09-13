@@ -30,6 +30,14 @@ separate probes. The raw report is kept in the ignored
 `.kairo-local/capability-probe.json` file so hardware facts do not get mixed
 with source-controlled result tables.
 
+The companion `scripts/wsl/probe_tcgen05.sh` tested the CUDA 13.0 CCCL
+`tcgen05.fence` entry point with `-arch=sm_120`. It returns
+`supported:false`: `ptxas` resolves the generated
+`not_supported_before_SM_100a_SM_101a` stub and fails the link. This is an
+actionable SM120 boundary, not a missing-header problem. Kairo therefore keeps
+WMMA/cp.async as the RTX 5090 fallback and does not claim a `tcgen05` kernel
+until a toolchain and hardware path explicitly support SM120.
+
 ## Phase 1 FP16 GEMM closure
 
 The first Kairo-owned tiled GEMM is implemented in

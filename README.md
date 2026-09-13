@@ -47,6 +47,13 @@ Run the Phase 0 RTX 5090 compiler and asynchronous-copy gate:
 wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/wsl/probe_capabilities.sh'
 ```
 
+Check whether the current toolkit exposes Blackwell `tcgen05` on SM120 (the
+probe reports a structured unsupported result rather than failing the lab):
+
+```powershell
+wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/wsl/probe_tcgen05.sh'
+```
+
 Run the first Kairo-owned FP16 tiled GEMM (correctness plus cuBLAS timing):
 
 ```powershell

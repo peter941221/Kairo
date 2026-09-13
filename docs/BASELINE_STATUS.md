@@ -47,3 +47,18 @@ environment.
 The old Moonmath records remain useful historical evidence: vLLM 0.26.0 and
 SGLang 0.5.17 were previously run on this same 5090, with WSL-specific pin-memory
 and CUDA Graph settings.
+
+## First decode measurement (smoke workload)
+
+The dependency-free `scripts/wsl/bench_openai.py` was run with 512 requested
+prompt tokens, 64 generated tokens, one warmup, four requests, and concurrency
+1. The server usage reported 587 input tokens for each request:
+
+| Backend | TTFT P50 / P99 (ms) | Total P50 (ms) | Output tok/s |
+|---|---:|---:|---:|
+| vLLM 0.29.0 | 19.5 / 21.8 | 491.6 | 129.0 |
+| SGLang 0.5.19 | 22.6 / 181.3 | 469.0 | 125.6 |
+
+These are wiring and reproducibility checks on a 0.5B model, not the Kairo
+result. The next run expands concurrency and prompt lengths under the v0
+protocol before selecting a kernel hotspot.

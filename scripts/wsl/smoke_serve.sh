@@ -72,3 +72,9 @@ curl -fsS "http://127.0.0.1:$port/v1/chat/completions" \
   -H 'Content-Type: application/json' \
   -d '{"model":"smoke","messages":[{"role":"user","content":"Reply with exactly: KAIRO_OK"}],"max_tokens":8,"temperature":0}'
 echo
+if [[ "${KAIRO_KEEP_ALIVE:-0}" == "1" ]]; then
+  echo "keep_alive=1; press Ctrl-C to stop"
+  while kill -0 "$server_pid" 2>/dev/null; do
+    sleep 5
+  done
+fi

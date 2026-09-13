@@ -43,6 +43,11 @@ downloaded at `/home/peter/kairo-models/Qwen3.8-27B-NVFP4` (about 21 GiB).
   `/health` stayed 503 until the harness timeout. This narrows the next task to
   first-use kernel compilation/heartbeat handling rather than model loading or
   raw memory capacity.
+- Building the missing `fp4_gemm_cutlass_sm120` target directly with Ninja
+  reproduced a WSL service failure during the 18-kernel CUDA build. An
+  experimental Marlin backend override did not clear the health gate, so this
+  remains an explicit pending backend/compile experiment rather than a claimed
+  workaround.
 - Until a newer pinned vLLM/SGLang environment clears this gate, the 0.5B model
   remains the CI canary and the 8B NVFP4 model is the reproducible performance
   control. No hero-model performance claim is made yet.

@@ -56,4 +56,5 @@ cuda_graph_service_probe:
   status: failed_health_timeout
   command: KAIRO_ENFORCE_EAGER=0 KAIRO_BENCH_REQUESTS=8 KAIRO_BENCH_GENERATION_TOKENS=128 bash scripts/wsl/run_qwen_cutlass_bench.sh 18094
   observation: vLLM nightly stayed in initialization for more than 300 seconds and never reached /health; no throughput number was recorded.
+  piecewise_followup: KAIRO_ENFORCE_EAGER=0 KAIRO_CUDAGRAPH_MODE=PIECEWISE also stayed in initialization for more than 210 seconds without health.
   implication: Keep service runner defaulting to enforce-eager. Microbenchmark CUDA Graph capture remains valid, but model-level graph integration needs a separate shape-bucketed implementation.

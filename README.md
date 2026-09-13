@@ -387,6 +387,8 @@ selected c32/prompt512 Graph automatically and passed 4/4 correctness with
 32/32 successful requests. By default the entry point also captures the raw
 log under `.kairo-local`; set `KAIRO_ROUTED_OUTPUT` to choose another path or
 `KAIRO_ROUTED_NO_CAPTURE=1` to disable capture.
+The measured memory/context limits are enforced by default; set
+`KAIRO_ROUTED_ALLOW_OVERRIDES=1` only for an explicitly experimental run.
 The complementary c16/prompt512 4K/256 workload automatically selects eager
 and has also passed its 4/4 correctness and 16/16 success gate.
 

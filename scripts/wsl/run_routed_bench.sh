@@ -41,17 +41,27 @@ export KAIRO_BENCH_CONCURRENCY="$concurrency"
 export KAIRO_BENCH_PROMPT_TOKENS="$prompt_tokens"
 export KAIRO_BENCH_GENERATION_TOKENS="$generation_tokens"
 export KAIRO_BENCH_REQUESTS="${KAIRO_BENCH_REQUESTS:-$concurrency}"
-export KAIRO_MAX_RUNNING_REQUESTS="${KAIRO_MAX_RUNNING_REQUESTS:-${max_num_seqs:-$concurrency}}"
 export KAIRO_LINEAR_BACKEND="${linear_backend:-cutlass}"
 if [[ "$cudagraph_mode" == "FULL_DECODE_ONLY" ]]; then
   export KAIRO_ENFORCE_EAGER=0
   export KAIRO_CUDAGRAPH_MODE="$cudagraph_mode"
-  # All currently routable Graph cells were measured with a 1K max length.
-  export KAIRO_MAX_MODEL_LEN="${KAIRO_MAX_MODEL_LEN:-1024}"
+  # All currently routable Graph cells were measured with a 1K max length and
+  # 32 sequence slots. Do not inherit a broader caller setting by accident.
+  if [[ "${KAIRO_ROUTED_ALLOW_OVERRIDES:-0}" == "1" ]]; then
+    export KAIRO_MAX_MODEL_LEN="${KAIRO_MAX_MODEL_LEN:-1024}"
+    export KAIRO_MAX_RUNNING_REQUESTS="${KAIRO_MAX_RUNNING_REQUESTS:-${max_num_seqs:-$concurrency}}"
+  else
+    export KAIRO_MAX_MODEL_LEN=1024
+    export KAIRO_MAX_RUNNING_REQUESTS="${max_num_seqs:-32}"
+  fi
 else
   export KAIRO_ENFORCE_EAGER=1
   unset KAIRO_CUDAGRAPH_MODE
-  export KAIRO_MAX_MODEL_LEN="${KAIRO_MAX_MODEL_LEN:-4096}"
+  if [[ "${KAIRO_ROUTED_ALLOW_OVERRIDES:-0}" == "1" ]]; then
+    export KAIRO_MAX_MODEL_LEN="${KAIRO_MAX_MODEL_LEN:-4096}"
+  else
+    export KAIRO_MAX_MODEL_LEN=4096
+  fi
 fi
 
 if [[ "${KAIRO_ROUTED_DRY_RUN:-0}" == "1" ]]; then

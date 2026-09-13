@@ -447,6 +447,9 @@ each raw invocation automatically for post-hoc stability analysis. A second
 integration run with c16/prompt512, 4K context, and 256 output tokens selected
 the eager route, passed 4/4 correctness, completed 16/16 requests, and measured
 292.53 tok/s; both automatic branches are therefore executable.
+The routed launcher enforces the measured context and sequence limits by
+default; broader settings require the explicit `KAIRO_ROUTED_ALLOW_OVERRIDES=1`
+escape hatch and are not covered by the published route.
 
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
 metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt

@@ -30,6 +30,25 @@ separate probes. The raw report is kept in the ignored
 `.kairo-local/capability-probe.json` file so hardware facts do not get mixed
 with source-controlled result tables.
 
+## Phase 1 FP16 GEMM closure
+
+The first Kairo-owned tiled GEMM is implemented in
+`scripts/wsl/fp16_gemm_probe.cu` and built for `sm_120` by
+`scripts/wsl/run_fp16_gemm_probe.sh`. It uses a 16x16 shared-memory tile,
+FP32 accumulation, and handles non-multiple dimensions. On `[128,131,113]` it
+matched cuBLAS within `1.43e-6` maximum absolute error. On `[1024,1024,1024]`
+it measured 9,314 GFLOP/s versus 123,326 GFLOP/s for cuBLAS (0.231 ms versus
+0.017 ms). This is a correctness-first reference, not a performance claim;
+the 13.2x gap defines the optimization budget for asynchronous staging,
+vectorized loads, and tensor-core instructions. The reproducible parameters
+are recorded in `experiments/protocols/fp16-gemm-phase1.yaml`.
+
+Run it directly on the WSL 5090:
+
+```bash
+bash scripts/wsl/run_fp16_gemm_probe.sh 1024 1024 1024 50
+```
+
 ## Fresh-model gate (2026-09-13)
 
 The workbench's primary candidate is now `nvidia/Qwen3.8-27B-NVFP4`, with

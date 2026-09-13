@@ -1,0 +1,26 @@
+name: fp16-gemm-phase1
+status: measured_correctness_baseline
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  compute_capability: "12.0"
+  execution_environment: WSL2 Ubuntu 24.04
+toolchain:
+  cuda: 13.0.0
+  target: sm_120
+kernel:
+  implementation: scripts/wsl/fp16_gemm_probe.cu
+  tile: 16x16
+  accumulation: float32
+  layout: row_major
+correctness:
+  shape: [128, 131, 113]
+  max_abs_error_vs_cublas: 0.00000143
+  passed: true
+performance:
+  shape: [1024, 1024, 1024]
+  iterations: 50
+  kairo_ms: 0.230570
+  kairo_gflops: 9313.794
+  cublas_ms: 0.017413
+  cublas_gflops: 123325.605
+decision: Correctness and arbitrary-boundary handling pass; the simple tiled kernel is 13.2x slower than cuBLAS on the large shape and is retained as the Phase 1 reference for async staging, vectorized loads, and tensor-core optimization.

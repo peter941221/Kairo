@@ -47,6 +47,12 @@ Run the Phase 0 RTX 5090 compiler and asynchronous-copy gate:
 wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/wsl/probe_capabilities.sh'
 ```
 
+Run the first Kairo-owned FP16 tiled GEMM (correctness plus cuBLAS timing):
+
+```powershell
+wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/wsl/run_fp16_gemm_probe.sh 1024 1024 1024 50'
+```
+
 `init-run` writes a machine-readable run record under `runs/`, which is ignored
 by Git. Keep the command, input manifests, source revision, and published result
 table together when reporting an experiment.

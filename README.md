@@ -141,7 +141,7 @@ The first fair cross-runtime matrix is now recorded in
 [`docs/BASELINE_STATUS.md`](docs/BASELINE_STATUS.md): vLLM nightly+B12X reaches
 191.93–194.11 tok/s at the 4K-configured c16 point versus 107.37 tok/s for
 SGLang ratio 8, while SGLang remains slightly ahead at c1/c4. The lead survives
-the 2K-prompt repeat at 133.38 versus 56.59 tok/s, and both lanes pass the
+the 2K-prompt repeats at 133.38–133.45 versus 56.59 tok/s, and both lanes pass the
 deterministic 4/4 correctness gate. Treat the result as a shape-specific
 scheduling lead until a broader task suite and repeated trials are complete.
 

@@ -114,6 +114,12 @@ series. The vLLM long-prompt point is about 2.31x the SGLang ratio-8 result, so
 the c16 lead survives beyond the short-prompt wedge, while the absolute
 advantage is smaller than at 512 tokens.
 
+A second vLLM run under the same protocol reached 133.45 tok/s (versus
+133.38 tok/s initially), with 32/32 requests successful across the two runs.
+This narrow spread makes the long-prompt vLLM point repeatable enough for the
+next profiling stage, but the cross-runtime comparison still needs a repeated
+SGLang measurement with identical TTFT capture.
+
 ### Deterministic correctness gate
 
 `scripts/wsl/check_correctness.py` sends four temperature-0 OpenAI-compatible

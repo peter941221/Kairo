@@ -393,6 +393,15 @@ This is strong shape evidence, but the current router deliberately does not
 map it onto the existing 4K-context/256-output c16 profile; context and output
 length must become explicit routing dimensions before that promotion.
 
+The 4K-context boundary was also tested directly at 2,048 requested prompt
+tokens (2,241.75 actual), 128 generated tokens, and c16 with
+`max_num_seqs=16`. Graph reached 254.28 and 265.86 tok/s (median **260.07**)
+versus a same-cap eager control at 174.71 and 224.34 (median **199.52**), a
+more modest but real **1.30x / +30.3%** lead. Correctness was 4/4 and all
+requests succeeded. The result supports Graph as a long-context optimization,
+but its smaller margin and sequence-cap sensitivity argue for keeping this
+cell experimental until more fresh-service repeats are collected.
+
 The CLI now exposes this evidence as a bounded runtime policy via
 `recommend-runtime`: the measured c8/prompt256 cell selects vLLM nightly
 CUTLASS `FULL_DECODE_ONLY` Graph with `max_num_seqs=32`; both repeated c16

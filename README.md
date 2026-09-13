@@ -319,6 +319,11 @@ At c16/prompt512 with the same 1K context and 128-token output, Graph reached
 That evidence is recorded separately because the current router still models
 the existing prompt512 cell as a 4K-context/256-output workload.
 
+At 4K context and c16/prompt2048, Graph still led the same-cap eager control:
+260.07 versus 199.52 tok/s median (1.30x, +30.3%; 4/4 correctness). The
+smaller margin is why this long-context cell remains experimental rather than
+becoming an automatic default.
+
 Run the lightweight correctness gate against any OpenAI-compatible service:
 
 ```bash

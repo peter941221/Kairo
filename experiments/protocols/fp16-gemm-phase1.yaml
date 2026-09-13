@@ -37,4 +37,13 @@ performance:
       kairo_gflops_range: [33253.486, 33329.788]
       max_abs_error_vs_cublas: 0.00003433
       correctness: true
-decision: Correctness and arbitrary-boundary handling pass; 2x2 register reuse improves the Kairo reference by about 2.5x, and WMMA tensor-core MMA reaches about 33.3 TFLOP/s (3.4x faster than the tiled reference). The async-copy-only variant is within measurement noise, so the next target is a native Blackwell MMA/TMA pipeline.
+  large_shape_4096:
+    variant: wmma_fp16
+    iterations: 10
+    kairo_ms: 5.020477
+    kairo_gflops: 27375.677
+    cublas_ms: 0.655984
+    cublas_gflops: 209515.696
+    cpu_reference_checked: false
+    max_abs_error_vs_cublas: 0.0
+decision: Correctness and arbitrary-boundary handling pass; 2x2 register reuse improves the Kairo reference by about 2.5x, and WMMA tensor-core MMA reaches about 33.3 TFLOP/s on 1K and 27.4 TFLOP/s on 4K. The async-copy-only variant is within measurement noise, and WMMA remains 7.6x behind cuBLAS at 4K, so the next target is a native Blackwell MMA/TMA pipeline.

@@ -58,6 +58,14 @@ Kairo-owned tensor-core result and provides a credible starting point for
 Blackwell-specific WGMMA/TMA work. Non-16-divisible shapes are explicitly
 rejected by this variant and must use the fallback path.
 
+At the larger `[4096,4096,4096]` shape, ten iterations measured 27,376
+GFLOP/s versus 209,516 GFLOP/s for cuBLAS. The probe skips the impractical
+O(MNK) CPU reference at this size and checks the full output against cuBLAS
+instead (maximum absolute error `0.0` in this run). The scale-up result keeps
+the optimization target honest: a tensor-core API alone is not enough; tile
+occupancy, shared-memory movement, and Blackwell-native instruction selection
+must be addressed.
+
 Run it directly on the WSL 5090:
 
 ```bash

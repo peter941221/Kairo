@@ -267,19 +267,27 @@ int main(int argc, char** argv) {
     }
     check(cudaGetLastError(), "custom warmup launch");
     check(cudaDeviceSynchronize(), "custom warmup synchronize");
-    std::vector<float> host_reference(host_custom.size(), 0.0f);
-    for (int row = 0; row < m; ++row) {
-        for (int col = 0; col < n; ++col) {
-            float sum = 0.0f;
-            for (int inner = 0; inner < k; ++inner) {
-                sum += __half2float(host_a[static_cast<size_t>(row) * k + inner]) *
-                       __half2float(host_b[static_cast<size_t>(inner) * n + col]);
-            }
-            host_reference[static_cast<size_t>(row) * n + col] = sum;
-        }
-    }
     check(cudaMemcpy(host_custom.data(), device_custom, host_custom.size() * sizeof(float), cudaMemcpyDeviceToHost), "copy(custom)");
-    const float custom_error = max_error(host_custom, host_reference);
+    // A CPU O(MNK) reference is useful for boundary tests but becomes
+    // impractical for production-sized matrices. Large shapes use the
+    // independent cuBLAS result below as their correctness oracle.
+    const bool cpu_reference_checked =
+        static_cast<long double>(m) * n * k <= 50'000'000.0L;
+    float custom_error = -1.0f;
+    if (cpu_reference_checked) {
+        std::vector<float> host_reference(host_custom.size(), 0.0f);
+        for (int row = 0; row < m; ++row) {
+            for (int col = 0; col < n; ++col) {
+                float sum = 0.0f;
+                for (int inner = 0; inner < k; ++inner) {
+                    sum += __half2float(host_a[static_cast<size_t>(row) * k + inner]) *
+                           __half2float(host_b[static_cast<size_t>(inner) * n + col]);
+                }
+                host_reference[static_cast<size_t>(row) * n + col] = sum;
+            }
+        }
+        custom_error = max_error(host_custom, host_reference);
+    }
 
     cublasHandle_t handle = nullptr;
     check_blas(cublasCreate(&handle), "cublasCreate");
@@ -331,14 +339,16 @@ int main(int argc, char** argv) {
     std::printf("{\"gpu\":\"%s\",\"shape\":[%d,%d,%d],\"iterations\":%d,"
                 "\"variant\":\"%s\",\"custom_ms\":%.6f,\"cublas_ms\":%.6f,"
                 "\"custom_gflops\":%.3f,\"cublas_gflops\":%.3f,"
-                "\"custom_max_abs_error\":%.8f,\"custom_vs_cublas_max_abs_error\":%.8f,"
-                "\"correctness_ok\":%s}\n",
+                "\"cpu_reference_checked\":%s,\"custom_max_abs_error\":%.8f,"
+                "\"custom_vs_cublas_max_abs_error\":%.8f,\"correctness_ok\":%s}\n",
                 properties.name, m, n, k, iterations,
                 requested_variant,
                 custom_ms, blas_ms,
                 operations / (custom_ms * 1.0e6), operations / (blas_ms * 1.0e6),
-                custom_error, cross_error,
-                (custom_error < 0.02f && cross_error < 0.02f) ? "true" : "false");
+                cpu_reference_checked ? "true" : "false", custom_error, cross_error,
+                ((!cpu_reference_checked || custom_error < 0.02f) && cross_error < 0.02f)
+                    ? "true"
+                    : "false");
 
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
@@ -347,5 +357,5 @@ int main(int argc, char** argv) {
     cudaFree(device_b);
     cudaFree(device_custom);
     cudaFree(device_blas);
-    return (custom_error < 0.02f && cross_error < 0.02f) ? 0 : 1;
+    return ((!cpu_reference_checked || custom_error < 0.02f) && cross_error < 0.02f) ? 0 : 1;
 }

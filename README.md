@@ -409,6 +409,12 @@ ready to back PTX/Cubin or serialized graph packages without silently reusing
 artifacts across hardware changes. Concurrent first misses are single-flight,
 so a burst of requests cannot trigger duplicate builds for one key.
 
+Inspect a persistent cache without altering runtime hit/miss counters:
+
+```bash
+python -m kairo_lab.cli cache-inspect --root .kairo-local/kernel-cache
+```
+
 Ask the executable policy whether an NVFP4 shape is eligible for Graph replay:
 
 ```bash

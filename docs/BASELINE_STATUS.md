@@ -195,7 +195,8 @@ miss, and explainable fingerprint-invalidation counters. This closes the PRD
 cache contract at the library layer; wiring it into a compiled-kernel loader
 remains the next integration step. Concurrent first misses now use a per-key
 single-flight lock, so only one caller builds an artifact while waiters reuse
-the published result.
+the published result. The `cache-inspect` CLI audits on-disk metadata, payload
+hashes, missing artifacts, and orphan files without changing runtime counters.
 
 `recommend-nvfp4` now exposes the measured Graph allowlist: exact 4K
 N/K shapes at M=1/32/128 select `cuda_graph_shape_bucket` with replay

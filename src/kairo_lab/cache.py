@@ -182,3 +182,59 @@ class RuntimeKernelCache:
                 **self._stats,
                 "miss_reasons": dict(self._stats["miss_reasons"]),
             }
+
+    def inspect(self) -> dict[str, object]:
+        """Audit persistent entries without changing hit/miss counters."""
+
+        with self._lock:
+            entries: list[dict[str, object]] = []
+            referenced_artifacts: set[str] = set()
+            for metadata_path in sorted(self.root.glob("*.json")):
+                digest = metadata_path.stem
+                artifact_path = self.root / f"{digest}.bin"
+                referenced_artifacts.add(artifact_path.name)
+                entry: dict[str, object] = {
+                    "digest": digest,
+                    "metadata": metadata_path.name,
+                    "artifact": artifact_path.name,
+                    "valid": False,
+                }
+                try:
+                    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+                    payload = artifact_path.read_bytes()
+                    expected_hash = metadata.get("payload_sha256")
+                    actual_hash = hashlib.sha256(payload).hexdigest()
+                    entry["key"] = metadata.get("key")
+                    entry["payload_size"] = len(payload)
+                    entry["valid"] = (
+                        metadata.get("schema") == 1
+                        and artifact_path.exists()
+                        and metadata.get("payload_size") == len(payload)
+                        and expected_hash == actual_hash
+                    )
+                    if not entry["valid"]:
+                        entry["reason"] = "integrity_failure"
+                except FileNotFoundError:
+                    entry["reason"] = "missing_artifact"
+                except (OSError, json.JSONDecodeError):
+                    entry["reason"] = "corrupt_metadata"
+                entries.append(entry)
+            for artifact_path in sorted(self.root.glob("*.bin")):
+                if artifact_path.name not in referenced_artifacts:
+                    entries.append(
+                        {
+                            "digest": artifact_path.stem,
+                            "artifact": artifact_path.name,
+                            "valid": False,
+                            "reason": "orphan_artifact",
+                        }
+                    )
+            valid = sum(bool(entry["valid"]) for entry in entries)
+            return {
+                "root": str(self.root),
+                "entries": entries,
+                "entry_count": len(entries),
+                "valid_entries": valid,
+                "invalid_entries": len(entries) - valid,
+                "total_payload_bytes": sum(int(entry.get("payload_size", 0)) for entry in entries),
+            }

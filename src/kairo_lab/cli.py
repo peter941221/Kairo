@@ -10,6 +10,8 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
+from .cache import RuntimeKernelCache
+
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -299,6 +301,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="kairo-lab")
     subcommands = parser.add_subparsers(dest="command", required=True)
     subcommands.add_parser("env", help="print the current reproducibility environment")
+    cache_parser = subcommands.add_parser(
+        "cache-inspect", help="audit persistent runtime cache entries"
+    )
+    cache_parser.add_argument("--root", type=Path, required=True)
     run_parser = subcommands.add_parser("init-run", help="create an ignored run record")
     run_parser.add_argument("--lane", default="decode", choices=["decode", "prefill", "discovery"])
     profile_parser = subcommands.add_parser(
@@ -332,6 +338,8 @@ def main() -> None:
 
     if args.command == "env":
         print(json.dumps(environment(), indent=2))
+    elif args.command == "cache-inspect":
+        print(json.dumps(RuntimeKernelCache(args.root).inspect(), indent=2))
     elif args.command == "init-run":
         print(init_run(args.lane))
     elif args.command == "recommend-profile":

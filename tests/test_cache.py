@@ -59,3 +59,13 @@ class CacheTests(unittest.TestCase):
         stats = self.cache.stats()
         self.assertEqual(stats["invalidations"], 1)
         self.assertEqual(stats["miss_reasons"], {"integrity_failure": 1})
+
+    def test_inspect_reports_valid_and_tampered_entries(self):
+        self.cache.store(self.key, b"ptx")
+        report = self.cache.inspect()
+        self.assertEqual(report["valid_entries"], 1)
+        self.assertEqual(report["invalid_entries"], 0)
+        self.cache._artifact_path(self.key).write_bytes(b"tampered")
+        report = self.cache.inspect()
+        self.assertEqual(report["valid_entries"], 0)
+        self.assertEqual(report["entries"][0]["reason"], "integrity_failure")

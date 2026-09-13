@@ -40,6 +40,15 @@ wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && ./scripts/wsl/r
 by Git. Keep the command, input manifests, source revision, and published result
 table together when reporting an experiment.
 
+To run the backend service gate, use the shared GPU environment for vLLM and the
+isolated PyTorch 2.13 environment for SGLang:
+
+```bash
+./scripts/wsl/smoke_serve.sh vllm
+KAIRO_SGLANG_PYTHON=/home/peter/venv-sglang/bin/python \
+  ./scripts/wsl/smoke_serve.sh sglang
+```
+
 ## Decision gate
 
 After baseline profiling, promote a hotspot only if it has a credible route to a

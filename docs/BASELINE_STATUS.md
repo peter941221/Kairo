@@ -331,6 +331,9 @@ command and raw output are captured in
 `.kairo-local/qwen-cutlass-c16-fair.out`. The runner supports
 `KAIRO_BENCH_REPEATS=N` to repeat warm-cache measurements without reloading
 the model.
+The same CUTLASS service also passed the deterministic 4/4 semantic gate
+(`KAIRO_RUN_CORRECTNESS=1`) before a short c16 throughput run; its raw record is
+`.kairo-local/qwen-cutlass-correctness.out`.
 
 The CLI now exposes this evidence as a bounded runtime policy via
 `recommend-runtime`: both repeated c16 cells select vLLM nightly CUTLASS, while

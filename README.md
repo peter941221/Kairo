@@ -172,6 +172,9 @@ The model-level CUTLASS serving gate is reproducible with:
 bash scripts/wsl/run_qwen_cutlass_bench.sh 18088
 ```
 
+Add `KAIRO_RUN_CORRECTNESS=1` to run the four-case deterministic semantic gate
+before throughput measurement.
+
 Add `--control-first` to reverse the FP16/NVFP4 timing order when checking
 clock or launch-order sensitivity.
 

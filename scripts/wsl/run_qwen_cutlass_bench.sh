@@ -27,6 +27,7 @@ export KAIRO_DISABLE_THINKING="${KAIRO_DISABLE_THINKING:-1}"
 export KAIRO_KEEP_ALIVE=1
 export KAIRO_HEALTH_TIMEOUT="${KAIRO_HEALTH_TIMEOUT:-300}"
 repeats="${KAIRO_BENCH_REPEATS:-1}"
+run_correctness="${KAIRO_RUN_CORRECTNESS:-0}"
 
 "$root/scripts/wsl/smoke_serve.sh" vllm-nightly "$model" "$port" >"$log_file" 2>&1 &
 service_pid=$!
@@ -41,6 +42,11 @@ for _ in $(seq 1 "$KAIRO_HEALTH_TIMEOUT"); do
   sleep 1
 done
 curl -fsS "http://127.0.0.1:${port}/health" >/dev/null
+
+if [[ "$run_correctness" == "1" ]]; then
+  /home/peter/venv-vllm-nightly/bin/python "$root/scripts/wsl/check_correctness.py" \
+    --base-url "http://127.0.0.1:${port}" --model smoke
+fi
 
 for repeat in $(seq 1 "$repeats"); do
   echo "benchmark_repeat=$repeat"

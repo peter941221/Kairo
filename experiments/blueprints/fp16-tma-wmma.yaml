@@ -1,0 +1,27 @@
+architecture_target: sm120
+precision: fp16
+template: tma_wmma
+tile:
+  m: 128
+  n: 128
+  k: 64
+pipeline:
+  kind: multi_stage
+  stages: 2
+  asynchronous: true
+  load: tma
+  synchronization: mbarrier
+layout:
+  a: row_major
+  b: col_major
+  c: row_major
+  swizzle: swizzled
+epilogue:
+  kind: identity
+scheduling:
+  mode: cta
+  split_k: 1
+dynamic_dimensions: []
+resource_budget:
+  shared_memory_bytes: 227328
+fallback: reference

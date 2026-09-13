@@ -10,6 +10,7 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
+from .blueprint import validate_blueprint
 from .cache import RuntimeKernelCache
 
 
@@ -348,6 +349,21 @@ def init_run(lane: str) -> Path:
     return output
 
 
+def _load_blueprint(path: Path) -> dict[str, object]:
+    text = path.read_text(encoding="utf-8")
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        try:
+            import yaml  # type: ignore[import-not-found]
+        except ImportError as exc:
+            raise ValueError("blueprint is not JSON and PyYAML is unavailable") from exc
+        data = yaml.safe_load(text)
+    if not isinstance(data, dict):
+        raise ValueError("blueprint root must be an object")
+    return data
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="kairo-lab")
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -356,6 +372,10 @@ def main() -> None:
         "cache-inspect", help="audit persistent runtime cache entries"
     )
     cache_parser.add_argument("--root", type=Path, required=True)
+    blueprint_parser = subcommands.add_parser(
+        "validate-blueprint", help="validate a declarative kernel blueprint"
+    )
+    blueprint_parser.add_argument("--file", type=Path, required=True)
     run_parser = subcommands.add_parser("init-run", help="create an ignored run record")
     run_parser.add_argument("--lane", default="decode", choices=["decode", "prefill", "discovery"])
     profile_parser = subcommands.add_parser(
@@ -393,6 +413,8 @@ def main() -> None:
         print(json.dumps(environment(), indent=2))
     elif args.command == "cache-inspect":
         print(json.dumps(RuntimeKernelCache(args.root).inspect(), indent=2))
+    elif args.command == "validate-blueprint":
+        print(json.dumps(validate_blueprint(_load_blueprint(args.file)), indent=2))
     elif args.command == "init-run":
         print(init_run(args.lane))
     elif args.command == "recommend-profile":

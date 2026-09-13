@@ -22,6 +22,18 @@ The current hero candidate is `nvidia/Qwen3.8-27B-NVFP4`; the fast control is
 canary. Candidate metadata lives in
 [`experiments/workloads/candidates.yaml`](experiments/workloads/candidates.yaml).
 
+Validate a declarative kernel blueprint before compiling or running it:
+
+```bash
+bash scripts/wsl/run_lab.sh validate-blueprint \
+  --file experiments/blueprints/fp16-tma-wmma.yaml
+```
+
+The validator fail-closes unknown template/precision combinations, enforces
+tile alignment, asynchronous TMA/mbarrier requirements, shared-memory budgets,
+and explicit dynamic dimensions. It returns a blueprint hash and the cache-key
+dimensions used by the runtime.
+
 ## Repository layout
 
 ```text

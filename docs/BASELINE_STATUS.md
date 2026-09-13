@@ -226,6 +226,16 @@ The workbench's primary candidate is now `nvidia/Qwen3.8-27B-NVFP4`, with
 `nvidia/Qwen3-8B-NVFP4` as the fast control. The Qwen3.8 checkpoint is fully
 downloaded at `/home/peter/kairo-models/Qwen3.8-27B-NVFP4` (about 21 GiB).
 
+### Declarative blueprint gate
+
+`src/kairo_lab/blueprint.py` now provides the first fail-closed configuration
+constraint layer. `validate-blueprint` accepts only registered template /
+precision topologies, checks tile alignment, TMA+mbarrier requirements,
+shared-memory budgets, and explicit dynamic dimensions, then emits a stable
+blueprint hash and cache-key plan. The checked-in
+`experiments/blueprints/fp16-tma-wmma.yaml` is a valid SM120 example; invalid
+combinations stop before compilation rather than being silently guessed.
+
 - vLLM 0.29.0 resolved the `Qwen3_5ForConditionalGeneration` architecture,
   selected the GDN decode path and FlashInfer NVFP4 GEMM, and loaded all three
   safetensors shards in about 42 seconds using roughly 19 GiB of GPU memory.

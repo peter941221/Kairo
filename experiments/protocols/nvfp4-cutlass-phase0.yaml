@@ -25,6 +25,28 @@ matrix:
       gflops: 1291.191
       relative_mean_error_vs_fp16: 0.131278
       finite: true
+same_process_comparison:
+  note: "Each backend and its FP16 torch.mm control use the same process, tensors, and warmups"
+  iterations: 50
+  cells:
+    - m: 1
+      cutlass_gflops: 1632.177
+      fp16_gflops: 1476.535
+      cutlass_speedup: 1.105
+      b12x_gflops: 354.963
+      b12x_speedup: 0.240
+    - m: 32
+      cutlass_gflops: 42200.463
+      fp16_gflops: 49632.327
+      cutlass_speedup: 0.850
+      b12x_gflops: 11598.971
+      b12x_speedup: 0.211
+    - m: 128
+      cutlass_gflops_range: [203786.293, 216598.993]
+      fp16_gflops: 147891.800
+      cutlass_speedup_range: [1.378, 1.465]
+      b12x_gflops_range: [37464.824, 48744.761]
+      b12x_speedup_range: [0.243, 0.330]
     - m: 32
       mm_ms: 0.019599
       gflops: 54786.324
@@ -41,4 +63,4 @@ fp16_control:
   iterations: 20
   mm_ms: 0.032509
   gflops: 132117.075
-decision: The installed vendor NVFP4 path is available on SM120 and reaches 183 TFLOP/s at M=128, about 38% above the FP16 cuBLAS control for that shape. M=1 remains launch-bound at 1.29 TFLOP/s. Quantization error versus the original FP16 weights/activations is about 13--14% relative mean and must be validated at model level; this is a baseline and a high-value target, not yet a Kairo-owned kernel claim.
+decision: The installed vendor NVFP4 path is available on SM120. In same-process comparisons CUTLASS beats FP16 by 10.5% at M=1 and 38--46% at M=128, but loses by 15% at M=32; B12X is 67--79% slower than FP16 on all checked cells. Keep backend selection shape-aware and treat these vendor paths as baselines, not Kairo-owned kernel claims. Quantization error versus the original FP16 operands is about 13--14% relative mean and must be validated at model level.

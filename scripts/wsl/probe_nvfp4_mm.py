@@ -9,22 +9,33 @@ import sys
 import time
 
 
-def _prepare_import_path() -> None:
+def _prepare_import_path(backend: str) -> None:
     # The isolated nightly environment intentionally omits a few pure-Python
     # packages that are present in the shared environment. Keep nightly torch
     # first so its CUDA extension ABI remains authoritative.
     sys.path.insert(0, "/home/peter/venv-vllm-nightly/lib/python3.12/site-packages")
+    if backend == "b12x":
+        sys.path.insert(
+            1,
+            "/home/peter/venv-vllm-nightly/lib/python3.12/site-packages/nvidia_cutlass_dsl/dsl_packages",
+        )
     sys.path.append("/home/peter/venv-gpu/lib/python3.12/site-packages")
 
 
-def run(m: int, n: int, k: int, iterations: int, warmups: int) -> dict[str, object]:
-    _prepare_import_path()
+def run(m: int, n: int, k: int, iterations: int, warmups: int, backend: str) -> dict[str, object]:
+    _prepare_import_path(backend)
     import torch
-    from vllm._custom_ops import cutlass_scaled_fp4_mm, scaled_fp4_quant
-    from vllm.model_executor.layers.quantization.utils.nvfp4_utils import (
-        cutlass_fp4_supported,
-        swizzle_blockscale,
-    )
+    from vllm._custom_ops import scaled_fp4_quant
+    from vllm.model_executor.layers.quantization.utils.nvfp4_utils import cutlass_fp4_supported
+    if backend == "b12x":
+        from vllm.utils.b12x import get_b12x_blockscaled, get_b12x_intrinsics
+        blockscaled = get_b12x_blockscaled()
+        intrinsics = get_b12x_intrinsics()
+        if blockscaled is None or intrinsics is None or not blockscaled.is_supported():
+            raise RuntimeError("B12X NVFP4 backend is unavailable")
+    else:
+        from vllm._custom_ops import cutlass_scaled_fp4_mm
+        from vllm.model_executor.layers.quantization.utils.nvfp4_utils import swizzle_blockscale
 
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is unavailable")
@@ -44,19 +55,21 @@ def run(m: int, n: int, k: int, iterations: int, warmups: int) -> dict[str, obje
     weight_fp4, weight_scale_raw = scaled_fp4_quant(
         weight, global_scale, is_sf_swizzled_layout=False, backend="cutlass"
     )
-    weight_scale = swizzle_blockscale(weight_scale_raw)
+    weight_scale = (
+        intrinsics.swizzle_block_scale(weight_scale_raw)
+        if backend == "b12x"
+        else swizzle_blockscale(weight_scale_raw)
+    )
     alpha = torch.ones((), device=device, dtype=torch.float32)
     reference = x.float() @ weight.float().T
+    torch.cuda.synchronize()
 
     def invoke() -> torch.Tensor:
-        return cutlass_scaled_fp4_mm(
-            x_fp4,
-            weight_fp4,
-            x_scale,
-            weight_scale,
-            alpha,
-            torch.float16,
-        )
+        if backend == "b12x":
+            return blockscaled.mm_nvfp4(
+                x_fp4, x_scale, weight_fp4, weight_scale, alpha, out_dtype=torch.float16
+            )
+        return cutlass_scaled_fp4_mm(x_fp4, weight_fp4, x_scale, weight_scale, alpha, torch.float16)
 
     for _ in range(warmups):
         invoke()
@@ -72,19 +85,31 @@ def run(m: int, n: int, k: int, iterations: int, warmups: int) -> dict[str, obje
     stop.record()
     stop.synchronize()
     elapsed_ms = start.elapsed_time(stop) / iterations
+    for _ in range(warmups):
+        torch.mm(x, weight.T)
+    torch.cuda.synchronize()
+    start.record()
+    for _ in range(iterations):
+        torch.mm(x, weight.T)
+    stop.record()
+    stop.synchronize()
+    fp16_elapsed_ms = start.elapsed_time(stop) / iterations
     operations = 2.0 * m * n * k
     return {
         "gpu": torch.cuda.get_device_name(),
         "capability": list(capability),
         "shape": [m, n, k],
         "iterations": iterations,
-        "variant": "vllm_cutlass_nvfp4",
+        "variant": f"vllm_{backend}_nvfp4",
         "fp4_supported": True,
         "input_packed_shape": list(x_fp4.shape),
         "weight_packed_shape": list(weight_fp4.shape),
         "output_dtype": "float16",
         "mm_ms": elapsed_ms,
         "gflops": operations / (elapsed_ms * 1.0e6),
+        "fp16_mm_ms": fp16_elapsed_ms,
+        "fp16_gflops": operations / (fp16_elapsed_ms * 1.0e6),
+        "speedup_vs_fp16": fp16_elapsed_ms / elapsed_ms,
         "max_abs_error_vs_fp16": float(error.max().item()),
         "mean_abs_error_vs_fp16": float(error.mean().item()),
         "relative_mean_error_vs_fp16": float((error.mean() / reference.abs().mean()).item()),
@@ -99,8 +124,9 @@ def main() -> None:
     parser.add_argument("--k", type=int, default=4096)
     parser.add_argument("--iterations", type=int, default=50)
     parser.add_argument("--warmups", type=int, default=5)
+    parser.add_argument("--backend", choices=["cutlass", "b12x"], default="cutlass")
     args = parser.parse_args()
-    print(json.dumps(run(args.m, args.n, args.k, args.iterations, args.warmups)))
+    print(json.dumps(run(args.m, args.n, args.k, args.iterations, args.warmups, args.backend)))
 
 
 if __name__ == "__main__":

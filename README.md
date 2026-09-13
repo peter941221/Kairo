@@ -128,6 +128,13 @@ Probe the installed vLLM CUTLASS NVFP4 path (isolated nightly environment):
 bash scripts/wsl/run_nvfp4_probe.sh --m 32 --n 4096 --k 4096 --iterations 50
 ```
 
+Select the native B12X SM120 implementation for a side-by-side low-batch
+measurement:
+
+```bash
+bash scripts/wsl/run_nvfp4_probe.sh --backend b12x --m 1 --n 4096 --k 4096 --iterations 50
+```
+
 This is a vendor-kernel baseline for the NVFP4 phase, not yet a Kairo kernel
 claim; it reports quantization error against the FP16 reference.
 

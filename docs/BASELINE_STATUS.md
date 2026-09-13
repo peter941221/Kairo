@@ -131,16 +131,24 @@ future swizzle work must provide a matching shared-memory access mapping.
 ### NVFP4 vendor baseline
 
 The isolated vLLM nightly environment exposes a working CUTLASS NVFP4 path on
-SM120 (`cutlass_fp4_supported=true`). With N=K=4096 and 50 iterations it
-measures 1.29 TFLOP/s at M=1, 54.79 TFLOP/s at M=32, and 183.05 TFLOP/s at
-M=128. The corresponding FP16 cuBLAS control at M=128 is 132.12 TFLOP/s, so
-the vendor FP4 path is about 38% faster for this decode-adjacent shape. The
-NVFP4 output is finite; quantization error against the original FP16 operands
-is 13--14% relative mean and is not a substitute for model-level accuracy.
-The full command and raw records are captured in
+SM120 (`cutlass_fp4_supported=true`). In same-process comparisons with the
+same tensors and warmups, CUTLASS NVFP4 reaches 1.63, 42.20, and 203.79
+TFLOP/s at M=1, 32, and 128, versus FP16 `torch.mm` at 1.48, 49.63, and
+147.89 TFLOP/s. That is 1.105×, 0.850×, and 1.378× respectively. The native
+B12X path reaches only 0.355, 11.60, and 37.46 TFLOP/s (0.240×, 0.211×,
+0.243×), so it is not a low-batch default despite being available. The NVFP4
+output is finite; quantization error against the original FP16 operands is
+13--14% relative mean and is not a substitute for model-level accuracy. The full command and raw records are captured in
 `experiments/protocols/nvfp4-cutlass-phase0.yaml` and
 `.kairo-local/nvfp4-cutlass-4096.jsonl`. This is now the highest-value path
 for a Kairo-owned optimization, but no custom-kernel win is claimed yet.
+
+A 1K-iteration threshold sweep (same-process FP16 control) suggests the
+CUTLASS crossover lies between M=1 (0.84× FP16) and M=8 (1.08×), rising to
+1.40×/1.55×/1.68× at M=32/64/128. Since process ordering and GPU clocks can
+move small-shape timings, this is a provisional threshold rather than a
+production rule; the next gate is interleaved backend/control ordering. The
+measurements are recorded in `experiments/protocols/nvfp4-cutlass-threshold.yaml`.
 
 Run it directly on the WSL 5090:
 

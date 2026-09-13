@@ -1,0 +1,41 @@
+name: nvfp4-cutlass-threshold
+status: provisional_shape_threshold
+parent: experiments/protocols/nvfp4-cutlass-phase0.yaml
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  compute_capability: "12.0"
+  execution_environment: WSL2 Ubuntu 24.04
+matrix:
+  n: 4096
+  k: 4096
+  backend: vllm_cutlass_nvfp4
+  iterations: 1000
+  warmups: 20
+  same_process_fp16_control: true
+  raw: .kairo-local/nvfp4-cutlass-threshold.jsonl
+  cells:
+    - m: 1
+      nvfp4_gflops: 1654.419
+      fp16_gflops: 1974.660
+      speedup: 0.838
+    - m: 8
+      nvfp4_gflops: 16045.663
+      fp16_gflops: 14813.743
+      speedup: 1.083
+    - m: 16
+      nvfp4_gflops: 31818.478
+      fp16_gflops: 27285.394
+      speedup: 1.166
+    - m: 32
+      nvfp4_gflops: 51451.148
+      fp16_gflops: 36760.821
+      speedup: 1.400
+    - m: 64
+      nvfp4_gflops: 106833.685
+      fp16_gflops: 68924.542
+      speedup: 1.550
+    - m: 128
+      nvfp4_gflops: 249762.700
+      fp16_gflops: 148310.159
+      speedup: 1.684
+decision: The latest ordered run suggests a CUTLASS NVFP4 crossover between M=1 and M=8, with increasingly strong gains through M=128. Because separate process runs showed clock-sensitive variation, do not hard-code the crossover yet; repeat with backend/control order interleaving before routing production decode batches.

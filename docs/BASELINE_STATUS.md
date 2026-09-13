@@ -12,10 +12,22 @@ Last verified in WSL Ubuntu 24.04 on the local RTX 5090:
 | vLLM | CLI importable | 0.29.0 |
 | SGLang | CLI importable | 0.5.19 |
 
+## Service smoke gate (Qwen2.5-0.5B-Instruct)
+
+- **vLLM 0.29.0: passed** on the RTX 5090. With CUDA 13.0 selected and
+  `VLLM_WSL2_ENABLE_PIN_MEMORY=1`, the server reached `/health` and returned
+  the exact deterministic response `KAIRO_OK` from `/v1/chat/completions`.
+- **SGLang 0.5.19: blocked in the shared environment.** The server reaches
+  model-loader initialization but `sgl_kernel` fails to load its SM120 shared
+  object because it was built against a different PyTorch C++ ABI
+  (`undefined symbol: c10::ValueError...`). This is an environment isolation
+  issue, not evidence against SGLang itself; the next action is a dedicated
+  SGLang environment pinned to its declared PyTorch 2.13.0 stack.
+
 ## Important qualification
 
 vLLM and SGLang were installed into the existing `/home/peter/venv-gpu`
-environment without dependency resolution so that the TensorRT CUDA 13 stack
+  environment without dependency resolution so that the TensorRT CUDA 13 stack
 would not be replaced. Their package metadata requests a newer/different set of
 versions (notably torch 2.13.0 and framework-specific CUDA wheels). Therefore:
 
@@ -25,6 +37,10 @@ versions (notably torch 2.13.0 and framework-specific CUDA wheels). Therefore:
 - the next gate is a small public model load and one request through each backend;
 - if either backend fails, create a dedicated pinned environment instead of
   mutating `venv-gpu` further.
+
+The smoke harness accepts `KAIRO_VLLM_BIN` and `KAIRO_SGLANG_PYTHON`, so an
+isolated backend environment can be tested without changing the TensorRT
+environment.
 
 The old Moonmath records remain useful historical evidence: vLLM 0.26.0 and
 SGLang 0.5.17 were previously run on this same 5090, with WSL-specific pin-memory

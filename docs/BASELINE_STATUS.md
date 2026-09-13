@@ -30,6 +30,11 @@ downloaded at `/home/peter/kairo-models/Qwen3.8-27B-NVFP4` (about 21 GiB).
   `/home/peter/kairo-models/Qwen3-8B-NVFP4`; its first vLLM gate hit the same
   WSL failure before `/health`, so the next run must use an isolated/newer
   serving environment rather than mutate the working TensorRT stack.
+- The checkpoint README itself recommends `vllm-openai:nightly` or the SGLang
+  `dev` image (and shows a four-GPU GB300 reference deployment). Our pinned
+  wheels are therefore a compatibility probe, not the vendor-supported path;
+  the next bring-up should use a disposable nightly/dev container or source
+  build, then return to the pinned wheel only for fair comparisons.
 - Until a newer pinned vLLM/SGLang environment clears this gate, the 0.5B model
   remains the CI canary and the 8B NVFP4 model is the reproducible performance
   control. No hero-model performance claim is made yet.

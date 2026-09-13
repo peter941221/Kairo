@@ -152,6 +152,12 @@ python3 scripts/wsl/check_correctness.py \
   --base-url http://127.0.0.1:18087 --model smoke
 ```
 
+Quantify scheduler waves from a saved benchmark result:
+
+```bash
+python3 scripts/wsl/analyze_waves.py result.json --gap-ms 2000
+```
+
 To apply that decision automatically when launching SGLang:
 
 ```bash

@@ -126,6 +126,17 @@ range is 56.59--61.90 tok/s; using the latest pair, vLLM is still about 2.15x
 faster at c16. The large, visible three-wave queue remains the optimization
 target rather than a model-quality difference.
 
+The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
+metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt
+JSON, vLLM forms one 16-request wave; SGLang forms waves of 6 + 6 + 4, with
+10.55 s and 10.80 s inter-wave gaps. This is strong evidence for a scheduling or
+state-cache admission bottleneck and gives Kairo a concrete target to attack.
+For any saved benchmark result:
+
+```bash
+python3 scripts/wsl/analyze_waves.py result.json --gap-ms 2000
+```
+
 ### Deterministic correctness gate
 
 `scripts/wsl/check_correctness.py` sends four temperature-0 OpenAI-compatible

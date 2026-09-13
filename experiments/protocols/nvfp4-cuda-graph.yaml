@@ -40,6 +40,7 @@ cells:
 decision: CUDA Graph capture removes roughly 29--31% of activation-quantization pipeline time at the measured decode-like shapes while matching the regular pipeline bit-for-bit. This is a shape-static serving optimization; it must be integrated with request-shape bucketing and recaptured on shape changes before production use.
 evidence:
   matrix_runner: bash scripts/wsl/run_nvfp4_graph_matrix.sh .kairo-local/nvfp4-graph.jsonl
+  analyzer: python scripts/wsl/analyze_nvfp4_graph.py .kairo-local/nvfp4-graph.jsonl
   commands:
     - bash scripts/wsl/run_nvfp4_probe.sh --m 1 --n 4096 --k 4096 --iterations 500 --warmups 30 --cuda-graph
     - bash scripts/wsl/run_nvfp4_probe.sh --m 32 --n 4096 --k 4096 --iterations 300 --warmups 30 --cuda-graph

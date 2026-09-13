@@ -160,6 +160,11 @@ bash scripts/wsl/run_nvfp4_graph_matrix.sh .kairo-local/nvfp4-graph.jsonl
 ```
 
 Override cells with `KAIRO_NVFP4_GRAPH_SHAPES=M,N,K,iterations,warmups;...`.
+Summarize the JSONL with the correctness-aware selector:
+
+```bash
+python scripts/wsl/analyze_nvfp4_graph.py .kairo-local/nvfp4-graph.jsonl
+```
 
 The model-level CUTLASS serving gate is reproducible with:
 

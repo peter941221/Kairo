@@ -9,27 +9,43 @@ toolchain:
   cuda: 13.0.0
   target: sm_120
 matrix:
-  variants: [single, m128]
+  variants: [single, m128, m256]
   iterations: 10
   cells:
     - shape: [256, 1024, 1024]
       single_gflops: 17690.022
       m128_gflops: 9792.341
+      m256_gflops: 9334.677
       winner: single
       max_abs_error_vs_cublas: 0.0
     - shape: [512, 1024, 1024]
       single_gflops: 22829.250
       m128_gflops: 30248.295
+      m256_gflops: 22533.363
       winner: m128
       max_abs_error_vs_cublas: 0.0
     - shape: [2048, 2048, 2048]
       single_gflops: 39833.127
       m128_gflops: 38069.199
-      winner: single
+      m256_gflops: 41385.947
+      winner: m256
       max_abs_error_vs_cublas: 0.0
     - shape: [8192, 1024, 1024]
       single_gflops: 40442.252
       m128_gflops: 43295.692
-      winner: m128
+      m256_gflops: 45229.607
+      winner: m256
       max_abs_error_vs_cublas: 0.0
-decision: m128 is shape-sensitive rather than a universal replacement. Promote it only for measured winning cells; retain the single-buffer control for unknown or losing shapes.
+    - shape: [4096, 4096, 4096]
+      single_gflops: 41916.596
+      m128_gflops_range: [46491.339, 47091.257]
+      m256_gflops_range: [47773.243, 50633.751]
+      winner: m256
+      max_abs_error_vs_cublas: 0.0
+    - shape: [2048, 1024, 4096]
+      single_gflops: 39179.652
+      m128_gflops: 42332.302
+      m256_gflops: 40401.777
+      winner: m128
+      max_abs_error_vs_cublas: 0.00010109
+decision: m128 and m256 are shape-sensitive rather than universal replacements. Promote only the measured winner for each cell; retain the single-buffer control for unknown shapes.

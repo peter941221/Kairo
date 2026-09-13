@@ -91,14 +91,14 @@ wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/ws
 is currently a measured candidate rather than the global default; use the
 protocol record to compare it against the single-buffer control.
 
-Run a reproducible shape × variant matrix (single, m128, and double by
+Run a reproducible shape × variant matrix (single, m128, m256, and double by
 default). Records are printed as JSONL; pass an output path to save them:
 
 ```bash
 bash scripts/wsl/run_tma_wmma_matrix.sh .kairo-local/tma-wmma-matrix.jsonl
 ```
 
-Use `KAIRO_TMA_SHAPES=M,N,K,iters;...` or `KAIRO_TMA_VARIANTS=single,m128`
+Use `KAIRO_TMA_SHAPES=M,N,K,iters;...` or `KAIRO_TMA_VARIANTS=single,m128,m256`
 to narrow a sweep. Existing output files are protected unless
 `KAIRO_ALLOW_OVERWRITE=1` is set.
 
@@ -108,8 +108,9 @@ Ask the lab policy which CUDA variant is justified for a shape:
 ./scripts/wsl/run_lab.sh recommend-gemm --m 4096 --n 4096 --k 4096
 ```
 
-The policy promotes `m128` only for exact measured cells; unknown aligned
-shapes remain on the single-buffer control until the matrix covers them.
+The policy promotes the measured winner (`m128` or `m256`) only for exact
+measured cells; unknown aligned shapes remain on the single-buffer control
+until the matrix covers them.
 
 `init-run` writes a machine-readable run record under `runs/`, which is ignored
 by Git. Keep the command, input manifests, source revision, and published result

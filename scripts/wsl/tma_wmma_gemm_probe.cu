@@ -93,12 +93,12 @@ __global__ void tma_wmma_gemm(const __half* a, const __half* b, float* c,
     if (row < m && col < n) store_matrix_sync(c + row * n + col, accumulator, n, mem_row_major);
 }
 
-__global__ void tma_wmma_gemm_m128(const __half* a, const __half* b, float* c,
+template <int ROWS>
+__global__ void tma_wmma_gemm_rows(const __half* a, const __half* b, float* c,
                                    const CUtensorMap* a_map, const CUtensorMap* b_map,
                                    int m, int n, int k) {
     using namespace nvcuda::wmma;
     constexpr int TILE = 16;
-    constexpr int ROWS = 128;
     __shared__ alignas(128) __half tile_a[ROWS][TILE];
     __shared__ alignas(128) __half tile_b[TILE][TILE];
     __shared__ alignas(8) uint64_t barrier;
@@ -229,9 +229,10 @@ int main(int argc, char** argv) {
     const char* requested_variant = argc > 5 ? argv[5] : "single";
     const bool double_buffered = std::strcmp(requested_variant, "double") == 0;
     const bool m128_variant = std::strcmp(requested_variant, "m128") == 0;
+    const bool m256_variant = std::strcmp(requested_variant, "m256") == 0;
     if (m < 64 || n < 16 || k < 16 || (m % 16) || (n % 16) || (k % 16) ||
-        (m128_variant && (m % 128))) {
-        std::fprintf(stderr, "TMA-WMMA requires aligned dimensions (m128 additionally requires M divisible by 128)\n");
+        (m128_variant && (m % 128)) || (m256_variant && (m % 256))) {
+        std::fprintf(stderr, "TMA-WMMA requires aligned dimensions (m128/m256 additionally require M divisible by 128/256)\n");
         return 2;
     }
     cudaDeviceProp properties{};
@@ -267,7 +268,7 @@ int main(int argc, char** argv) {
     const cuuint64_t b_dims[2] = {static_cast<cuuint64_t>(n), static_cast<cuuint64_t>(k)};
     const cuuint64_t a_strides[1] = {static_cast<cuuint64_t>(k * sizeof(__half))};
     const cuuint64_t b_strides[1] = {static_cast<cuuint64_t>(n * sizeof(__half))};
-    const cuuint32_t a_box[2] = {16, m128_variant ? 128u : 64u};
+    const cuuint32_t a_box[2] = {16, m256_variant ? 256u : (m128_variant ? 128u : 64u)};
     const cuuint32_t b_box[2] = {16, 16};
     const cuuint32_t element_strides[2] = {1, 1};
     check_driver(cuTensorMapEncodeTiled(
@@ -289,10 +290,13 @@ int main(int argc, char** argv) {
     check_cuda(cudaMemcpy(device_a_map, &host_a_map, sizeof(CUtensorMap), cudaMemcpyHostToDevice), "copy(A map)");
     check_cuda(cudaMemcpy(device_b_map, &host_b_map, sizeof(CUtensorMap), cudaMemcpyHostToDevice), "copy(B map)");
 
-    const dim3 block(m128_variant ? 256 : 128, 1, 1);
-    const dim3 grid((n + 15) / 16, (m + (m128_variant ? 127 : 63)) / (m128_variant ? 128 : 64));
-    if (m128_variant) {
-        tma_wmma_gemm_m128<<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
+    const int rows = m256_variant ? 256 : (m128_variant ? 128 : 64);
+    const dim3 block(rows * 2, 1, 1);
+    const dim3 grid((n + 15) / 16, (m + rows - 1) / rows);
+    if (m256_variant) {
+        tma_wmma_gemm_rows<256><<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
+    } else if (m128_variant) {
+        tma_wmma_gemm_rows<128><<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
     } else if (double_buffered) {
         tma_wmma_gemm_double<<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
     } else {
@@ -321,8 +325,10 @@ int main(int argc, char** argv) {
     check_cuda(cudaEventCreate(&stop), "cudaEventCreate(stop)");
     check_cuda(cudaEventRecord(start), "tma start");
     for (int iteration = 0; iteration < iterations; ++iteration) {
-        if (m128_variant) {
-            tma_wmma_gemm_m128<<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
+        if (m256_variant) {
+            tma_wmma_gemm_rows<256><<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
+        } else if (m128_variant) {
+            tma_wmma_gemm_rows<128><<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
         } else if (double_buffered) {
             tma_wmma_gemm_double<<<grid, block>>>(device_a, device_b, device_tma, device_a_map, device_b_map, m, n, k);
         } else {
@@ -348,7 +354,7 @@ int main(int argc, char** argv) {
                 "\"tma_ms\":%.6f,\"cublas_ms\":%.6f,\"tma_gflops\":%.3f,\"cublas_gflops\":%.3f,"
                 "\"max_abs_error_vs_cublas\":%.8f,\"tma_ok\":%s}\n",
                 properties.name, m, n, k, iterations,
-                m128_variant ? "tma_wmma_fp16_m128" : (double_buffered ? "tma_wmma_fp16_double" : "tma_wmma_fp16"),
+                m256_variant ? "tma_wmma_fp16_m256" : (m128_variant ? "tma_wmma_fp16_m128" : (double_buffered ? "tma_wmma_fp16_double" : "tma_wmma_fp16")),
                 tma_ms, blas_ms,
                 operations / (tma_ms * 1.0e6), operations / (blas_ms * 1.0e6),
                 cross_error, cross_error < 0.02f ? "true" : "false");

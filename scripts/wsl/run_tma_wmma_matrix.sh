@@ -35,7 +35,7 @@ emit() {
 
 # Each cell is M,N,K,iterations. Override with a semicolon-separated list.
 shapes="${KAIRO_TMA_SHAPES:-1024,1024,1024,20;2048,1024,4096,10;4096,4096,4096,10}"
-variants="${KAIRO_TMA_VARIANTS:-single,m128,double}"
+variants="${KAIRO_TMA_VARIANTS:-single,m128,m256,double}"
 IFS=';' read -r -a shape_cells <<< "$shapes"
 IFS=',' read -r -a variant_cells <<< "$variants"
 for shape in "${shape_cells[@]}"; do
@@ -47,6 +47,10 @@ for shape in "${shape_cells[@]}"; do
   for variant in "${variant_cells[@]}"; do
     if [[ "$variant" == "m128" && $((m % 128)) -ne 0 ]]; then
       echo "skip variant=m128 shape=[$m,$n,$k] (M is not divisible by 128)" >&2
+      continue
+    fi
+    if [[ "$variant" == "m256" && $((m % 256)) -ne 0 ]]; then
+      echo "skip variant=m256 shape=[$m,$n,$k] (M is not divisible by 256)" >&2
       continue
     fi
     emit "$("$binary" "$m" "$n" "$k" "$iterations" "$variant")"

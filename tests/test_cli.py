@@ -45,12 +45,14 @@ class CliTests(unittest.TestCase):
         self.assertEqual(unknown["backend"], "manual")
         self.assertEqual(unknown["confidence"], "unvalidated")
 
-    def test_gemm_policy_promotes_only_measured_m128_cells(self):
+    def test_gemm_policy_promotes_only_measured_winners(self):
         measured = cli.recommend_gemm(4096, 4096, 4096)
-        self.assertEqual(measured["variant"], "m128")
+        self.assertEqual(measured["variant"], "m256")
         self.assertEqual(measured["confidence"], "measured_shape")
         expanded = cli.recommend_gemm(512, 1024, 1024)
         self.assertEqual(expanded["variant"], "m128")
+        larger = cli.recommend_gemm(2048, 2048, 2048)
+        self.assertEqual(larger["variant"], "m256")
         unknown = cli.recommend_gemm(3072, 2048, 1024)
         self.assertEqual(unknown["variant"], "single")
         self.assertEqual(unknown["confidence"], "aligned_control_unvalidated_shape")

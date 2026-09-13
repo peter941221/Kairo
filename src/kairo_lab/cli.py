@@ -93,19 +93,20 @@ def recommend_gemm(m: int, n: int, k: int) -> dict[str, object]:
     """
     if min(m, n, k) < 1:
         raise ValueError("m, n, and k must be positive")
-    measured_m128 = {
-        (1024, 1024, 1024),
-        (2048, 1024, 4096),
-        (4096, 4096, 4096),
-        (512, 1024, 1024),
-        (8192, 1024, 1024),
+    measured_winners = {
+        (1024, 1024, 1024): "m128",
+        (2048, 1024, 4096): "m128",
+        (4096, 4096, 4096): "m256",
+        (512, 1024, 1024): "m128",
+        (8192, 1024, 1024): "m256",
+        (2048, 2048, 2048): "m256",
     }
-    if (m, n, k) in measured_m128:
+    if (winner := measured_winners.get((m, n, k))) is not None:
         return {
             "shape": [m, n, k],
-            "variant": "m128",
+            "variant": winner,
             "confidence": "measured_shape",
-            "reason": "m128 is the fastest measured TMA-WMMA candidate for this cell",
+            "reason": f"{winner} is the fastest measured TMA-WMMA candidate for this cell",
         }
     if m >= 64 and m % 16 == 0 and n % 16 == 0 and k % 16 == 0:
         return {

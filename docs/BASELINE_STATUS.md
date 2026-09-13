@@ -114,10 +114,12 @@ but routing remains conservative until boundary and occupancy coverage grows.
 The shape-expansion matrix confirms why that conservatism matters: m128 loses
 to the 64-row control at `[256,1024,1024]` (9,792 vs 17,690 GFLOP/s) and
 `[2048,2048,2048]` (38,069 vs 39,833), but wins at `[512,1024,1024]`
-(30,248 vs 22,829) and `[8192,1024,1024]` (43,296 vs 40,442). The policy
-therefore uses an explicit measured-cell allowlist, recorded in
-`experiments/protocols/tma-wmma-shape-expansion.yaml`, rather than extrapolating
-from divisibility alone.
+(30,248 vs 22,829) and `[8192,1024,1024]` (43,296 vs 40,442). The m256
+candidate wins the larger cells—41,386 vs 39,833 GFLOP/s at 2K square,
+47,773--50,634 at 4K square, and 45,230 vs 40,442 at 8K×1K×1K—while losing
+the smaller cells. The policy therefore uses an explicit measured-winner
+allowlist, recorded in `experiments/protocols/tma-wmma-shape-expansion.yaml`,
+rather than extrapolating from divisibility alone.
 
 Run it directly on the WSL 5090:
 

@@ -417,6 +417,9 @@ prompt cells select vLLM nightly CUTLASS (the exact c16/prompt256 cell uses
 the Graph profile), while measured c1/c4 short cells select SGLang. Unmeasured
 shapes return `manual` instead of silently extrapolating.
 This is the first executable form of the workload-aware routing hypothesis.
+Supplying `--context-tokens` and `--generation-tokens` activates the envelope
+gate: Graph is eligible only for the measured 1K/128 route, while a 4K/256
+request stays on its separately measured eager profile.
 
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
 metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt

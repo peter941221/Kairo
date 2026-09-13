@@ -48,18 +48,37 @@ def recommend_profile(model: str, concurrency: int, prompt_tokens: int) -> dict[
     }
 
 
-def recommend_runtime(model: str, concurrency: int, prompt_tokens: int) -> dict[str, object]:
+def recommend_runtime(
+    model: str,
+    concurrency: int,
+    prompt_tokens: int,
+    *,
+    context_tokens: int | None = None,
+    generation_tokens: int | None = None,
+) -> dict[str, object]:
     """Select only runtime cells that have an observed cross-runtime result.
 
     Unknown cells intentionally return ``manual`` instead of extrapolating a
-    benchmark point. This keeps the policy useful for an experiment router
-    without turning a two-point matrix into an unbounded performance claim.
+    benchmark point. When context and generation lengths are supplied, Graph
+    routes are additionally gated by their measured 1K/128-token envelope.
+    Omitting them preserves the original shape-only API for existing callers.
     """
     if model != "qwen38":
         raise ValueError(f"Unsupported runtime model: {model}")
     if concurrency < 1 or prompt_tokens < 1:
         raise ValueError("concurrency and prompt_tokens must be positive")
-    if concurrency == 8 and prompt_tokens == 256:
+    if context_tokens is not None and context_tokens < 1:
+        raise ValueError("context_tokens must be positive")
+    if generation_tokens is not None and generation_tokens < 1:
+        raise ValueError("generation_tokens must be positive")
+    if (context_tokens is None) != (generation_tokens is None):
+        raise ValueError("context_tokens and generation_tokens must be provided together")
+    graph_envelope = (
+        context_tokens is None
+        or generation_tokens is None
+        or (context_tokens <= 1024 and generation_tokens <= 128)
+    )
+    if concurrency == 8 and prompt_tokens == 256 and graph_envelope:
         return {
             "model": model,
             "backend": "vllm-nightly",
@@ -70,7 +89,7 @@ def recommend_runtime(model: str, concurrency: int, prompt_tokens: int) -> dict[
             "confidence": "measured_pilot",
             "reason": "FULL_DECODE_ONLY Graph reached 2.57x eager throughput in paired repeats",
         }
-    if concurrency == 32 and prompt_tokens == 256:
+    if concurrency == 32 and prompt_tokens == 256 and graph_envelope:
         return {
             "model": model,
             "backend": "vllm-nightly",
@@ -81,7 +100,7 @@ def recommend_runtime(model: str, concurrency: int, prompt_tokens: int) -> dict[
             "confidence": "measured_repeated",
             "reason": "FULL_DECODE_ONLY Graph reached 2.52x median eager throughput across c32 repeats",
         }
-    if concurrency == 16 and prompt_tokens == 256:
+    if concurrency == 16 and prompt_tokens == 256 and graph_envelope:
         return {
             "model": model,
             "backend": "vllm-nightly",
@@ -91,6 +110,17 @@ def recommend_runtime(model: str, concurrency: int, prompt_tokens: int) -> dict[
             "max_num_seqs": 32,
             "confidence": "measured_repeated",
             "reason": "FULL_DECODE_ONLY Graph reached 2.45x median eager throughput across c16 repeats",
+        }
+    if concurrency == 16 and prompt_tokens == 512 and graph_envelope:
+        return {
+            "model": model,
+            "backend": "vllm-nightly",
+            "profile": "qwen38-vllm-nightly-cutlass-full-decode-graph-c16-p512",
+            "linear_backend": "cutlass",
+            "cudagraph_mode": "FULL_DECODE_ONLY",
+            "max_num_seqs": 32,
+            "confidence": "measured_repeated",
+            "reason": "FULL_DECODE_ONLY Graph reached 2.59x median eager throughput at c16/prompt512 in the 1K/128 envelope",
         }
     if concurrency == 16 and prompt_tokens == 512:
         return {
@@ -273,6 +303,8 @@ def main() -> None:
     runtime_parser.add_argument("--model", default="qwen38", choices=["qwen38"])
     runtime_parser.add_argument("--concurrency", type=int, required=True)
     runtime_parser.add_argument("--prompt-tokens", type=int, required=True)
+    runtime_parser.add_argument("--context-tokens", type=int)
+    runtime_parser.add_argument("--generation-tokens", type=int)
     gemm_parser = subcommands.add_parser(
         "recommend-gemm", help="select a measured TMA-WMMA experiment variant"
     )
@@ -301,7 +333,13 @@ def main() -> None:
     elif args.command == "recommend-runtime":
         print(
             json.dumps(
-                recommend_runtime(args.model, args.concurrency, args.prompt_tokens),
+                recommend_runtime(
+                    args.model,
+                    args.concurrency,
+                    args.prompt_tokens,
+                    context_tokens=args.context_tokens,
+                    generation_tokens=args.generation_tokens,
+                ),
                 indent=2,
             )
         )

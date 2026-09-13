@@ -49,6 +49,23 @@ class CliTests(unittest.TestCase):
         self.assertEqual(graph_c16["profile"], "qwen38-vllm-nightly-cutlass-full-decode-graph-c16")
         self.assertEqual(graph_c16["cudagraph_mode"], "FULL_DECODE_ONLY")
         self.assertEqual(graph_c16["confidence"], "measured_repeated")
+        graph_p512 = cli.recommend_runtime(
+            "qwen38", concurrency=16, prompt_tokens=512,
+            context_tokens=1024, generation_tokens=128,
+        )
+        self.assertIn("graph-c16-p512", graph_p512["profile"])
+        eager_p512 = cli.recommend_runtime(
+            "qwen38", concurrency=16, prompt_tokens=512,
+            context_tokens=4096, generation_tokens=256,
+        )
+        self.assertEqual(eager_p512["profile"], "qwen38-vllm-nightly-cutlass-c16")
+        unknown_graph = cli.recommend_runtime(
+            "qwen38", concurrency=32, prompt_tokens=256,
+            context_tokens=4096, generation_tokens=128,
+        )
+        self.assertEqual(unknown_graph["backend"], "manual")
+        with self.assertRaises(ValueError):
+            cli.recommend_runtime("qwen38", 16, 512, context_tokens=1024)
         short = cli.recommend_runtime("qwen38", concurrency=16, prompt_tokens=512)
         self.assertEqual(short["backend"], "vllm-nightly")
         self.assertEqual(short["linear_backend"], "cutlass")

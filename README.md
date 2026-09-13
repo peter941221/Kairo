@@ -345,13 +345,17 @@ Ask the measured cross-runtime policy which lane covers a shape:
 
 ```bash
 python -m kairo_lab.cli recommend-runtime \
-  --model qwen38 --concurrency 16 --prompt-tokens 2048
+  --model qwen38 --concurrency 16 --prompt-tokens 512 \
+  --context-tokens 1024 --generation-tokens 128
 ```
 
 The policy selects the measured c8/prompt256 cell as vLLM/CUTLASS
 `FULL_DECODE_ONLY` Graph (`max_num_seqs=32`), vLLM/CUTLASS for both measured
 c16 prompt cells, and SGLang for measured c1/c4 short cells; every other shape
 returns `manual` until measured.
+When context and generation lengths are supplied, Graph is selected only inside
+the measured 1K-context/128-output envelope; the same prompt at a 4K/256
+workload remains on its separately measured eager profile.
 
 The runtime cache primitive in `src/kairo_lab/cache.py` provides content-
 addressed AOT/JIT artifact storage. Its key includes blueprint hash, full

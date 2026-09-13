@@ -70,6 +70,12 @@ A matching prefill probe (2,048 requested prompt tokens, 2,241 actual tokens,
 one generated token, concurrency 1, four requests) produced TTFT P50 238 ms and
 input throughput 9,080 tok/s. It is a warm-cache observation and should be
 repeated before using it to select a prefill kernel target.
+
+For the vLLM comparison, forcing its `flashinfer_cudnn` linear backend selected
+`FlashInferCudnnNvFp4LinearKernel` and reduced weight-load time to roughly 11 s,
+but the Qwen3.8 engine still failed to reach `/health` during GDN/attention
+initialization. The serving baseline above therefore uses SGLang main; vLLM is
+kept as a pending runtime comparison rather than treated as a failed model.
 - Until a newer pinned vLLM/SGLang environment clears this gate, the 0.5B model
   remains the CI canary and the 8B NVFP4 model is the reproducible performance
   control. No hero-model performance claim is made yet.

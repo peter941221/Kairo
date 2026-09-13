@@ -22,6 +22,8 @@ mamba_ssm_dtype="${KAIRO_MAMBA_SSM_DTYPE:-float32}"
 fp4_gemm_backend="${KAIRO_FP4_GEMM_BACKEND:-}"
 fp8_gemm_backend="${KAIRO_FP8_GEMM_BACKEND:-}"
 disable_thinking="${KAIRO_DISABLE_THINKING:-0}"
+linear_backend="${KAIRO_LINEAR_BACKEND:-}"
+moe_backend="${KAIRO_MOE_BACKEND:-}"
 log_file="$(mktemp /tmp/kairo-${backend:-unknown}.XXXXXX.log)"
 server_pid=""
 
@@ -47,6 +49,9 @@ if [[ "$backend" == "vllm" ]]; then
   [[ -n "$kv_cache_dtype" ]] && vllm_args+=(--kv-cache-dtype "$kv_cache_dtype")
   [[ "$skip_mm_profiling" == "1" ]] && vllm_args+=(--skip-mm-profiling)
   [[ "$language_model_only" == "1" ]] && vllm_args+=(--language-model-only)
+  [[ -n "$linear_backend" ]] && vllm_args+=(--linear-backend "$linear_backend")
+  [[ -n "$moe_backend" ]] && vllm_args+=(--moe-backend "$moe_backend")
+  [[ "$disable_flashinfer_autotune" == "1" ]] && vllm_args+=(--no-enable-flashinfer-autotune)
   "$vllm_bin" "${vllm_args[@]}" >"$log_file" 2>&1 &
 elif [[ "$backend" == "sglang" ]]; then
   export CUDA_HOME=/usr/local/cuda-13.0

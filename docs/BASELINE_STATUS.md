@@ -169,6 +169,13 @@ recapture when dimensions change; it is an integration candidate, not yet a
 drop-in vLLM backend. Reproduce with `--cuda-graph`; the full matrix is in
 `experiments/protocols/nvfp4-cuda-graph.yaml`.
 
+Attempting to transfer this directly to the Qwen3.8 service by removing
+`--enforce-eager` did not pass the 300-second health gate in the nightly
+environment; the process remained in initialization and produced no valid
+throughput sample. `smoke_serve.sh` now exposes `KAIRO_ENFORCE_EAGER`, but keeps
+the safe eager default. The microbenchmark result therefore stands as a
+shape-static building block, not a claim that vLLM service graphs already work.
+
 At a larger, layer-like N=K=8192 shape, the quantized pipeline remains fast:
 2.82, 105.48, and 471.08 TFLOP/s at M=1/32/128, versus same-process FP16
 controls of 1.61, 48.48, and 177.72 TFLOP/s (1.75×/2.18×/2.65×). An

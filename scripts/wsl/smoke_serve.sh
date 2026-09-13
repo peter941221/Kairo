@@ -24,6 +24,7 @@ fp4_gemm_backend="${KAIRO_FP4_GEMM_BACKEND:-}"
 fp8_gemm_backend="${KAIRO_FP8_GEMM_BACKEND:-}"
 disable_thinking="${KAIRO_DISABLE_THINKING:-0}"
 linear_backend="${KAIRO_LINEAR_BACKEND:-}"
+enforce_eager="${KAIRO_ENFORCE_EAGER:-1}"
 moe_backend="${KAIRO_MOE_BACKEND:-}"
 max_running_requests="${KAIRO_MAX_RUNNING_REQUESTS:-}"
 num_continuous_decode_steps="${KAIRO_NUM_CONTINUOUS_DECODE_STEPS:-}"
@@ -48,7 +49,8 @@ if [[ "$backend" == "vllm" ]]; then
   vllm_args=(serve "$model" --host 127.0.0.1 --port "$port"
     --served-model-name smoke --tensor-parallel-size 1
     --gpu-memory-utilization "$gpu_memory_utilization"
-    --max-model-len "$max_model_len" --enforce-eager)
+    --max-model-len "$max_model_len")
+  [[ "$enforce_eager" == "1" ]] && vllm_args+=(--enforce-eager)
   [[ "$trust_remote_code" == "1" ]] && vllm_args+=(--trust-remote-code)
   [[ -n "$kv_cache_dtype" ]] && vllm_args+=(--kv-cache-dtype "$kv_cache_dtype")
   [[ "$skip_mm_profiling" == "1" ]] && vllm_args+=(--skip-mm-profiling)
@@ -70,8 +72,9 @@ elif [[ "$backend" == "vllm-nightly" ]]; then
   nightly_args=(serve "$model" --host 127.0.0.1 --port "$port"
     --served-model-name smoke --tensor-parallel-size 1
     --gpu-memory-utilization "$gpu_memory_utilization"
-    --max-model-len "$max_model_len" --enforce-eager
+    --max-model-len "$max_model_len"
     --generation-config vllm)
+  [[ "$enforce_eager" == "1" ]] && nightly_args+=(--enforce-eager)
   [[ "$trust_remote_code" == "1" ]] && nightly_args+=(--trust-remote-code)
   [[ -n "$kv_cache_dtype" ]] && nightly_args+=(--kv-cache-dtype "$kv_cache_dtype")
   [[ "$skip_mm_profiling" == "1" ]] && nightly_args+=(--skip-mm-profiling)

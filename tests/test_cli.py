@@ -26,3 +26,12 @@ class CliTests(unittest.TestCase):
             data["result_contract"]["correctness_status"],
             "required_before_performance_claim",
         )
+
+    def test_profile_recommender_stays_inside_measured_shapes(self):
+        high = cli.recommend_profile("qwen38", concurrency=16, prompt_tokens=512)
+        self.assertEqual(high["mamba_full_memory_ratio"], 8.0)
+        self.assertEqual(high["confidence"], "measured_c16")
+
+        long_prompt = cli.recommend_profile("qwen38", concurrency=16, prompt_tokens=2048)
+        self.assertEqual(long_prompt["mamba_full_memory_ratio"], 4.59)
+        self.assertEqual(long_prompt["confidence"], "baseline_or_unvalidated")

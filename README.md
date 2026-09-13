@@ -94,3 +94,13 @@ fairness rules and selection gate.
 The validated high-concurrency Qwen3.8 candidate is captured as a runnable
 profile in
 [`experiments/protocols/qwen38-sglang-high-concurrency.yaml`](experiments/protocols/qwen38-sglang-high-concurrency.yaml).
+
+Use the conservative workload-aware recommender before launching an experiment:
+
+```bash
+./scripts/wsl/run_lab.sh recommend-profile \
+  --model qwen38 --concurrency 16 --prompt-tokens 512
+```
+
+It selects ratio 8 only for the measured short-prompt c16 shape; all other
+shapes remain on the ratio-4.59 baseline until measured.

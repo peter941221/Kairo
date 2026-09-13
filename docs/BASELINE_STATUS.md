@@ -13,6 +13,23 @@ Last verified in WSL Ubuntu 24.04 on the local RTX 5090:
 | vLLM nightly + B12X | service smoke passed in isolated env | 0.29.1rc1.dev18 + Torch 2.15 nightly |
 | SGLang | service smoke passed in isolated env | 0.5.19 |
 
+## Phase 0 hardware capability probe
+
+`scripts/wsl/probe_capabilities.sh` now compiles and runs a minimal CUDA
+data-movement closure with the CUDA 13.0 toolkit and `-arch=sm_120`. The probe
+reported:
+
+```json
+{"gpu":"NVIDIA GeForce RTX 5090","compute_capability":"12.0","runtime_version":13000,"compiled_arch":"sm_120","async_copy_checksum":32896,"expected_checksum":32896,"async_copy_ok":true}
+```
+
+This proves the local toolchain can target the physical GPU and that an
+asynchronous shared-memory copy executes correctly on it. It is intentionally
+not a claim that every TMA/WGMMA/FP4 instruction is available; those remain
+separate probes. The raw report is kept in the ignored
+`.kairo-local/capability-probe.json` file so hardware facts do not get mixed
+with source-controlled result tables.
+
 ## Fresh-model gate (2026-09-13)
 
 The workbench's primary candidate is now `nvidia/Qwen3.8-27B-NVFP4`, with

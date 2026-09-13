@@ -5,8 +5,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 import time
+
+from cuda_graph_bucket import CudaGraphBucketCache
 
 
 def _prepare_import_path(backend: str) -> None:
@@ -135,28 +138,25 @@ def run(
     graph_elapsed_ms = None
     graph_error = None
     graph_pipeline_error = None
+    graph_capture_ms = None
+    graph_cache_stats = None
     if cuda_graph:
         try:
             pipeline_reference = invoke_pipeline().float()
             torch.cuda.synchronize()
-            graph = torch.cuda.CUDAGraph()
-            capture_stream = torch.cuda.Stream()
-            torch.cuda.synchronize()
-            with torch.cuda.stream(capture_stream):
-                for _ in range(max(2, warmups)):
-                    invoke_pipeline()
-            capture_stream.synchronize()
-            torch.cuda.synchronize()
-            with torch.cuda.graph(graph, stream=capture_stream):
-                graph_output = invoke_pipeline()
-            torch.cuda.synchronize()
+            graph_cache = CudaGraphBucketCache(torch, warmups=warmups)
+            graph_bucket = graph_cache.get_or_capture((m, n, k), invoke_pipeline)
+            # Exercise the lookup path as a real shape bucket would on its
+            # second request; this must not trigger another capture.
+            graph_cache.get_or_capture((m, n, k), invoke_pipeline)
 
             def invoke_graph() -> torch.Tensor:
-                graph.replay()
-                return graph_output
+                return graph_bucket.replay()
 
             graph_elapsed_ms = measure(invoke_graph)
-            graph_output = graph_output.float()
+            graph_capture_ms = graph_bucket.capture_ms
+            graph_cache_stats = graph_cache.stats()
+            graph_output = graph_bucket.output.float()
             torch.cuda.synchronize()
             graph_error = float((graph_output - reference).abs().max().item())
             graph_pipeline_error = float(
@@ -187,6 +187,17 @@ def run(
         "cuda_graph_pipeline_ms": graph_elapsed_ms,
         "cuda_graph_pipeline_speedup_vs_fp16": (
             fp16_elapsed_ms / graph_elapsed_ms if graph_elapsed_ms else None
+        ),
+        "cuda_graph_capture_ms": graph_capture_ms,
+        "cuda_graph_cache_stats": graph_cache_stats,
+        "cuda_graph_replay_break_even": (
+            math.ceil(
+                graph_capture_ms / (pipeline_elapsed_ms - graph_elapsed_ms)
+            )
+            if graph_capture_ms is not None
+            and graph_elapsed_ms is not None
+            and pipeline_elapsed_ms > graph_elapsed_ms
+            else None
         ),
         "cuda_graph_max_abs_error_vs_fp16": graph_error,
         "cuda_graph_max_abs_error_vs_pipeline": graph_pipeline_error,

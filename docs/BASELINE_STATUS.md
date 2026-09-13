@@ -170,6 +170,12 @@ recapture when dimensions change; it is an integration candidate, not yet a
 drop-in vLLM backend. Reproduce with `--cuda-graph`; the full matrix is in
 `experiments/protocols/nvfp4-cuda-graph.yaml`.
 
+The reusable shape-bucket helper now reports capture cost and lookup reuse. On
+the unified cache probe, capture took 18.5--23.1 ms and the measured replay
+savings amortized after roughly 3.4k--3.8k calls; each bucket showed one
+capture and one subsequent cache hit. This gives the decode scheduler a
+concrete retention threshold instead of assuming that graph capture is free.
+
 Attempting to transfer this directly to the Qwen3.8 service by removing
 `--enforce-eager` did not pass the 300-second health gate in the nightly
 environment; the process remained in initialization and produced no valid

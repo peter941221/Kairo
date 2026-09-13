@@ -6,7 +6,8 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$root"
 
-python3 -m venv .venv
-.venv/bin/python -m pip install --upgrade pip
+python3 -m venv --clear .venv
+# Do not self-upgrade pip here: pip upgrades on a /mnt/c mount can temporarily
+# leave the virtual environment unusable if the WSL session is interrupted.
 .venv/bin/python -m pip install --index-url https://download.pytorch.org/whl/cu128 "torch==2.14.0"
 .venv/bin/python -c 'import torch; print(f"torch={torch.__version__} cuda={torch.version.cuda} available={torch.cuda.is_available()}")'

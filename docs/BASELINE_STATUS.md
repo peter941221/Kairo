@@ -240,6 +240,14 @@ extra Mamba slot helps short-prompt c16 batching, but the smaller KV pool erases
 the benefit at this longer prompt shape. A production profile must choose the
 ratio from prompt/concurrency forecasts rather than hard-code 8.0.
 
+An additional ratio-12 probe makes the trade-off sharper. At short prompt/c16
+it reached 111.25 tok/s (versus 107.37 at ratio 8) and admitted 8+8 requests
+in two waves. At the 2K prompt it fell to 53.54 tok/s and formed four waves of
+4, with roughly 9.1--9.2 s between waves. The ratio-12 configuration is recorded
+as an experimental profile in
+`experiments/protocols/qwen38-sglang-ratio12-probe.yaml`; it is not promoted to
+the recommender until repeated trials and a correctness pass are complete.
+
 One additional scheduler probe set `KAIRO_NUM_CONTINUOUS_DECODE_STEPS=4` on the
 ratio-8 service. The identical c16 workload reached 103.08 tok/s with TTFT
 P50/P99 of 10.65/20.53 s, about 4% below the ratio-8 default of 107.37 tok/s.

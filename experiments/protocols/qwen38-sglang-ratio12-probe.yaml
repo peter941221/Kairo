@@ -1,0 +1,40 @@
+name: qwen38-sglang-ratio12-probe
+status: measured_experimental
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  execution_environment: WSL2 Ubuntu 24.04
+model:
+  id: nvidia/Qwen3.8-27B-NVFP4
+  local_path: /home/peter/kairo-models/Qwen3.8-27B-NVFP4
+runtime:
+  backend: sglang
+  source_revision: 14b647c
+  python: /home/peter/venv-sglang/bin/python
+  pythonpath: /home/peter/src/sglang/python
+  settings:
+    mem_fraction_static: 0.80
+    context_length: 4096
+    kv_cache_dtype: fp8_e4m3
+    mamba_ssm_dtype: bfloat16
+    mamba_full_memory_ratio: 12.0
+    fp4_gemm_backend: flashinfer_cudnn
+    disable_flashinfer_autotune: true
+    disable_cuda_graph: true
+    chunked_prefill_size: 2048
+    mamba_radix_cache_strategy: extra_buffer
+workload:
+  lane: decode
+  prompt_tokens_requested: [512, 2048]
+  generation_tokens: {512: 256, 2048: 128}
+  concurrency: 16
+  warmup: 2
+  requests: 16
+  disable_thinking: true
+  ignore_eos: true
+result:
+  short_prompt_512_output_tokens_per_second: 111.25
+  short_prompt_512_ttft_p50_ms: 10203
+  long_prompt_2048_output_tokens_per_second: 53.54
+  long_prompt_2048_ttft_p50_ms: 14873
+  correctness: pending_repeat
+  caveat: Ratio 12 improves the measured short c16 point over ratio 8, but loses on the 2K prompt; keep as an experiment, not the default.

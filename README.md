@@ -137,6 +137,10 @@ Use the conservative workload-aware recommender before launching an experiment:
 It selects ratio 8 only for the measured short-prompt c16 shape; all other
 shapes remain on the ratio-4.59 baseline until measured.
 
+Ratio 12 is now captured as a separate experimental probe: it improves the
+512-token c16 point slightly but loses at 2K prompts, reinforcing the need for
+workload-aware selection rather than a single global setting.
+
 The first fair cross-runtime matrix is now recorded in
 [`docs/BASELINE_STATUS.md`](docs/BASELINE_STATUS.md): vLLM nightly+B12X reaches
 191.93–194.11 tok/s at the 4K-configured c16 point versus 107.37 tok/s for
@@ -165,3 +169,7 @@ KAIRO_WORKLOAD_CONCURRENCY=16 KAIRO_WORKLOAD_PROMPT_TOKENS=512 \
   ./scripts/wsl/serve_profile.sh sglang \
   /home/peter/kairo-models/Qwen3.8-27B-NVFP4 18086
 ```
+
+For a deliberately labeled budget experiment, set
+`KAIRO_PROFILE_RATIO_OVERRIDE=12`; the launcher keeps the recommended profile
+metadata and appends an override marker to the run identity.

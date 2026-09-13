@@ -111,13 +111,13 @@ block (`m128` variant). It stays correct on square 1K/4K and a rectangular
 (about 8% above its control). This is the leading aligned-shape candidate,
 but routing remains conservative until boundary and occupancy coverage grows.
 
-The shape-expansion matrix confirms why that conservatism matters: m128 loses
-to the 64-row control at `[256,1024,1024]` (9,792 vs 17,690 GFLOP/s) and
-`[2048,2048,2048]` (38,069 vs 39,833), but wins at `[512,1024,1024]`
-(30,248 vs 22,829) and `[8192,1024,1024]` (43,296 vs 40,442). The m256
-candidate wins the larger cells—41,386 vs 39,833 GFLOP/s at 2K square,
-47,773--50,634 at 4K square, and 45,230 vs 40,442 at 8K×1K×1K—while losing
-the smaller cells. The policy therefore uses an explicit measured-winner
+The shape-expansion matrix confirms why that conservatism matters: at the
+small `[256,1024,1024]` smoke cell both larger blocks lose to the 64-row
+control. In the stable rerun, m128 wins `[512,1024,1024]` (32,316 vs 30,663
+GFLOP/s), while m256 narrowly wins 2K square (42,977 vs 42,717 vs 40,378
+for m128/single), 4K square (49,850 vs 47,316 vs 42,854), and 8K×1K×1K
+(45,821 vs 44,887 vs 41,322). These figures use 50 iterations (20 for the
+4K cell), not the noisier 5--10 iteration smoke points. The policy therefore uses an explicit measured-winner
 allowlist, recorded in `experiments/protocols/tma-wmma-shape-expansion.yaml`,
 rather than extrapolating from divisibility alone.
 

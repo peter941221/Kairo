@@ -87,9 +87,10 @@ wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/ws
 wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Projects/Kairo && bash scripts/wsl/run_tma_wmma_gemm_probe.sh 4096 4096 4096 10 m128'
 ```
 
-`m128` requires M divisible by 128 (and all dimensions divisible by 16). It
-is currently a measured candidate rather than the global default; use the
-protocol record to compare it against the single-buffer control.
+`m128` requires M divisible by 128 and `m256` requires M divisible by 256
+(all dimensions must be divisible by 16). They are measured candidates rather
+than global defaults; use the protocol record to compare them against the
+single-buffer control.
 
 Run a reproducible shape × variant matrix (single, m128, m256, and double by
 default). Records are printed as JSONL; pass an output path to save them:

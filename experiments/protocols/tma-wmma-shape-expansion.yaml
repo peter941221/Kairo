@@ -11,6 +11,7 @@ toolchain:
 matrix:
   variants: [single, m128, m256]
   iterations: 10
+  stable_rerun: "50 iterations for 512/2048/8192 cells, 20 for 4096 cell"
   cells:
     - shape: [256, 1024, 1024]
       single_gflops: 17690.022
@@ -19,27 +20,27 @@ matrix:
       winner: single
       max_abs_error_vs_cublas: 0.0
     - shape: [512, 1024, 1024]
-      single_gflops: 22829.250
-      m128_gflops: 30248.295
-      m256_gflops: 22533.363
+      single_gflops: 30662.920
+      m128_gflops: 32316.079
+      m256_gflops: 22165.697
       winner: m128
       max_abs_error_vs_cublas: 0.0
     - shape: [2048, 2048, 2048]
-      single_gflops: 39833.127
-      m128_gflops: 38069.199
-      m256_gflops: 41385.947
+      single_gflops: 40377.527
+      m128_gflops: 42716.814
+      m256_gflops: 42977.316
       winner: m256
       max_abs_error_vs_cublas: 0.0
     - shape: [8192, 1024, 1024]
-      single_gflops: 40442.252
-      m128_gflops: 43295.692
-      m256_gflops: 45229.607
+      single_gflops: 41321.921
+      m128_gflops: 44886.846
+      m256_gflops: 45821.156
       winner: m256
       max_abs_error_vs_cublas: 0.0
     - shape: [4096, 4096, 4096]
-      single_gflops: 41916.596
-      m128_gflops_range: [46491.339, 47091.257]
-      m256_gflops_range: [47773.243, 50633.751]
+      single_gflops: 42854.087
+      m128_gflops: 47315.653
+      m256_gflops: 49849.926
       winner: m256
       max_abs_error_vs_cublas: 0.0
     - shape: [2048, 1024, 4096]

@@ -1,0 +1,40 @@
+name: qwen38-vllm-nightly-cutlass-serving
+status: pilot
+date: 2026-09-14
+hardware: RTX 5090 32GB, WSL2 Ubuntu-24.04
+model: /home/peter/kairo-models/Qwen3.8-27B-NVFP4
+runtime:
+  engine: vllm-nightly
+  torch: 2.15.0.dev+cu130
+  vllm: 0.29.1rc1.dev18+gfa1b3b192
+  linear_backend: cutlass
+  kv_cache_dtype: fp8_e4m3
+  max_model_len: 4096
+  gpu_memory_utilization: 0.80
+  enforce_eager: true
+  language_model_only: true
+  skip_mm_profiling: true
+workload:
+  lane: decode
+  requested_prompt_tokens: 512
+  actual_prompt_tokens: 572
+  generation_tokens: 256
+  concurrency: 16
+  requests: 16
+  warmup: 2
+  disable_thinking: true
+  ignore_eos: true
+result:
+  successful_requests: 16
+  output_tokens_per_second: 295.01
+  input_tokens_per_second: 659.60
+  ttft_p50_ms: 1045.85
+  ttft_p99_ms: 1385.59
+  wall_seconds: 13.8841
+comparison:
+  paired_vllm_nightly_b12x_output_tokens_per_second: 191.93
+  approximate_delta_percent: 53.7
+  note: CUTLASS is faster on this repeated fixed-length c16 point; repeat on fresh services and longer prompts before routing production traffic.
+evidence:
+  command: KAIRO_BENCH_REQUESTS=16 KAIRO_BENCH_GENERATION_TOKENS=256 KAIRO_BENCH_WARMUP=2 KAIRO_BENCH_CONCURRENCY=16 bash scripts/wsl/run_qwen_cutlass_bench.sh 18091
+  raw_output: .kairo-local/qwen-cutlass-c16-fair.out

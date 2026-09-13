@@ -288,6 +288,26 @@ range is 56.59--61.90 tok/s; using the latest pair, vLLM is still about 2.15x
 faster at c16. The large, visible three-wave queue remains the optimization
 target rather than a model-quality difference.
 
+### vLLM nightly CUTLASS serving pilot
+
+The same Qwen3.8 checkpoint was then launched through the isolated nightly
+vLLM environment with `--linear-backend cutlass`. The fixed-length envelope
+matches the B12X point above (4K max length, FP8 KV cache, 572-token prompt,
+256 generated tokens, two warmups, c16, 16 requests, thinking disabled and
+`ignore_eos=true`). All 16 requests succeeded. CUTLASS reached **295.01
+output tok/s** with TTFT P50/P99 of 1,046/1,386 ms, versus 191.93 tok/s for
+the paired B12X run (approximately +53.7%). This is the first model-level
+signal that the CUTLASS path can turn the isolated NVFP4 kernel advantage into
+a serving advantage on the 5090.
+
+This is a pilot, not yet a production default: the comparison is one fresh
+service per backend and CUTLASS needs repeated fresh-service runs plus the
+2K-prompt workload. The exact command and raw output are captured in
+`experiments/protocols/qwen38-vllm-cutlass-serving.yaml` and
+`.kairo-local/qwen-cutlass-c16-fair.out`. The runner supports
+`KAIRO_BENCH_REPEATS=N` to repeat warm-cache measurements without reloading
+the model.
+
 The CLI now exposes this evidence as a bounded runtime policy via
 `recommend-runtime`: measured c16 cells select vLLM nightly+B12X, while the
 measured c1/c4 short cells select SGLang. Unmeasured shapes return `manual`

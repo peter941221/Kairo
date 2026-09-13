@@ -145,6 +145,12 @@ This is a vendor-kernel baseline for the NVFP4 phase, not yet a Kairo kernel
 claim; it reports quantization error against the FP16 reference and includes
 the activation-quantization pipeline cost.
 
+The model-level CUTLASS serving gate is reproducible with:
+
+```bash
+bash scripts/wsl/run_qwen_cutlass_bench.sh 18088
+```
+
 Add `--control-first` to reverse the FP16/NVFP4 timing order when checking
 clock or launch-order sensitivity.
 

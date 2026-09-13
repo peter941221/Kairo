@@ -332,6 +332,12 @@ integrity, hit/miss counts, and explainable fingerprint invalidation. It is
 ready to back PTX/Cubin or serialized graph packages without silently reusing
 artifacts across hardware changes.
 
+Ask the executable policy whether an NVFP4 shape is eligible for Graph replay:
+
+```bash
+python -m kairo_lab.cli recommend-nvfp4 --m 128 --n 4096 --k 4096
+```
+
 To apply that decision automatically when launching SGLang:
 
 ```bash

@@ -193,6 +193,12 @@ miss, and explainable fingerprint-invalidation counters. This closes the PRD
 cache contract at the library layer; wiring it into a compiled-kernel loader
 remains the next integration step.
 
+`recommend-nvfp4` now exposes the measured Graph allowlist: exact 4K
+N/K shapes at M=1/32/128 select `cuda_graph_shape_bucket` with replay
+amortization estimates; aligned but unmeasured shapes select the regular NVFP4
+pipeline, and unaligned shapes select fallback. This prevents the new
+optimization from silently extrapolating to unsupported dimensions.
+
 At a larger, layer-like N=K=8192 shape, the quantized pipeline remains fast:
 2.82, 105.48, and 471.08 TFLOP/s at M=1/32/128, versus same-process FP16
 controls of 1.61, 48.48, and 177.72 TFLOP/s (1.75×/2.18×/2.65×). An

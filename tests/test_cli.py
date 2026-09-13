@@ -64,3 +64,12 @@ class CliTests(unittest.TestCase):
         self.assertEqual(unknown["confidence"], "aligned_control_unvalidated_shape")
         unaligned = cli.recommend_gemm(1000, 1024, 1024)
         self.assertEqual(unaligned["variant"], "fallback")
+
+    def test_nvfp4_policy_only_promotes_measured_graph_buckets(self):
+        measured = cli.recommend_nvfp4_pipeline(128, 4096, 4096)
+        self.assertEqual(measured["strategy"], "cuda_graph_shape_bucket")
+        self.assertEqual(measured["confidence"], "measured_repeated")
+        aligned_unknown = cli.recommend_nvfp4_pipeline(64, 4096, 4096)
+        self.assertEqual(aligned_unknown["strategy"], "regular_nvfp4_pipeline")
+        unaligned = cli.recommend_nvfp4_pipeline(32, 4100, 4096)
+        self.assertEqual(unaligned["strategy"], "fallback")

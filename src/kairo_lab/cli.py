@@ -133,6 +133,40 @@ def recommend_gemm(m: int, n: int, k: int) -> dict[str, object]:
     }
 
 
+def recommend_nvfp4_pipeline(m: int, n: int, k: int) -> dict[str, object]:
+    """Choose the measured NVFP4 pipeline for an exact shape bucket."""
+
+    if min(m, n, k) < 1:
+        raise ValueError("m, n, and k must be positive")
+    measured_graph_shapes = {
+        (1, 4096, 4096): {"reduction_percent": 27.5, "replays_to_amortize": 3800},
+        (32, 4096, 4096): {"reduction_percent": 27.5, "replays_to_amortize": 3769},
+        (128, 4096, 4096): {"reduction_percent": 36.0, "replays_to_amortize": 3367},
+    }
+    shape = (m, n, k)
+    if (evidence := measured_graph_shapes.get(shape)) is not None:
+        return {
+            "shape": [m, n, k],
+            "strategy": "cuda_graph_shape_bucket",
+            "confidence": "measured_repeated",
+            **evidence,
+            "reason": "exact shape has two-process correctness-aware Graph measurements",
+        }
+    if n % 32 == 0 and k % 32 == 0:
+        return {
+            "shape": [m, n, k],
+            "strategy": "regular_nvfp4_pipeline",
+            "confidence": "aligned_control_unvalidated_shape",
+            "reason": "shape is NVFP4-aligned but Graph benefit is not measured",
+        }
+    return {
+        "shape": [m, n, k],
+        "strategy": "fallback",
+        "confidence": "unaligned_unvalidated",
+        "reason": "NVFP4 probe requires N and K divisible by 32",
+    }
+
+
 def _nvcc_command() -> str | None:
     for candidate in ("/usr/local/cuda-13.0/bin/nvcc", "/usr/local/cuda-12.8/bin/nvcc"):
         if Path(candidate).exists():
@@ -212,6 +246,12 @@ def main() -> None:
     gemm_parser.add_argument("--m", type=int, required=True)
     gemm_parser.add_argument("--n", type=int, required=True)
     gemm_parser.add_argument("--k", type=int, required=True)
+    nvfp4_parser = subcommands.add_parser(
+        "recommend-nvfp4", help="select a measured NVFP4 pipeline strategy"
+    )
+    nvfp4_parser.add_argument("--m", type=int, required=True)
+    nvfp4_parser.add_argument("--n", type=int, required=True)
+    nvfp4_parser.add_argument("--k", type=int, required=True)
     args = parser.parse_args()
 
     if args.command == "env":
@@ -232,6 +272,8 @@ def main() -> None:
                 indent=2,
             )
         )
+    elif args.command == "recommend-nvfp4":
+        print(json.dumps(recommend_nvfp4_pipeline(args.m, args.n, args.k), indent=2))
     else:
         print(json.dumps(recommend_gemm(args.m, args.n, args.k), indent=2))
 

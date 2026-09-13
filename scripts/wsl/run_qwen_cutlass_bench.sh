@@ -29,6 +29,13 @@ export KAIRO_HEALTH_TIMEOUT="${KAIRO_HEALTH_TIMEOUT:-300}"
 repeats="${KAIRO_BENCH_REPEATS:-1}"
 run_correctness="${KAIRO_RUN_CORRECTNESS:-0}"
 
+if [[ -z "${KAIRO_MODEL_REVISION:-}" ]]; then
+  case "$model" in
+    *Qwen3.8-27B-NVFP4) KAIRO_MODEL_REVISION=dbb8f445b3145f8a4c18ddc769f032d57d32867c ;;
+    *Qwen3-8B-NVFP4) KAIRO_MODEL_REVISION=ccd10a893cbca613259517c3efe08e151ddf2b8e ;;
+  esac
+fi
+
 if [[ "${KAIRO_VERIFY_MODEL_REVISION:-1}" == "1" && -n "${KAIRO_MODEL_REVISION:-}" ]]; then
   "${KAIRO_VERIFY_PYTHON:-python3}" "$root/scripts/wsl/verify_model_snapshot.py" \
     --model-path "$model" --expected-revision "$KAIRO_MODEL_REVISION" >&2

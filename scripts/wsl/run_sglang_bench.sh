@@ -18,6 +18,13 @@ warmup="${KAIRO_BENCH_WARMUP:-1}"
 health_timeout="${KAIRO_HEALTH_TIMEOUT:-300}"
 service_pid=""
 
+if [[ -z "${KAIRO_MODEL_REVISION:-}" ]]; then
+  case "$model" in
+    *Qwen3.8-27B-NVFP4) KAIRO_MODEL_REVISION=dbb8f445b3145f8a4c18ddc769f032d57d32867c ;;
+    *Qwen3-8B-NVFP4) KAIRO_MODEL_REVISION=ccd10a893cbca613259517c3efe08e151ddf2b8e ;;
+  esac
+fi
+
 cleanup() {
   if [[ -n "$service_pid" ]] && kill -0 "$service_pid" 2>/dev/null; then
     kill "$service_pid" 2>/dev/null || true
@@ -37,6 +44,11 @@ export KAIRO_SKIP_SERVER_WARMUP="${KAIRO_SKIP_SERVER_WARMUP:-1}"
 export KAIRO_DISABLE_THINKING="${KAIRO_DISABLE_THINKING:-1}"
 export KAIRO_KEEP_ALIVE=1
 export KAIRO_HEALTH_TIMEOUT="$health_timeout"
+
+if [[ "${KAIRO_VERIFY_MODEL_REVISION:-1}" == "1" && -n "${KAIRO_MODEL_REVISION:-}" ]]; then
+  "${KAIRO_VERIFY_PYTHON:-python3}" "$root/scripts/wsl/verify_model_snapshot.py" \
+    --model-path "$model" --expected-revision "$KAIRO_MODEL_REVISION" >&2
+fi
 
 "$root/scripts/wsl/smoke_serve.sh" sglang "$model" "$port" >"$server_log" 2>&1 &
 service_pid=$!

@@ -95,9 +95,42 @@ tok/s; all 48 requests succeeded), giving a conservative +78.7% throughput
 delta over the paired SGLang point. At c1/c4, SGLang remains slightly faster.
 The shape-specific reversal is the strongest current lead: vLLM/B12X keeps a
 much larger effective decode batch, while SGLang's Mamba cache forms multiple
-waves. It is a measurable runtime/scheduling wedge, not yet a
-kernel-publication claim; repeat it with long prompts and a correctness matrix
-before presenting it publicly.
+waves. It is a measurable runtime/scheduling wedge, not a kernel-publication
+claim; the long-prompt and deterministic correctness repeats below qualify it
+for continued investigation.
+
+The long-prompt repeat used 2,048 requested prompt tokens (2,241--2,243
+actual), 128 generated tokens, c16, two warmups, and the same 4K serving
+envelope. vLLM/B12X remained ahead, but the gap narrowed as prefill work grew:
+
+| Runtime | Output tok/s | TTFT P50 / P99 | Success |
+|---|---:|---:|---:|
+| vLLM nightly + B12X | **133.38** | 3,167 / 5,628 ms | 16/16 |
+| SGLang main, ratio 8 | 56.59 | — | 16/16 |
+| SGLang main, ratio 4.59 | 57.65 | — | 16/16 |
+
+The SGLang long-prompt run recorded output throughput but not a comparable TTFT
+series. The vLLM long-prompt point is about 2.31x the SGLang ratio-8 result, so
+the c16 lead survives beyond the short-prompt wedge, while the absolute
+advantage is smaller than at 512 tokens.
+
+### Deterministic correctness gate
+
+`scripts/wsl/check_correctness.py` sends four temperature-0 OpenAI-compatible
+chat requests (exact sentinel, arithmetic, low-bit token, and Chinese text)
+with thinking disabled. Both serving lanes passed all four cases on the same
+Qwen3.8 checkpoint:
+
+| Runtime | Passed |
+|---|---:|
+| vLLM nightly + B12X | **4/4** |
+| SGLang main, ratio 8 | **4/4** |
+
+This is a semantic/protocol smoke gate, not a proof of token-level equivalence
+for arbitrary prompts. It is sufficient to prevent a throughput result from
+being reported when the lane cannot answer deterministic control tasks; future
+kernel work should add task-suite and regression prompts.
+
 - A source checkout of SGLang main (`14b647c`) was tested in the isolated
   SGLang environment. With `--mamba-ssm-dtype bfloat16` and 0.80 static-memory
   fraction it loaded the weights, allocated 4.22 GiB of Mamba state plus a

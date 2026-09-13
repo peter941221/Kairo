@@ -198,3 +198,18 @@ pinned_long_context_validation:
     repeats_consistent: true
     actual_token_counts_match: true
     promotion_gate: true
+
+compatibility_failures:
+  - date_utc: 2026-09-14
+    backend: sglang-0.5.19
+    workload: c16/prompt512/context1024/generation128
+    flags: >-
+      disable_flashinfer_autotune=1, qwen38_flags=1,
+      mamba_ssm_dtype=bfloat16, mamba_full_memory_ratio=4.59,
+      disable_cuda_graph=1
+    failure: >-
+      scheduler crashed during the first prefill with
+      TypeError: 'NoneType' object is not subscriptable at
+      _mamba_radix_cache_v2_req_prepare_for_extend
+    result: not_a_performance_measurement
+    server_log: .kairo-local/qwen3-8b-final-c16-p512-sglang.server.log

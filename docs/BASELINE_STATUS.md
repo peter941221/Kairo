@@ -574,7 +574,12 @@ is 6.162x faster than this SGLang control. The reusable
 `scripts/wsl/run_sglang_bench.sh` entry point captures both server and benchmark
 logs; the no-autotune variant is the reproducible SGLang result. The default
 SGLang autotune variant destabilized WSL before health, so it remains a failed
-compatibility experiment rather than a performance claim.
+compatibility experiment rather than a performance claim. A fresh Qwen3-8B
+attempt with the documented Mamba flags also failed closed: the scheduler
+raised `TypeError: 'NoneType' object is not subscriptable` at
+`_mamba_radix_cache_v2_req_prepare_for_extend` before the first request. The
+flags and server log are recorded under `compatibility_failures` in the
+Qwen3-8B protocol and are not treated as performance data.
 
 The new `scripts/wsl/analyze_waves.py` turns that observation into a reproducible
 metric using a documented 2,000 ms TTFT-gap threshold. On the latest long-prompt

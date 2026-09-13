@@ -205,8 +205,9 @@ python scripts/wsl/analyze_nvfp4_graph.py .kairo-local/nvfp4-graph.jsonl
 
 The capture/replay implementation is in
 [`cuda_graph_bucket.py`](scripts/wsl/cuda_graph_bucket.py); it
-keeps one graph per exact shape and exposes capture cost, replay break-even,
-and cache-hit statistics.
+keeps one graph per operation namespace and exact shape, preventing a model or
+backend switch from reusing an incompatible capture. It exposes capture cost,
+replay break-even, and cache-hit statistics.
 
 The model-level CUTLASS serving gate is reproducible with:
 

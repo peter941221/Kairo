@@ -146,10 +146,14 @@ def run(
             pipeline_reference = invoke_pipeline().float()
             torch.cuda.synchronize()
             graph_cache = CudaGraphBucketCache(torch, warmups=warmups)
-            graph_bucket = graph_cache.get_or_capture((m, n, k), invoke_pipeline)
+            graph_bucket = graph_cache.get_or_capture(
+                (m, n, k), invoke_pipeline, namespace=f"{backend}:nvfp4"
+            )
             # Exercise the lookup path as a real shape bucket would on its
             # second request; this must not trigger another capture.
-            graph_cache.get_or_capture((m, n, k), invoke_pipeline)
+            graph_cache.get_or_capture(
+                (m, n, k), invoke_pipeline, namespace=f"{backend}:nvfp4"
+            )
 
             def invoke_graph() -> torch.Tensor:
                 return graph_bucket.replay()

@@ -54,13 +54,21 @@ class CudaGraphBucketCache:
     def __init__(self, torch_module: Any, warmups: int = 2):
         self.torch = torch_module
         self.warmups = warmups
-        self._buckets: dict[tuple[int, ...], CudaGraphBucket] = {}
+        self._buckets: dict[tuple[str, tuple[int, ...]], CudaGraphBucket] = {}
         self._lock = threading.RLock()
         self._hits = 0
         self._captures = 0
 
-    def get_or_capture(self, shape: tuple[int, ...], factory: Callable[[], Any]) -> CudaGraphBucket:
-        key = tuple(int(value) for value in shape)
+    def get_or_capture(
+        self,
+        shape: tuple[int, ...],
+        factory: Callable[[], Any],
+        *,
+        namespace: str = "default",
+    ) -> CudaGraphBucket:
+        """Return a graph bucket isolated by operation/model namespace."""
+
+        key = (str(namespace), tuple(int(value) for value in shape))
         with self._lock:
             bucket = self._buckets.get(key)
             if bucket is not None:

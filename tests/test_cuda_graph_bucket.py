@@ -79,3 +79,11 @@ class CudaGraphBucketTests(unittest.TestCase):
             )
         self.assertEqual(len({id(bucket) for bucket in buckets}), 1)
         self.assertEqual(cache.stats(), {"buckets": 1, "captures": 1, "hits": 7})
+
+    def test_namespace_prevents_cross_operation_reuse(self):
+        torch = _FakeTorch()
+        cache = CudaGraphBucketCache(torch, warmups=0)
+        first = cache.get_or_capture((32, 4096, 4096), lambda: "a", namespace="cutlass")
+        second = cache.get_or_capture((32, 4096, 4096), lambda: "b", namespace="b12x")
+        self.assertIsNot(first, second)
+        self.assertEqual(cache.stats(), {"buckets": 2, "captures": 2, "hits": 0})

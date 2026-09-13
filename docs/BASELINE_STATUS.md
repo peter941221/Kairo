@@ -179,7 +179,9 @@ drop-in vLLM backend. Reproduce with `--cuda-graph`; the full matrix is in
 The reusable shape-bucket helper now reports capture cost and lookup reuse. On
 the unified cache probe, capture took 15.7--23.0 ms and the measured replay
 savings amortized after roughly 2.2k--3.4k calls; each bucket showed one
-capture and one subsequent cache hit. Replacing activation values in-place
+capture and one subsequent cache hit. Buckets are now isolated by operation
+namespace as well as shape, so changing backend/model cannot reuse an
+incompatible graph. Replacing activation values in-place
 after capture still matched the regular pipeline at max error 0.0. This gives
 the decode scheduler a concrete retention threshold instead of assuming that
 graph capture is free.

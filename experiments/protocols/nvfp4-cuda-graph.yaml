@@ -17,30 +17,31 @@ workload:
   operation: activation_scaled_fp4_quant_then_cutlass_scaled_fp4_mm
 cells:
   - m: 1
-    regular_pipeline_ms: 0.025759
-    cuda_graph_pipeline_ms: 0.018392
-    pipeline_reduction_percent: 28.6
-    fp16_mm_ms: 0.019737
-    graph_speedup_vs_fp16: 1.073
+    regular_pipeline_ms: 0.029391
+    cuda_graph_pipeline_ms: 0.019854
+    pipeline_reduction_percent: 32.4
+    fp16_mm_ms: 0.017093
+    graph_speedup_vs_fp16: 0.861
     graph_max_abs_error_vs_pipeline: 0.0
   - m: 32
-    regular_pipeline_ms: 0.026048
-    cuda_graph_pipeline_ms: 0.018406
-    pipeline_reduction_percent: 29.3
-    fp16_mm_ms: 0.020044
-    graph_speedup_vs_fp16: 1.089
+    regular_pipeline_ms: 0.026728
+    cuda_graph_pipeline_ms: 0.019263
+    pipeline_reduction_percent: 27.9
+    fp16_mm_ms: 0.019860
+    graph_speedup_vs_fp16: 1.031
     graph_max_abs_error_vs_pipeline: 0.0
   - m: 128
-    regular_pipeline_ms: 0.026368
-    cuda_graph_pipeline_ms: 0.018290
-    pipeline_reduction_percent: 30.6
-    fp16_mm_ms: 0.028464
-    graph_speedup_vs_fp16: 1.556
+    regular_pipeline_ms: 0.025574
+    cuda_graph_pipeline_ms: 0.018451
+    pipeline_reduction_percent: 27.9
+    fp16_mm_ms: 0.028621
+    graph_speedup_vs_fp16: 1.551
     graph_max_abs_error_vs_pipeline: 0.0
-decision: CUDA Graph capture removes roughly 29--31% of activation-quantization pipeline time at the measured decode-like shapes while matching the regular pipeline bit-for-bit. This is a shape-static serving optimization; it must be integrated with request-shape bucketing and recaptured on shape changes before production use.
+decision: CUDA Graph capture removes roughly 28--32% of activation-quantization pipeline time at the measured decode-like shapes while matching the regular pipeline bit-for-bit. This is a shape-static serving optimization; it must be integrated with request-shape bucketing and recaptured on shape changes before production use.
 evidence:
   matrix_runner: bash scripts/wsl/run_nvfp4_graph_matrix.sh .kairo-local/nvfp4-graph.jsonl
   analyzer: python scripts/wsl/analyze_nvfp4_graph.py .kairo-local/nvfp4-graph.jsonl
+  raw_matrix: .kairo-local/nvfp4-graph-full.jsonl
   commands:
     - bash scripts/wsl/run_nvfp4_probe.sh --m 1 --n 4096 --k 4096 --iterations 500 --warmups 30 --cuda-graph
     - bash scripts/wsl/run_nvfp4_probe.sh --m 32 --n 4096 --k 4096 --iterations 300 --warmups 30 --cuda-graph

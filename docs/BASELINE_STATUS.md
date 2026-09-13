@@ -161,10 +161,10 @@ the vendor GEMM. The pipeline data is recorded in
 
 The first Kairo-owned pipeline optimization is now measured: capturing
 activation quantization plus CUTLASS GEMM in `torch.cuda.CUDAGraph` reduces
-pipeline time by 28.6--30.6% at M=1/32/128 (N=K=4096), with graph output
+pipeline time by 27.9--32.4% at M=1/32/128 (N=K=4096), with graph output
 matching the regular pipeline at max absolute error 0.0. The graph path turns
-the previously losing M=1/32 pipeline cells into 1.07x/1.09x FP16 controls and
-raises M=128 to 1.56x in this run. This requires static shape buckets and
+the previously losing M=1/32 pipeline cells into 0.86x/1.03x FP16 controls and
+raises M=128 to 1.55x in the unified matrix run. This requires static shape buckets and
 recapture when dimensions change; it is an integration candidate, not yet a
 drop-in vLLM backend. Reproduce with `--cuda-graph`; the full matrix is in
 `experiments/protocols/nvfp4-cuda-graph.yaml`.

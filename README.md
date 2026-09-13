@@ -153,6 +153,14 @@ the regular pipeline; see
 The vLLM service probe with `KAIRO_ENFORCE_EAGER=0` did not reach health within
 five minutes, so service-level CUDA Graph mode is not enabled by default.
 
+Run the shape-bucket matrix and keep machine-readable records:
+
+```bash
+bash scripts/wsl/run_nvfp4_graph_matrix.sh .kairo-local/nvfp4-graph.jsonl
+```
+
+Override cells with `KAIRO_NVFP4_GRAPH_SHAPES=M,N,K,iterations,warmups;...`.
+
 The model-level CUTLASS serving gate is reproducible with:
 
 ```bash

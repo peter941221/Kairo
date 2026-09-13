@@ -97,6 +97,8 @@ def recommend_gemm(m: int, n: int, k: int) -> dict[str, object]:
         (1024, 1024, 1024),
         (2048, 1024, 4096),
         (4096, 4096, 4096),
+        (512, 1024, 1024),
+        (8192, 1024, 1024),
     }
     if (m, n, k) in measured_m128:
         return {

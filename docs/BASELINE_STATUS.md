@@ -111,6 +111,14 @@ block (`m128` variant). It stays correct on square 1K/4K and a rectangular
 (about 8% above its control). This is the leading aligned-shape candidate,
 but routing remains conservative until boundary and occupancy coverage grows.
 
+The shape-expansion matrix confirms why that conservatism matters: m128 loses
+to the 64-row control at `[256,1024,1024]` (9,792 vs 17,690 GFLOP/s) and
+`[2048,2048,2048]` (38,069 vs 39,833), but wins at `[512,1024,1024]`
+(30,248 vs 22,829) and `[8192,1024,1024]` (43,296 vs 40,442). The policy
+therefore uses an explicit measured-cell allowlist, recorded in
+`experiments/protocols/tma-wmma-shape-expansion.yaml`, rather than extrapolating
+from divisibility alone.
+
 Run it directly on the WSL 5090:
 
 ```bash

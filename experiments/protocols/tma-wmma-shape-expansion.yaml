@@ -1,0 +1,35 @@
+name: tma-wmma-shape-expansion
+status: measured_shape_matrix
+parent: experiments/protocols/tma-wmma-gemm-phase1.yaml
+hardware:
+  gpu: NVIDIA GeForce RTX 5090
+  compute_capability: "12.0"
+  execution_environment: WSL2 Ubuntu 24.04
+toolchain:
+  cuda: 13.0.0
+  target: sm_120
+matrix:
+  variants: [single, m128]
+  iterations: 10
+  cells:
+    - shape: [256, 1024, 1024]
+      single_gflops: 17690.022
+      m128_gflops: 9792.341
+      winner: single
+      max_abs_error_vs_cublas: 0.0
+    - shape: [512, 1024, 1024]
+      single_gflops: 22829.250
+      m128_gflops: 30248.295
+      winner: m128
+      max_abs_error_vs_cublas: 0.0
+    - shape: [2048, 2048, 2048]
+      single_gflops: 39833.127
+      m128_gflops: 38069.199
+      winner: single
+      max_abs_error_vs_cublas: 0.0
+    - shape: [8192, 1024, 1024]
+      single_gflops: 40442.252
+      m128_gflops: 43295.692
+      winner: m128
+      max_abs_error_vs_cublas: 0.0
+decision: m128 is shape-sensitive rather than a universal replacement. Promote it only for measured winning cells; retain the single-buffer control for unknown or losing shapes.

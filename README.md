@@ -7,6 +7,7 @@
 [Experiment protocol](docs/EXPERIMENT_PROTOCOL.md) ·
 [Phase 1 article](blog/001-when-cuda-graphs-actually-help.md) ·
 [Reproduce Phase 1](docs/REPRODUCE_PHASE1.md) ·
+[Blog](https://peter941221.github.io/Kairo/) ·
 [Contributing](CONTRIBUTING.md) ·
 [Apache-2.0](LICENSE)
 

@@ -1,3 +1,9 @@
+---
+layout: default
+title: "Building Kairo: From Measured Routes to Native Blackwell Components"
+description: "Measured CUDA Graph routing and native Blackwell baselines on an RTX 5090."
+---
+
 # Building Kairo: From Measured Routes to Native Blackwell Components
 
 Kairo is an RTX 5090 inference workbench. Its current output is a strict

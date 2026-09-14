@@ -1,41 +1,54 @@
 ---
 layout: default
-title: Kairo Notes
+title: Kairo Labs
 ---
 
-<div class="hero">
+<p class="eyebrow">Blackwell · LLM inference · RTX 5090</p>
 
-<div class="eyebrow">BLACKWELL / INFERENCE / EXPERIMENTS</div>
+# Notes from an inference lab.
 
-# Kairo Notes
+<p class="lede">
+Kairo is an evidence-driven workbench for LLM inference on consumer Blackwell
+GPUs. Phase 1 measured CUDA Graph routing on an RTX 5090: gains ranged from
+1.30x to 2.62x depending on the exact workload, and only routes that passed a
+paired benchmark and a correctness gate were promoted.
+</p>
 
-Evidence-driven Blackwell inference research: measure a workload, prove a
-result, and route only what was measured.
+<p class="status">
+  <span class="dot on"></span> phase 1 complete
+  <span class="sep">·</span>
+  <span class="dot off"></span> phase 2 in progress
+</p>
 
-<p class="status"><span class="dot"></span> PHASE 1 COMPLETE · PHASE 2 IN PROGRESS</p>
+## Notes
 
-</div>
+<ol class="notes">
+  <li>
+    <span class="note-date">2026-09-14 · Phase 1</span>
+    <a class="note-title" href="001-when-cuda-graphs-actually-help.html">Building Kairo: from measured routes to native Blackwell components</a>
+    <p>The flagship write-up: paired Graph/eager benchmarks, a fail-closed
+    routing policy, and the first TMA + WMMA baselines on SM120.</p>
+  </li>
+  <li>
+    <span class="note-date">Draft</span>
+    <a class="note-title" href="002-benchmarks-that-can-say-no.html">Benchmarks that can say no</a>
+    <p>The evidence contract behind every Kairo number, and why negative
+    results stay in the record.</p>
+  </li>
+  <li>
+    <span class="note-date">Draft</span>
+    <a class="note-title" href="003-tma-wmma-on-consumer-blackwell.html">TMA + WMMA on consumer Blackwell</a>
+    <p>A correctness-first native CUDA baseline, and the shared-memory layout
+    constraint that defines Phase 2.</p>
+  </li>
+</ol>
 
-## The work
+## Elsewhere
 
-<div class="grid">
+- [Kairo repository](https://github.com/peter941221/Kairo) — code, protocols, runners
+- [Phase 1 results](https://github.com/peter941221/Kairo/blob/main/docs/PHASE_1_RESULTS.md) — the measured table behind the numbers
+- [Public evidence](https://github.com/peter941221/Kairo/blob/main/evidence/phase1/serving-benchmark-repeats.jsonl) — per-repeat benchmark records
+- [Reproduce Phase 1](https://github.com/peter941221/Kairo/blob/main/docs/REPRODUCE_PHASE1.md) — run the paired benchmark on your own RTX 5090
 
-<div class="card"><div class="eyebrow">SERVING</div><div class="metric">2.09–2.62x</div><p>Measured CUDA Graph throughput gain across selected Qwen NVFP4 workload buckets.</p></div>
-
-<div class="card"><div class="eyebrow">NATIVE PATH</div><div class="metric">SM120</div><p>TMA + WMMA correctness baseline on a consumer Blackwell GPU.</p></div>
-
-</div>
-
-## Phase 1
-
-### [Building Kairo: From Measured Routes to Native Blackwell Components](001-when-cuda-graphs-actually-help.html)
-
-Measured CUDA Graph routing on an RTX 5090, the limits of the current native
-TMA + WMMA path, and the Phase 2 direction toward native Blackwell components.
-
-- [Kairo repository](https://github.com/peter941221/Kairo)
-- [Phase 1 results](https://github.com/peter941221/Kairo/blob/main/docs/PHASE_1_RESULTS.md)
-- [Public evidence](https://github.com/peter941221/Kairo/blob/main/evidence/phase1/serving-benchmark-repeats.jsonl)
-
-The repository is the source of code and evidence; this page is the readable
-article index.
+The Markdown source lives in
+[`blog/`](https://github.com/peter941221/Kairo/tree/main/blog) in the repository.

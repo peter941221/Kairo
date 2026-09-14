@@ -3,16 +3,36 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ page.title }} · {{ site.title }}</title>
+    {% assign page_title = page.title | default: site.title %}
+    {% if page_title == site.title %}
+      <title>{{ site.title }} — {{ site.description }}</title>
+    {% else %}
+      <title>{{ page_title }} · {{ site.title }}</title>
+    {% endif %}
     <meta name="description" content="{{ page.description | default: site.description }}">
-    <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b0e13">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="{{ page_title }}">
+    <meta property="og:description" content="{{ page.description | default: site.description }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%230b0e13'/><rect x='3' y='10.5' width='10' height='2.6' rx='1.3' fill='%235ce0c6'/></svg>">
+    <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}?v=2">
   </head>
   <body>
-    <header class="site-header"><div class="shell nav">
-      <a class="brand" href="{{ '/' | relative_url }}"><span class="brand-mark">[K]</span> KAIRO LABS</a>
-      <nav><a href="{{ '/' | relative_url }}">Notes</a><a href="https://github.com/peter941221/Kairo">GitHub</a></nav>
-    </div></header>
-    <main class="shell">{{ content }}</main>
-    <footer class="shell site-footer"><span>KAIRO / BLACKWELL INFERENCE RESEARCH</span><span><a href="https://github.com/peter941221/Kairo">SOURCE</a> · APACHE-2.0</span></footer>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="frame nav">
+        <a class="brand" href="{{ '/' | relative_url }}">kairo<span class="caret">_</span></a>
+        <nav class="nav-links">
+          <a href="{{ '/' | relative_url }}">notes</a>
+          <a href="https://github.com/peter941221/Kairo">github</a>
+        </nav>
+      </div>
+    </header>
+    <main id="main" class="frame">{{ content }}</main>
+    <footer class="frame site-footer">
+      <span>© 2026 Kairo contributors · Apache-2.0</span>
+      <a href="https://github.com/peter941221/Kairo">source</a>
+    </footer>
   </body>
 </html>

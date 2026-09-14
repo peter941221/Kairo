@@ -5,9 +5,10 @@ set -euo pipefail
 # deliberately eager (smoke_serve disables CUDA Graphs) so it is a fair runtime
 # control for the vLLM Graph experiments.
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 port="${1:-18140}"
-model="${KAIRO_SGLANG_MODEL:-/home/peter/kairo-models/Qwen3-8B-NVFP4}"
-python_bin="${KAIRO_SGLANG_BENCH_PYTHON:-/home/peter/venv-sglang/bin/python}"
+model="${KAIRO_SGLANG_MODEL:-${KAIRO_MODEL_DIR}/Qwen3-8B-NVFP4}"
+python_bin="${KAIRO_SGLANG_BENCH_PYTHON:-${KAIRO_SGLANG_ENV}/bin/python}"
 server_log="${KAIRO_SGLANG_SERVER_LOG:-/tmp/kairo-sglang-${port}.log}"
 source_revision="${KAIRO_SOURCE_REVISION:-$(git -C "$root" rev-parse HEAD 2>/dev/null || true)}"
 repeats="${KAIRO_BENCH_REPEATS:-1}"

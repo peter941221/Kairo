@@ -1,6 +1,9 @@
 # Local agent/project context: deliberately never committed.
 .kairo-local/
 
+# Private editorial reference. It is not a Kairo publication artifact.
+blog/0818-01-Blog_MuseProbe_2026-08-18_LATEST.md
+
 # Python and tooling
 .venv/
 __pycache__/

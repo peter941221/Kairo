@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
 echo "Kairo WSL environment"
 echo "PWD: $(pwd)"
 python_bin="${KAIRO_PYTHON:-python3}"
-if [[ "$python_bin" == "python3" && -x /home/peter/venv-gpu/bin/python ]]; then
-  python_bin="/home/peter/venv-gpu/bin/python"
+if [[ "$python_bin" == "python3" && -x "${KAIRO_GPU_VENV}/bin/python" ]]; then
+  python_bin="${KAIRO_GPU_VENV}/bin/python"
 fi
 "$python_bin" --version
 git --version
@@ -30,8 +31,8 @@ fi
 if [[ -x .venv/bin/python ]] && .venv/bin/python -c 'import torch' >/dev/null 2>&1; then
   python_bin=".venv/bin/python"
   echo "Kairo venv: .venv/bin/python"
-elif [[ -x /home/peter/venv-gpu/bin/python ]]; then
-  echo "Existing GPU venv: /home/peter/venv-gpu/bin/python"
+elif [[ -x "${KAIRO_GPU_VENV}/bin/python" ]]; then
+  echo "Existing GPU venv: ${KAIRO_GPU_VENV}/bin/python"
 fi
 
 if "$python_bin" -c 'import torch' 2>/dev/null; then

@@ -5,8 +5,9 @@ set -euo pipefail
 # dimensions are required so a short-prompt Graph result cannot silently be
 # reused for a long-context request.
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 port="${1:-18120}"
-model="${KAIRO_QWEN_MODEL:-/home/peter/kairo-models/Qwen3.8-27B-NVFP4}"
+model="${KAIRO_QWEN_MODEL:-${KAIRO_MODEL_DIR}/Qwen3.8-27B-NVFP4}"
 profile_model="${KAIRO_PROFILE_MODEL:-qwen38}"
 concurrency="${KAIRO_WORKLOAD_CONCURRENCY:-16}"
 prompt_tokens="${KAIRO_WORKLOAD_PROMPT_TOKENS:-512}"

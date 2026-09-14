@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
 backend="${1:-sglang}"
-model="${2:-/home/peter/kairo-models/Qwen3.8-27B-NVFP4}"
+model="${2:-${KAIRO_MODEL_DIR}/Qwen3.8-27B-NVFP4}"
 port="${3:-18086}"
 concurrency="${4:-${KAIRO_WORKLOAD_CONCURRENCY:-16}}"
 prompt_tokens="${5:-${KAIRO_WORKLOAD_PROMPT_TOKENS:-512}}"

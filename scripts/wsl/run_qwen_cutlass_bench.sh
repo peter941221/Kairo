@@ -2,8 +2,9 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 port="${1:-18088}"
-model="${KAIRO_QWEN_MODEL:-/home/peter/kairo-models/Qwen3.8-27B-NVFP4}"
+model="${KAIRO_QWEN_MODEL:-${KAIRO_MODEL_DIR}/Qwen3.8-27B-NVFP4}"
 log_file="${KAIRO_QWEN_CUTLASS_LOG:-/tmp/kairo-qwen-vllm-cutlass-${port}.log}"
 source_revision="${KAIRO_SOURCE_REVISION:-$(git -C "$root" rev-parse HEAD 2>/dev/null || true)}"
 service_pid=""
@@ -57,7 +58,7 @@ done
 curl -fsS "http://127.0.0.1:${port}/health" >/dev/null
 
 if [[ "$run_correctness" == "1" ]]; then
-  /home/peter/venv-vllm-nightly/bin/python "$root/scripts/wsl/check_correctness.py" \
+  "${KAIRO_VLLM_NIGHTLY_PYTHON:-${KAIRO_VLLM_NIGHTLY_VENV}/bin/python}" "$root/scripts/wsl/check_correctness.py" \
     --base-url "http://127.0.0.1:${port}" --model smoke
 fi
 
@@ -80,6 +81,6 @@ for repeat in $(seq 1 "$repeats"); do
   [[ -n "${KAIRO_BENCH_CONTEXT_TOKENS:-}" ]] && bench_args+=(
     --context-tokens "$KAIRO_BENCH_CONTEXT_TOKENS"
   )
-  /home/peter/venv-vllm-nightly/bin/python "$root/scripts/wsl/bench_openai.py" \
+  "${KAIRO_VLLM_NIGHTLY_PYTHON:-${KAIRO_VLLM_NIGHTLY_VENV}/bin/python}" "$root/scripts/wsl/bench_openai.py" \
     "${bench_args[@]}"
 done

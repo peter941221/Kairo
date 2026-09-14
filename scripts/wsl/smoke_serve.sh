@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 backend="${1:-}"
-model="${2:-/home/peter/kairo-models/Qwen2.5-0.5B-Instruct}"
+model="${2:-${KAIRO_MODEL_DIR}/Qwen2.5-0.5B-Instruct}"
 port="${3:-18080}"
-vllm_bin="${KAIRO_VLLM_BIN:-/home/peter/venv-gpu/bin/vllm}"
-sglang_python="${KAIRO_SGLANG_PYTHON:-/home/peter/venv-gpu/bin/python}"
+vllm_bin="${KAIRO_VLLM_BIN:-${KAIRO_GPU_VENV}/bin/vllm}"
+sglang_python="${KAIRO_SGLANG_PYTHON:-${KAIRO_GPU_VENV}/bin/python}"
 sglang_pythonpath="${KAIRO_SGLANG_PYTHONPATH:-}"
 gpu_memory_utilization="${KAIRO_GPU_MEMORY_UTILIZATION:-0.45}"
 max_model_len="${KAIRO_MAX_MODEL_LEN:-2048}"
@@ -65,13 +66,13 @@ if [[ "$backend" == "vllm" ]]; then
   [[ "$disable_flashinfer_autotune" == "1" ]] && vllm_args+=(--no-enable-flashinfer-autotune)
   "$vllm_bin" "${vllm_args[@]}" >"$log_file" 2>&1 &
 elif [[ "$backend" == "vllm-nightly" ]]; then
-  nightly_python="${KAIRO_VLLM_NIGHTLY_PYTHON:-/home/peter/venv-vllm-nightly/bin/python}"
+  nightly_python="${KAIRO_VLLM_NIGHTLY_PYTHON:-${KAIRO_VLLM_NIGHTLY_VENV}/bin/python}"
   nightly_launcher="${KAIRO_VLLM_NIGHTLY_LAUNCHER:-$root/scripts/wsl/vllm_nightly.py}"
   export CUDA_HOME=/usr/local/cuda-13.0
   export PATH="$CUDA_HOME/bin:$PATH"
   # The nightly wheel/Torch and B12X use their own CUDA libraries; the
   # remaining Python CUDA support is reused from the pinned GPU environment.
-  export LD_LIBRARY_PATH="/home/peter/venv-vllm-nightly/lib/python3.12/site-packages/nvidia/nvshmem/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cudnn/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cublas/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cuda_runtime/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/cusparselt/lib:/home/peter/venv-gpu/lib/python3.12/site-packages/nvidia/nccl/lib:${LD_LIBRARY_PATH:-}"
+  export LD_LIBRARY_PATH="${KAIRO_VLLM_NIGHTLY_VENV}/lib/python3.12/site-packages/nvidia/nvshmem/lib:${KAIRO_GPU_VENV}/lib/python3.12/site-packages/nvidia/cudnn/lib:${KAIRO_GPU_VENV}/lib/python3.12/site-packages/nvidia/cublas/lib:${KAIRO_GPU_VENV}/lib/python3.12/site-packages/nvidia/cuda_runtime/lib:${KAIRO_GPU_VENV}/lib/python3.12/site-packages/nvidia/cusparselt/lib:${KAIRO_GPU_VENV}/lib/python3.12/site-packages/nvidia/nccl/lib:${LD_LIBRARY_PATH:-}"
   export VLLM_WSL2_ENABLE_PIN_MEMORY=1
   nightly_args=(serve "$model" --host 127.0.0.1 --port "$port"
     --served-model-name smoke --tensor-parallel-size 1

@@ -3,9 +3,9 @@
 > Evidence-driven Blackwell inference research: measure a workload, prove a
 > result, and route only what was measured.
 
+[Phase 1 write-up](https://peter941221.github.io/Kairo/001-when-cuda-graphs-actually-help.html) ·
 [Phase 1 results](docs/PHASE_1_RESULTS.md) ·
 [Experiment protocol](docs/EXPERIMENT_PROTOCOL.md) ·
-[Phase 1 article](blog/001-when-cuda-graphs-actually-help.md) ·
 [Reproduce Phase 1](docs/REPRODUCE_PHASE1.md) ·
 [Blog](https://peter941221.github.io/Kairo/) ·
 [Contributing](CONTRIBUTING.md) ·

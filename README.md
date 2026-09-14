@@ -6,6 +6,7 @@
 [Phase 1 results](docs/PHASE_1_RESULTS.md) ·
 [Experiment protocol](docs/EXPERIMENT_PROTOCOL.md) ·
 [Phase 1 article](blog/001-when-cuda-graphs-actually-help.md) ·
+[Reproduce Phase 1](docs/REPRODUCE_PHASE1.md) ·
 [Contributing](CONTRIBUTING.md) ·
 [Apache-2.0](LICENSE)
 
@@ -49,6 +50,13 @@ evidence links, and claims Kairo does not make.
 
 ## Quick start
 
+Clone the repository:
+
+```bash
+git clone https://github.com/peter941221/Kairo.git
+cd Kairo
+```
+
 The portable contracts do not require a GPU:
 
 ```powershell
@@ -72,6 +80,9 @@ GPU-serving paths require a compatible RTX 5090 environment, local model
 weights, and the pinned runtime described in [the environment contract](docs/ENVIRONMENT.md).
 Set model and environment paths through the documented `KAIRO_*` variables;
 do not commit local paths or credentials.
+
+For the full evidence-to-serving-route procedure, including the expected route
+and the exact c32/1K reproduction command, see [Reproduce Phase 1](docs/REPRODUCE_PHASE1.md).
 
 ## Evidence and reproducibility
 

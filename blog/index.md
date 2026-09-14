@@ -29,18 +29,6 @@ paired benchmark and a correctness gate were promoted.
     <p>The flagship write-up: paired Graph/eager benchmarks, a fail-closed
     routing policy, and the first TMA + WMMA baselines on SM120.</p>
   </li>
-  <li>
-    <span class="note-date">Draft</span>
-    <a class="note-title" href="002-benchmarks-that-can-say-no.html">Benchmarks that can say no</a>
-    <p>The evidence contract behind every Kairo number, and why negative
-    results stay in the record.</p>
-  </li>
-  <li>
-    <span class="note-date">Draft</span>
-    <a class="note-title" href="003-tma-wmma-on-consumer-blackwell.html">TMA + WMMA on consumer Blackwell</a>
-    <p>A correctness-first native CUDA baseline, and the shared-memory layout
-    constraint that defines Phase 2.</p>
-  </li>
 </ol>
 
 ## Elsewhere

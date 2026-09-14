@@ -3,10 +3,28 @@ layout: default
 title: Kairo Notes
 ---
 
+<div class="hero">
+
+<div class="eyebrow">BLACKWELL / INFERENCE / EXPERIMENTS</div>
+
 # Kairo Notes
 
 Evidence-driven Blackwell inference research: measure a workload, prove a
 result, and route only what was measured.
+
+<p class="status"><span class="dot"></span> PHASE 1 COMPLETE · PHASE 2 IN PROGRESS</p>
+
+</div>
+
+## The work
+
+<div class="grid">
+
+<div class="card"><div class="eyebrow">SERVING</div><div class="metric">2.09–2.62x</div><p>Measured CUDA Graph throughput gain across selected Qwen NVFP4 workload buckets.</p></div>
+
+<div class="card"><div class="eyebrow">NATIVE PATH</div><div class="metric">SM120</div><p>TMA + WMMA correctness baseline on a consumer Blackwell GPU.</p></div>
+
+</div>
 
 ## Phase 1
 

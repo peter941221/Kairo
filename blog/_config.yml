@@ -1,8 +1,7 @@
-title: Kairo Notes
+title: Kairo Labs
 description: Evidence-driven Blackwell inference research
-theme: minima
 markdown: kramdown
 baseurl: /Kairo
 url: https://peter941221.github.io
-plugins:
-  - jekyll-feed
+exclude:
+  - README.md
